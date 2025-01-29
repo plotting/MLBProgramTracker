@@ -33,10 +33,25 @@ const WeeklyScores = () => {
     if (seasonNum <= 10) {
       return week >= 15 && week <= 16;
     }
-    return week >= 14 && week <= 17;
+    return week >= 15 && week <= 17;
   };
 
-  const weeks = Array.from({ length: 17 }, (_, i) => i + 1);
+  const getWeeksForSeason = (season: string) => {
+    const seasonNum = parseInt(season);
+    return seasonNum <= 10 ? 16 : 17;
+  };
+
+  const calculateRegularSeasonTotal = (scores: string[]) => {
+    return scores
+      .slice(0, 14)
+      .reduce((a, b) => a + parseFloat(b || "0"), 0)
+      .toFixed(1);
+  };
+
+  const weeks = Array.from(
+    { length: getWeeksForSeason(selectedSeason) },
+    (_, i) => i + 1
+  );
 
   return (
     <div className="min-h-screen p-6">
@@ -78,7 +93,7 @@ const WeeklyScores = () => {
                   Week {week}
                 </TableHead>
               ))}
-              <TableHead className="bg-card text-center">Total</TableHead>
+              <TableHead className="bg-card text-center">Regular Season Total</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -100,9 +115,7 @@ const WeeklyScores = () => {
                   </TableCell>
                 ))}
                 <TableCell className="text-center font-bold text-primary">
-                  {team.scores
-                    .reduce((a, b) => a + parseFloat(b || "0"), 0)
-                    .toFixed(1)}
+                  {calculateRegularSeasonTotal(team.scores)}
                 </TableCell>
               </TableRow>
             ))}
