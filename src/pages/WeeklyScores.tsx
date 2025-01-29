@@ -1,5 +1,4 @@
 import { Card } from "@/components/ui/card";
-import { Navigation } from "@/components/Navigation";
 import {
   Table,
   TableBody,
@@ -56,7 +55,6 @@ const WeeklyScores = () => {
 
   return (
     <div className="min-h-screen p-6">
-      <Navigation />
       <header className="mb-8">
         <div className="flex justify-between items-center">
           <div>

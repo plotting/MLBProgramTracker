@@ -1,5 +1,4 @@
 import { Card } from "@/components/ui/card";
-import { Navigation } from "@/components/Navigation";
 import {
   Table,
   TableBody,
@@ -39,8 +38,7 @@ const Records = () => {
   };
 
   return (
-    <div className="min-h-screen p-6">
-      <Navigation />
+    <div className="min-h-screen">
       <header className="mb-8">
         <h1 className="text-4xl font-bold text-white mb-2">League Records</h1>
         <p className="text-muted-foreground">Historical achievements and statistics</p>
