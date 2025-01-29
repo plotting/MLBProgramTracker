@@ -25,11 +25,11 @@ export default {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "#6D28D9",
+          DEFAULT: "#3B82F6", // Changed from purple to blue
           foreground: "#FFFFFF",
         },
         secondary: {
-          DEFAULT: "#3B82F6",
+          DEFAULT: "#10B981", // Changed to emerald green as complement
           foreground: "#FFFFFF",
         },
         card: {
