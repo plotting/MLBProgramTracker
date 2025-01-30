@@ -7,6 +7,7 @@ import { Navigation } from "@/components/Navigation";
 import Seasons from "./pages/Seasons";
 import WeeklyScores from "./pages/WeeklyScores";
 import Records from "./pages/Records";
+import TeamPage from "./pages/TeamPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,6 +24,7 @@ const App = () => (
             <Route path="/" element={<Seasons />} />
             <Route path="/weekly-scores" element={<WeeklyScores />} />
             <Route path="/records" element={<Records />} />
+            <Route path="/team/:teamId" element={<TeamPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>

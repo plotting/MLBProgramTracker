@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 const WeeklyScores = () => {
   const [selectedSeason, setSelectedSeason] = useState("13");
@@ -22,10 +23,9 @@ const WeeklyScores = () => {
 
   // Mock data - replace with real data later
   const teams = [
-    { name: "Team 1", owner: "Owner 1", scores: Array(17).fill(null).map(() => (Math.random() * 50 + 100).toFixed(1)) },
-    { name: "Team 2", owner: "Owner 2", scores: Array(17).fill(null).map(() => (Math.random() * 50 + 100).toFixed(1)) },
-    { name: "Team 3", owner: "Owner 3", scores: Array(17).fill(null).map(() => (Math.random() * 50 + 100).toFixed(1)) },
-    // Add more teams...
+    { id: 1, name: "Team 1", owner: "Owner 1", scores: Array(17).fill(null).map(() => (Math.random() * 50 + 100).toFixed(1)) },
+    { id: 2, name: "Team 2", owner: "Owner 2", scores: Array(17).fill(null).map(() => (Math.random() * 50 + 100).toFixed(1)) },
+    { id: 3, name: "Team 3", owner: "Owner 3", scores: Array(17).fill(null).map(() => (Math.random() * 50 + 100).toFixed(1)) },
   ];
 
   const isPlayoffWeek = (season: string, week: number) => {
@@ -98,9 +98,11 @@ const WeeklyScores = () => {
           </TableHeader>
           <TableBody>
             {teams.map((team) => (
-              <TableRow key={team.name}>
+              <TableRow key={team.id}>
                 <TableCell className="font-medium sticky left-0 bg-background z-10">
-                  {team.name}
+                  <Link to={`/team/${team.id}`} className="text-primary hover:underline">
+                    {team.name}
+                  </Link>
                 </TableCell>
                 {weeks.map((week) => (
                   <TableCell 
