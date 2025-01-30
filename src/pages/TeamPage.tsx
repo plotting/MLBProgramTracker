@@ -14,13 +14,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
 import TeamStats from "@/components/TeamStats";
 
 const TeamPage = () => {
   const { teamId } = useParams();
-  const [selectedSeason, setSelectedSeason] = useState("2023");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [selectedSeason, setSelectedSeason] = useState(searchParams.get("season") || "2023");
+
+  useEffect(() => {
+    setSearchParams({ season: selectedSeason });
+  }, [selectedSeason, setSearchParams]);
 
   // Mock data - replace with real data later
   const teamData = {

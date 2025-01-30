@@ -11,7 +11,6 @@ export const Navigation = () => {
 
   return (
     <div className="relative mb-8">
-      {/* Mobile Menu Button */}
       <button 
         onClick={toggleMenu}
         className="md:hidden p-2 text-white hover:bg-primary/20 rounded-lg transition-colors"
@@ -20,7 +19,6 @@ export const Navigation = () => {
         {isOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
 
-      {/* Navigation Menu */}
       <NavigationMenu className={`${isOpen ? 'block' : 'hidden'} md:block absolute md:relative top-full left-0 right-0 bg-background md:bg-transparent z-50`}>
         <NavigationMenuList className="flex-col md:flex-row w-full">
           <NavigationMenuItem className="w-full md:w-auto">
@@ -30,7 +28,7 @@ export const Navigation = () => {
                   location.pathname === "/" ? "bg-primary text-primary-foreground" : ""
                 }`}
               >
-                Dashboard
+                Seasons
               </NavigationMenuLink>
             </Link>
           </NavigationMenuItem>
@@ -42,6 +40,39 @@ export const Navigation = () => {
                 }`}
               >
                 Weekly Scores
+              </NavigationMenuLink>
+            </Link>
+          </NavigationMenuItem>
+          <NavigationMenuItem className="w-full md:w-auto">
+            <Link to="/trades" className="w-full">
+              <NavigationMenuLink 
+                className={`${navigationMenuTriggerStyle()} w-full justify-start ${
+                  location.pathname === "/trades" ? "bg-primary text-primary-foreground" : ""
+                }`}
+              >
+                Trades
+              </NavigationMenuLink>
+            </Link>
+          </NavigationMenuItem>
+          <NavigationMenuItem className="w-full md:w-auto">
+            <Link to="/draft" className="w-full">
+              <NavigationMenuLink 
+                className={`${navigationMenuTriggerStyle()} w-full justify-start ${
+                  location.pathname === "/draft" ? "bg-primary text-primary-foreground" : ""
+                }`}
+              >
+                Draft
+              </NavigationMenuLink>
+            </Link>
+          </NavigationMenuItem>
+          <NavigationMenuItem className="w-full md:w-auto">
+            <Link to="/head-to-head" className="w-full">
+              <NavigationMenuLink 
+                className={`${navigationMenuTriggerStyle()} w-full justify-start ${
+                  location.pathname === "/head-to-head" ? "bg-primary text-primary-foreground" : ""
+                }`}
+              >
+                Head to Head
               </NavigationMenuLink>
             </Link>
           </NavigationMenuItem>

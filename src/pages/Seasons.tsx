@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import WeeklyMatchup from "@/components/WeeklyMatchup";
 
 const Seasons = () => {
@@ -23,6 +24,7 @@ const Seasons = () => {
   // Mock data - replace with real data later
   const standings = [
     { 
+      id: 1,
       team: "Team 1",
       record: "10-3",
       pointsFor: 1724.8,
@@ -30,6 +32,7 @@ const Seasons = () => {
       avgPoints: 156.8
     },
     { 
+      id: 2,
       team: "Team 2",
       record: "9-4",
       pointsFor: 1698.2,
@@ -74,9 +77,16 @@ const Seasons = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {standings.map((team, index) => (
-                <TableRow key={index}>
-                  <TableCell className="font-medium">{team.team}</TableCell>
+              {standings.map((team) => (
+                <TableRow key={team.id}>
+                  <TableCell className="font-medium">
+                    <Link 
+                      to={`/team/${team.id}?season=${selectedSeason}`} 
+                      className="text-primary hover:underline"
+                    >
+                      {team.team}
+                    </Link>
+                  </TableCell>
                   <TableCell>{team.record}</TableCell>
                   <TableCell>{team.pointsFor.toFixed(1)}</TableCell>
                   <TableCell>{team.pointsAgainst.toFixed(1)}</TableCell>
