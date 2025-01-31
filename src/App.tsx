@@ -1,42 +1,37 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Navigation } from "@/components/Navigation";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Navigation from "./components/Navigation";
 import Seasons from "./pages/Seasons";
-import WeeklyScores from "./pages/WeeklyScores";
-import Records from "./pages/Records";
 import TeamPage from "./pages/TeamPage";
-import Trades from "./pages/Trades";
+import WeeklyScores from "./pages/WeeklyScores";
 import Draft from "./pages/Draft";
+import Trades from "./pages/Trades";
 import HeadToHead from "./pages/HeadToHead";
+import Records from "./pages/Records";
+import WeeklyRecords from "./pages/WeeklyRecords";
 import NotFound from "./pages/NotFound";
+import "./App.css";
 
-const queryClient = new QueryClient();
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <div className="min-h-screen p-6">
-          <Navigation />
+function App() {
+  return (
+    <Router>
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <main className="container mx-auto py-6 px-4">
           <Routes>
             <Route path="/" element={<Seasons />} />
+            <Route path="/team/:id" element={<TeamPage />} />
             <Route path="/weekly-scores" element={<WeeklyScores />} />
-            <Route path="/trades" element={<Trades />} />
             <Route path="/draft" element={<Draft />} />
+            <Route path="/trades" element={<Trades />} />
             <Route path="/head-to-head" element={<HeadToHead />} />
             <Route path="/records" element={<Records />} />
-            <Route path="/team/:teamId" element={<TeamPage />} />
+            <Route path="/weekly-records" element={<WeeklyRecords />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </div>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+        </main>
+      </div>
+    </Router>
+  );
+}
 
 export default App;

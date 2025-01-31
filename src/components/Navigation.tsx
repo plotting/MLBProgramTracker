@@ -1,94 +1,73 @@
-import { NavigationMenu, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, navigationMenuTriggerStyle } from "@/components/ui/navigation-menu";
-import { Menu, X } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
-import { useState } from "react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Menu } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
-export const Navigation = () => {
-  const location = useLocation();
-  const [isOpen, setIsOpen] = useState(false);
+const Navigation = () => {
+  const isMobile = useIsMobile();
 
-  const toggleMenu = () => setIsOpen(!isOpen);
+  const links = [
+    { to: "/", label: "Seasons" },
+    { to: "/weekly-scores", label: "Weekly Scores" },
+    { to: "/weekly-records", label: "Weekly Records" },
+    { to: "/draft", label: "Draft" },
+    { to: "/trades", label: "Trades" },
+    { to: "/head-to-head", label: "Head to Head" },
+    { to: "/records", label: "Records" },
+  ];
+
+  const NavLinks = () => (
+    <>
+      {links.map((link) => (
+        <Link
+          key={link.to}
+          to={link.to}
+          className="text-muted-foreground hover:text-primary transition-colors"
+        >
+          {link.label}
+        </Link>
+      ))}
+    </>
+  );
 
   return (
-    <div className="relative mb-8">
-      <button 
-        onClick={toggleMenu}
-        className="md:hidden p-2 text-white hover:bg-primary/20 rounded-lg transition-colors"
-        aria-label="Toggle menu"
-      >
-        {isOpen ? <X size={24} /> : <Menu size={24} />}
-      </button>
+    <nav className="border-b">
+      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+        <Link to="/" className="text-xl font-bold text-primary">
+          Fantasy League
+        </Link>
 
-      <NavigationMenu className={`${isOpen ? 'block' : 'hidden'} md:block absolute md:relative top-full left-0 right-0 bg-background md:bg-transparent z-50`}>
-        <NavigationMenuList className="flex-col md:flex-row w-full">
-          <NavigationMenuItem className="w-full md:w-auto">
-            <Link to="/" className="w-full">
-              <NavigationMenuLink 
-                className={`${navigationMenuTriggerStyle()} w-full justify-start ${
-                  location.pathname === "/" ? "bg-primary text-primary-foreground" : ""
-                }`}
-              >
-                Seasons
-              </NavigationMenuLink>
-            </Link>
-          </NavigationMenuItem>
-          <NavigationMenuItem className="w-full md:w-auto">
-            <Link to="/weekly-scores" className="w-full">
-              <NavigationMenuLink 
-                className={`${navigationMenuTriggerStyle()} w-full justify-start ${
-                  location.pathname === "/weekly-scores" ? "bg-primary text-primary-foreground" : ""
-                }`}
-              >
-                Weekly Scores
-              </NavigationMenuLink>
-            </Link>
-          </NavigationMenuItem>
-          <NavigationMenuItem className="w-full md:w-auto">
-            <Link to="/trades" className="w-full">
-              <NavigationMenuLink 
-                className={`${navigationMenuTriggerStyle()} w-full justify-start ${
-                  location.pathname === "/trades" ? "bg-primary text-primary-foreground" : ""
-                }`}
-              >
-                Trades
-              </NavigationMenuLink>
-            </Link>
-          </NavigationMenuItem>
-          <NavigationMenuItem className="w-full md:w-auto">
-            <Link to="/draft" className="w-full">
-              <NavigationMenuLink 
-                className={`${navigationMenuTriggerStyle()} w-full justify-start ${
-                  location.pathname === "/draft" ? "bg-primary text-primary-foreground" : ""
-                }`}
-              >
-                Draft
-              </NavigationMenuLink>
-            </Link>
-          </NavigationMenuItem>
-          <NavigationMenuItem className="w-full md:w-auto">
-            <Link to="/head-to-head" className="w-full">
-              <NavigationMenuLink 
-                className={`${navigationMenuTriggerStyle()} w-full justify-start ${
-                  location.pathname === "/head-to-head" ? "bg-primary text-primary-foreground" : ""
-                }`}
-              >
-                Head to Head
-              </NavigationMenuLink>
-            </Link>
-          </NavigationMenuItem>
-          <NavigationMenuItem className="w-full md:w-auto">
-            <Link to="/records" className="w-full">
-              <NavigationMenuLink 
-                className={`${navigationMenuTriggerStyle()} w-full justify-start ${
-                  location.pathname === "/records" ? "bg-primary text-primary-foreground" : ""
-                }`}
-              >
-                Records
-              </NavigationMenuLink>
-            </Link>
-          </NavigationMenuItem>
-        </NavigationMenuList>
-      </NavigationMenu>
-    </div>
+        {isMobile ? (
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Menu className="h-6 w-6" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent>
+              <SheetHeader>
+                <SheetTitle>Menu</SheetTitle>
+              </SheetHeader>
+              <div className="flex flex-col space-y-4 mt-4">
+                <NavLinks />
+              </div>
+            </SheetContent>
+          </Sheet>
+        ) : (
+          <div className="flex items-center space-x-6">
+            <NavLinks />
+          </div>
+        )}
+      </div>
+    </nav>
   );
 };
+
+export default Navigation;
