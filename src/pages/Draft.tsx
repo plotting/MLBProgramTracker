@@ -14,39 +14,50 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 const Draft = () => {
-  const [selectedSeason, setSelectedSeason] = useState("2023");
+  const [selectedSeason, setSelectedSeason] = useState("1");
 
   // Mock data - replace with real data later
-  const draftPicks = [
-    {
-      id: 1,
-      round: 1,
-      pick: 1,
-      team: "Team 1",
-      player: "Patrick Mahomes",
-      position: "QB",
-    },
-    {
-      id: 2,
-      round: 1,
-      pick: 2,
-      team: "Team 2",
-      player: "Christian McCaffrey",
-      position: "RB",
-    },
-    {
-      id: 3,
-      round: 1,
-      pick: 3,
-      team: "Team 3",
-      player: "Justin Jefferson",
-      position: "WR",
-    },
-    // Add more mock draft picks...
+  const teams = [
+    "Team 1", "Team 2", "Team 3", "Team 4", "Team 5",
+    "Team 6", "Team 7", "Team 8", "Team 9", "Team 10"
   ];
+
+  const generateStartupDraftGrid = () => {
+    const rounds = Array.from({ length: 16 }, (_, i) => i + 1);
+    const grid = rounds.map(round => {
+      const picks = Array.from({ length: 10 }, (_, i) => {
+        const pickNumber = round % 2 === 1 ? i + 1 : 10 - i;
+        const teamIndex = round % 2 === 1 ? i : 9 - i;
+        return {
+          pick: `${round}.${pickNumber}`,
+          team: teams[teamIndex],
+          player: `Player ${round}-${pickNumber}`, // Mock player name
+        };
+      });
+      return { round, picks };
+    });
+    return grid;
+  };
+
+  const generateRegularDraftGrid = () => {
+    // Mock data for regular season drafts (2 rounds)
+    const picks = Array.from({ length: 20 }, (_, i) => ({
+      pick: Math.floor(i / 10) + 1 + "." + ((i % 10) + 1),
+      team: teams[i % 10],
+      player: `Player ${i + 1}`,
+    }));
+    return picks;
+  };
+
+  const getSeasonYear = (season: string) => {
+    const startYear = 2013;
+    return startYear + (parseInt(season) - 1);
+  };
 
   return (
     <div className="min-h-screen">
@@ -61,37 +72,84 @@ const Draft = () => {
               <SelectValue placeholder="Select Season" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="2023">2023 Season</SelectItem>
-              <SelectItem value="2022">2022 Season</SelectItem>
-              <SelectItem value="2021">2021 Season</SelectItem>
+              {Array.from({ length: 11 }, (_, i) => (
+                <SelectItem key={i + 1} value={(i + 1).toString()}>
+                  Season {i + 1} ({getSeasonYear(String(i + 1))})
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
       </header>
 
       <Card className="p-6">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Round</TableHead>
-              <TableHead>Pick</TableHead>
-              <TableHead>Team</TableHead>
-              <TableHead>Player</TableHead>
-              <TableHead>Position</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {draftPicks.map((pick) => (
-              <TableRow key={pick.id}>
-                <TableCell>{pick.round}</TableCell>
-                <TableCell>{pick.pick}</TableCell>
-                <TableCell className="font-medium">{pick.team}</TableCell>
-                <TableCell>{pick.player}</TableCell>
-                <TableCell>{pick.position}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        {selectedSeason === "1" ? (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Startup Draft ({getSeasonYear("1")})</h2>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-20">Round</TableHead>
+                    {teams.map((team, i) => (
+                      <TableHead key={i}>
+                        <Link to={`/team/${i + 1}`} className="text-primary hover:underline">
+                          {team}
+                        </Link>
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {generateStartupDraftGrid().map((round) => (
+                    <TableRow key={round.round}>
+                      <TableCell className="font-medium">{round.round}</TableCell>
+                      {round.picks.map((pick, i) => (
+                        <TableCell key={i} className="text-sm">
+                          <div className="text-xs text-muted-foreground mb-1">
+                            {pick.pick}
+                          </div>
+                          {pick.player}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">
+              Season {selectedSeason} Draft ({getSeasonYear(selectedSeason)})
+            </h2>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Pick</TableHead>
+                  <TableHead>Team</TableHead>
+                  <TableHead>Player</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {generateRegularDraftGrid().map((pick, index) => (
+                  <TableRow key={index}>
+                    <TableCell>{pick.pick}</TableCell>
+                    <TableCell>
+                      <Link 
+                        to={`/team/${teams.indexOf(pick.team) + 1}`} 
+                        className="text-primary hover:underline"
+                      >
+                        {pick.team}
+                      </Link>
+                    </TableCell>
+                    <TableCell>{pick.player}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </Card>
     </div>
   );
