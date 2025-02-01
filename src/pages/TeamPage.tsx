@@ -1,12 +1,5 @@
+import { useParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Select,
   SelectContent,
@@ -14,35 +7,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState, useEffect } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
-import TeamStats from "@/components/TeamStats";
+import { useState } from "react";
+import { getAllSeasons, getSeasonLabel } from "@/utils/seasonUtils";
 
 const TeamPage = () => {
-  const { teamId } = useParams();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [selectedSeason, setSelectedSeason] = useState(searchParams.get("season") || "2023");
-
-  useEffect(() => {
-    setSearchParams({ season: selectedSeason });
-  }, [selectedSeason, setSearchParams]);
+  const { id } = useParams();
+  const [selectedSeason, setSelectedSeason] = useState("13");
 
   // Mock data - replace with real data later
   const teamData = {
-    name: `Team ${teamId}`,
-    owner: "John Doe",
-    record: "10-3",
-    pointsFor: 1724.8,
-    pointsAgainst: 1652.3,
+    name: `Team ${id}`,
+    owner: `Owner ${id}`,
+    stats: {
+      wins: 8,
+      losses: 5,
+      pointsFor: 1523.5,
+      pointsAgainst: 1432.8,
+    },
   };
-
-  const weeklyMatchups = Array.from({ length: 17 }, (_, i) => ({
-    week: i + 1,
-    opponent: `Team ${Math.floor(Math.random() * 10) + 1}`,
-    score: (Math.random() * 50 + 100).toFixed(1),
-    opponentScore: (Math.random() * 50 + 100).toFixed(1),
-    isPlayoff: i >= 14,
-  }));
 
   return (
     <div className="min-h-screen">
@@ -57,71 +39,46 @@ const TeamPage = () => {
               <SelectValue placeholder="Select Season" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="2023">2023 Season</SelectItem>
-              <SelectItem value="2022">2022 Season</SelectItem>
-              <SelectItem value="2021">2021 Season</SelectItem>
+              {getAllSeasons().map((season) => (
+                <SelectItem key={season.value} value={season.value}>
+                  {season.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
       </header>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <TeamStats />
-        
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
         <Card className="p-6">
-          <h2 className="text-2xl font-bold mb-4">Season Overview</h2>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span>Record</span>
-              <span className="font-semibold">{teamData.record}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span>Points For</span>
-              <span className="font-semibold text-primary">{teamData.pointsFor}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span>Points Against</span>
-              <span className="font-semibold text-secondary">{teamData.pointsAgainst}</span>
-            </div>
-          </div>
+          <h3 className="text-sm font-medium text-muted-foreground mb-2">Record</h3>
+          <p className="text-2xl font-bold">
+            {teamData.stats.wins}-{teamData.stats.losses}
+          </p>
+        </Card>
+        <Card className="p-6">
+          <h3 className="text-sm font-medium text-muted-foreground mb-2">Points For</h3>
+          <p className="text-2xl font-bold">{teamData.stats.pointsFor}</p>
+        </Card>
+        <Card className="p-6">
+          <h3 className="text-sm font-medium text-muted-foreground mb-2">
+            Points Against
+          </h3>
+          <p className="text-2xl font-bold">{teamData.stats.pointsAgainst}</p>
+        </Card>
+        <Card className="p-6">
+          <h3 className="text-sm font-medium text-muted-foreground mb-2">
+            Average Points
+          </h3>
+          <p className="text-2xl font-bold">
+            {(teamData.stats.pointsFor / (teamData.stats.wins + teamData.stats.losses)).toFixed(1)}
+          </p>
         </Card>
       </div>
 
-      <Card className="mt-8">
-        <div className="p-6">
-          <h2 className="text-2xl font-bold mb-4">Weekly Matchups</h2>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Week</TableHead>
-                <TableHead>Opponent</TableHead>
-                <TableHead>Score</TableHead>
-                <TableHead>Result</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {weeklyMatchups.map((matchup) => (
-                <TableRow key={matchup.week} className={matchup.isPlayoff ? "bg-primary/10" : ""}>
-                  <TableCell>
-                    Week {matchup.week}
-                    {matchup.isPlayoff && <span className="ml-2 text-primary">(Playoff)</span>}
-                  </TableCell>
-                  <TableCell>{matchup.opponent}</TableCell>
-                  <TableCell>
-                    {matchup.score} - {matchup.opponentScore}
-                  </TableCell>
-                  <TableCell>
-                    {parseFloat(matchup.score) > parseFloat(matchup.opponentScore) ? (
-                      <span className="text-green-500">W</span>
-                    ) : (
-                      <span className="text-red-500">L</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+      <Card className="p-6">
+        <h2 className="text-xl font-bold mb-4">Weekly Matchups</h2>
+        <p className="text-muted-foreground">Matchup data coming soon...</p>
       </Card>
     </div>
   );

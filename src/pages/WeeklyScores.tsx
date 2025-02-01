@@ -1,5 +1,12 @@
 import { Card } from "@/components/ui/card";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -7,68 +14,40 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { getAllSeasons, getSeasonLabel } from "@/utils/seasonUtils";
 
 const WeeklyScores = () => {
   const [selectedSeason, setSelectedSeason] = useState("13");
-  const seasons = Array.from({ length: 13 }, (_, i) => (i + 1).toString());
 
-  // Mock data - replace with real data later
-  const teams = [
-    { id: 1, name: "Team 1", owner: "Owner 1", scores: Array(17).fill(null).map(() => (Math.random() * 50 + 100).toFixed(1)) },
-    { id: 2, name: "Team 2", owner: "Owner 2", scores: Array(17).fill(null).map(() => (Math.random() * 50 + 100).toFixed(1)) },
-    { id: 3, name: "Team 3", owner: "Owner 3", scores: Array(17).fill(null).map(() => (Math.random() * 50 + 100).toFixed(1)) },
-  ];
-
-  const isPlayoffWeek = (season: string, week: number) => {
-    const seasonNum = parseInt(season);
-    if (seasonNum <= 10) {
-      return week >= 15 && week <= 16;
-    }
-    return week >= 15 && week <= 17;
-  };
-
-  const getWeeksForSeason = (season: string) => {
-    const seasonNum = parseInt(season);
-    return seasonNum <= 10 ? 16 : 17;
-  };
-
-  const calculateRegularSeasonTotal = (scores: string[]) => {
-    return scores
-      .slice(0, 14)
-      .reduce((a, b) => a + parseFloat(b || "0"), 0)
-      .toFixed(1);
-  };
-
-  const weeks = Array.from(
-    { length: getWeeksForSeason(selectedSeason) },
-    (_, i) => i + 1
-  );
+  // Mock data for 10 teams
+  const teams = Array.from({ length: 10 }, (_, i) => ({
+    id: i + 1,
+    name: `Team ${i + 1}`,
+    records: Array.from({ length: 17 }, (_, weekIndex) => {
+      const wins = Math.floor(Math.random() * (weekIndex + 1));
+      const losses = weekIndex + 1 - wins;
+      return `${wins}-${losses}`;
+    }),
+  }));
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen">
       <header className="mb-8">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-4xl font-bold text-white mb-2">Weekly Scores</h1>
-            <p className="text-muted-foreground">Track all teams' weekly performance</p>
+            <p className="text-muted-foreground">Track team records week by week</p>
           </div>
           <Select value={selectedSeason} onValueChange={setSelectedSeason}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Select Season" />
             </SelectTrigger>
             <SelectContent>
-              {seasons.map((season) => (
-                <SelectItem key={season} value={season}>
-                  Season {season}
+              {getAllSeasons().map((season) => (
+                <SelectItem key={season.value} value={season.value}>
+                  {season.label}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -81,19 +60,11 @@ const WeeklyScores = () => {
           <TableHeader>
             <TableRow>
               <TableHead className="bg-card sticky left-0 z-10">Team</TableHead>
-              {weeks.map((week) => (
-                <TableHead 
-                  key={week} 
-                  className={`bg-card text-center ${
-                    isPlayoffWeek(selectedSeason, week) 
-                      ? "bg-primary/20" 
-                      : ""
-                  }`}
-                >
-                  Week {week}
+              {Array.from({ length: 17 }, (_, i) => (
+                <TableHead key={i} className="text-center">
+                  Week {i + 1}
                 </TableHead>
               ))}
-              <TableHead className="bg-card text-center">Regular Season Total</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -104,21 +75,11 @@ const WeeklyScores = () => {
                     {team.name}
                   </Link>
                 </TableCell>
-                {weeks.map((week) => (
-                  <TableCell 
-                    key={week} 
-                    className={`text-center ${
-                      isPlayoffWeek(selectedSeason, week)
-                        ? "bg-primary/10"
-                        : ""
-                    }`}
-                  >
-                    {team.scores[week - 1] || "-"}
+                {team.records.map((record, weekIndex) => (
+                  <TableCell key={weekIndex} className="text-center">
+                    {record}
                   </TableCell>
                 ))}
-                <TableCell className="text-center font-bold text-primary">
-                  {calculateRegularSeasonTotal(team.scores)}
-                </TableCell>
               </TableRow>
             ))}
           </TableBody>
