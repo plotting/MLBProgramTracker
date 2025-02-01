@@ -15,29 +15,35 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useState } from "react";
+import { Link } from "react-router-dom";
+import { getAllSeasons, getSeasonLabel } from "@/utils/seasonUtils";
 
 const Trades = () => {
-  const [selectedSeason, setSelectedSeason] = useState("2023");
+  const [selectedSeason, setSelectedSeason] = useState("13");
+
+  const teams = Array.from({ length: 10 }, (_, i) => ({
+    id: i + 1,
+    name: `Team ${i + 1}`,
+  }));
 
   // Mock data - replace with real data later
   const trades = [
     {
       id: 1,
       date: "2023-08-15",
-      team1: "Team 1",
-      team2: "Team 2",
+      team1: teams[0],
+      team2: teams[1],
       team1Receives: ["Player A", "2024 1st Round Pick"],
       team2Receives: ["Player B", "Player C", "2024 2nd Round Pick"],
     },
     {
       id: 2,
       date: "2023-08-20",
-      team1: "Team 3",
-      team2: "Team 4",
+      team1: teams[2],
+      team2: teams[3],
       team1Receives: ["Player D", "2024 3rd Round Pick"],
       team2Receives: ["Player E"],
     },
-    // Add more mock trades...
   ];
 
   return (
@@ -53,9 +59,11 @@ const Trades = () => {
               <SelectValue placeholder="Select Season" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="2023">2023 Season</SelectItem>
-              <SelectItem value="2022">2022 Season</SelectItem>
-              <SelectItem value="2021">2021 Season</SelectItem>
+              {getAllSeasons().reverse().map((season) => (
+                <SelectItem key={season.value} value={season.value}>
+                  {season.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -76,7 +84,14 @@ const Trades = () => {
             {trades.map((trade) => (
               <TableRow key={trade.id}>
                 <TableCell>{trade.date}</TableCell>
-                <TableCell className="font-medium">{trade.team1}</TableCell>
+                <TableCell className="font-medium">
+                  <Link 
+                    to={`/team/${trade.team1.id}?season=${selectedSeason}`} 
+                    className="text-primary hover:underline"
+                  >
+                    {trade.team1.name}
+                  </Link>
+                </TableCell>
                 <TableCell>
                   <ul className="list-disc list-inside">
                     {trade.team1Receives.map((item, index) => (
@@ -84,7 +99,14 @@ const Trades = () => {
                     ))}
                   </ul>
                 </TableCell>
-                <TableCell className="font-medium">{trade.team2}</TableCell>
+                <TableCell className="font-medium">
+                  <Link 
+                    to={`/team/${trade.team2.id}?season=${selectedSeason}`} 
+                    className="text-primary hover:underline"
+                  >
+                    {trade.team2.name}
+                  </Link>
+                </TableCell>
                 <TableCell>
                   <ul className="list-disc list-inside">
                     {trade.team2Receives.map((item, index) => (
