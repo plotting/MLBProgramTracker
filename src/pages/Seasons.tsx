@@ -18,6 +18,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import WeeklyMatchup from "@/components/WeeklyMatchup";
 import { getAllSeasons, getSeasonLabel } from "@/utils/seasonUtils";
+import PlayoffBracket from "@/components/PlayoffBracket";
 
 const Seasons = () => {
   const [selectedSeason, setSelectedSeason] = useState("13"); // Default to latest season
@@ -32,7 +33,7 @@ const Seasons = () => {
   }));
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen space-y-8">
       <header className="mb-8">
         <div className="flex justify-between items-center">
           <div>
@@ -90,6 +91,9 @@ const Seasons = () => {
           </Table>
         </div>
       </Card>
+
+      {/* Add Playoff Bracket */}
+      <PlayoffBracket season={selectedSeason} />
 
       <div className="grid gap-6">
         <h2 className="text-2xl font-bold">Weekly Matchups</h2>
