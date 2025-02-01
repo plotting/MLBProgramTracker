@@ -14,18 +14,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { getAllSeasons, getSeasonLabel } from "@/utils/seasonUtils";
 
 const Draft = () => {
   const [selectedSeason, setSelectedSeason] = useState("1");
 
-  // Mock data - replace with real data later
-  const teams = [
-    "Team 1", "Team 2", "Team 3", "Team 4", "Team 5",
-    "Team 6", "Team 7", "Team 8", "Team 9", "Team 10"
-  ];
+  const teams = Array.from({ length: 10 }, (_, i) => `Team ${i + 1}`);
 
   const generateStartupDraftGrid = () => {
     const rounds = Array.from({ length: 16 }, (_, i) => i + 1);
@@ -36,7 +32,7 @@ const Draft = () => {
         return {
           pick: `${round}.${pickNumber}`,
           team: teams[teamIndex],
-          player: `Player ${round}-${pickNumber}`, // Mock player name
+          player: `Player ${round}-${pickNumber}`,
         };
       });
       return { round, picks };
@@ -45,18 +41,12 @@ const Draft = () => {
   };
 
   const generateRegularDraftGrid = () => {
-    // Mock data for regular season drafts (2 rounds)
     const picks = Array.from({ length: 20 }, (_, i) => ({
       pick: Math.floor(i / 10) + 1 + "." + ((i % 10) + 1),
       team: teams[i % 10],
       player: `Player ${i + 1}`,
     }));
     return picks;
-  };
-
-  const getSeasonYear = (season: string) => {
-    const startYear = 2013;
-    return startYear + (parseInt(season) - 1);
   };
 
   return (
@@ -72,9 +62,9 @@ const Draft = () => {
               <SelectValue placeholder="Select Season" />
             </SelectTrigger>
             <SelectContent>
-              {Array.from({ length: 11 }, (_, i) => (
-                <SelectItem key={i + 1} value={(i + 1).toString()}>
-                  Season {i + 1} ({getSeasonYear(String(i + 1))})
+              {getAllSeasons().map((season) => (
+                <SelectItem key={season.value} value={season.value}>
+                  {season.label}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -85,7 +75,7 @@ const Draft = () => {
       <Card className="p-6">
         {selectedSeason === "1" ? (
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold">Startup Draft ({getSeasonYear("1")})</h2>
+            <h2 className="text-2xl font-bold">{getSeasonLabel("1")} Startup Draft</h2>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -121,7 +111,7 @@ const Draft = () => {
         ) : (
           <div className="space-y-6">
             <h2 className="text-2xl font-bold">
-              Season {selectedSeason} Draft ({getSeasonYear(selectedSeason)})
+              {getSeasonLabel(selectedSeason)} Draft
             </h2>
             <Table>
               <TableHeader>

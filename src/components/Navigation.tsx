@@ -6,7 +6,14 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
+  SheetClose,
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Menu } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -23,6 +30,11 @@ const Navigation = () => {
     { to: "/records", label: "Records" },
   ];
 
+  const teams = Array.from({ length: 10 }, (_, i) => ({
+    id: i + 1,
+    name: `Team ${i + 1}`,
+  }));
+
   const NavLinks = () => (
     <>
       {links.map((link) => (
@@ -34,6 +46,51 @@ const Navigation = () => {
           {link.label}
         </Link>
       ))}
+      <DropdownMenu>
+        <DropdownMenuTrigger className="text-muted-foreground hover:text-primary transition-colors">
+          Teams
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          {teams.map((team) => (
+            <DropdownMenuItem key={team.id}>
+              <Link
+                to={`/team/${team.id}`}
+                className="w-full text-muted-foreground hover:text-primary"
+              >
+                {team.name}
+              </Link>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
+  );
+
+  const MobileNavLinks = () => (
+    <>
+      {links.map((link) => (
+        <SheetClose asChild key={link.to}>
+          <Link
+            to={link.to}
+            className="text-muted-foreground hover:text-primary transition-colors"
+          >
+            {link.label}
+          </Link>
+        </SheetClose>
+      ))}
+      <div className="space-y-2">
+        <div className="font-medium">Teams</div>
+        {teams.map((team) => (
+          <SheetClose asChild key={team.id}>
+            <Link
+              to={`/team/${team.id}`}
+              className="block text-muted-foreground hover:text-primary"
+            >
+              {team.name}
+            </Link>
+          </SheetClose>
+        ))}
+      </div>
     </>
   );
 
@@ -56,7 +113,7 @@ const Navigation = () => {
                 <SheetTitle>Menu</SheetTitle>
               </SheetHeader>
               <div className="flex flex-col space-y-4 mt-4">
-                <NavLinks />
+                <MobileNavLinks />
               </div>
             </SheetContent>
           </Sheet>
