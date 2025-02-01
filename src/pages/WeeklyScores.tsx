@@ -45,7 +45,7 @@ const WeeklyScores = () => {
               <SelectValue placeholder="Select Season" />
             </SelectTrigger>
             <SelectContent>
-              {getAllSeasons().map((season) => (
+              {getAllSeasons().reverse().map((season) => (
                 <SelectItem key={season.value} value={season.value}>
                   {season.label}
                 </SelectItem>
@@ -71,7 +71,10 @@ const WeeklyScores = () => {
             {teams.map((team) => (
               <TableRow key={team.id}>
                 <TableCell className="font-medium sticky left-0 bg-background z-10">
-                  <Link to={`/team/${team.id}`} className="text-primary hover:underline">
+                  <Link 
+                    to={`/team/${team.id}?season=${selectedSeason}`} 
+                    className="text-primary hover:underline"
+                  >
                     {team.name}
                   </Link>
                 </TableCell>

@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import {
   Select,
@@ -7,12 +7,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { getAllSeasons, getSeasonLabel } from "@/utils/seasonUtils";
 
 const TeamPage = () => {
   const { id } = useParams();
-  const [selectedSeason, setSelectedSeason] = useState("13");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [selectedSeason, setSelectedSeason] = useState(searchParams.get("season") || "13");
+
+  useEffect(() => {
+    setSearchParams({ season: selectedSeason });
+  }, [selectedSeason, setSearchParams]);
 
   // Mock data - replace with real data later
   const teamData = {
@@ -39,7 +44,7 @@ const TeamPage = () => {
               <SelectValue placeholder="Select Season" />
             </SelectTrigger>
             <SelectContent>
-              {getAllSeasons().map((season) => (
+              {getAllSeasons().reverse().map((season) => (
                 <SelectItem key={season.value} value={season.value}>
                   {season.label}
                 </SelectItem>

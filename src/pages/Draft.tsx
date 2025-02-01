@@ -62,7 +62,7 @@ const Draft = () => {
               <SelectValue placeholder="Select Season" />
             </SelectTrigger>
             <SelectContent>
-              {getAllSeasons().map((season) => (
+              {getAllSeasons().reverse().map((season) => (
                 <SelectItem key={season.value} value={season.value}>
                   {season.label}
                 </SelectItem>
@@ -83,7 +83,10 @@ const Draft = () => {
                     <TableHead className="w-20">Round</TableHead>
                     {teams.map((team, i) => (
                       <TableHead key={i}>
-                        <Link to={`/team/${i + 1}`} className="text-primary hover:underline">
+                        <Link 
+                          to={`/team/${i + 1}?season=${selectedSeason}`} 
+                          className="text-primary hover:underline"
+                        >
                           {team}
                         </Link>
                       </TableHead>
@@ -127,7 +130,7 @@ const Draft = () => {
                     <TableCell>{pick.pick}</TableCell>
                     <TableCell>
                       <Link 
-                        to={`/team/${teams.indexOf(pick.team) + 1}`} 
+                        to={`/team/${teams.indexOf(pick.team) + 1}?season=${selectedSeason}`} 
                         className="text-primary hover:underline"
                       >
                         {pick.team}
