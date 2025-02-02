@@ -30,93 +30,88 @@ const PlayoffBracket = ({ season }: { season: string }) => {
     <Card className="p-6">
       <h3 className="text-2xl font-bold mb-6">Playoff Bracket</h3>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Championship Bracket */}
-        <div className="space-y-8">
-          <h4 className="text-xl font-semibold text-primary">Championship Bracket</h4>
-          
-          <div className="relative flex">
-            {/* Round 1 */}
-            <div className="flex flex-col gap-16">
+      {/* Championship Bracket */}
+      <div className="space-y-8 mb-16">
+        <h4 className="text-xl font-semibold text-primary">Championship Bracket</h4>
+        
+        <div className="flex gap-16">
+          {/* Round 1 */}
+          <div className="flex flex-col gap-16">
+            <div className="relative">
               <Matchup 
                 team1="#1 Seed" 
                 team2="#4 Seed"
-                className="relative"
               />
+              <div className="absolute top-1/2 right-0 w-16 h-[2px] bg-primary translate-x-full"></div>
+            </div>
+            <div className="relative">
               <Matchup 
                 team1="#2 Seed" 
                 team2="#3 Seed"
-                className="relative"
               />
-            </div>
-
-            {/* Connecting Lines */}
-            <div className="relative ml-4">
-              <div className="absolute top-[25%] left-0 w-8 h-[50%] border-r-2 border-t-2 border-b-2 border-primary"></div>
-              
-              {/* Championship Games */}
-              <div className="ml-8 space-y-8 mt-[30%]">
-                <Matchup 
-                  team1="Winner 1v4" 
-                  team2="Winner 2v3"
-                  className="border-l-2 border-primary pl-4"
-                />
-                <Matchup 
-                  team1="Loser 1v4" 
-                  team2="Loser 2v3"
-                  className="border-l-2 border-secondary pl-4"
-                />
-              </div>
+              <div className="absolute top-1/2 right-0 w-16 h-[2px] bg-primary translate-x-full"></div>
             </div>
           </div>
-        </div>
 
-        {/* Consolation Bracket */}
-        <div className="space-y-8">
-          <h4 className="text-xl font-semibold text-secondary">Consolation Bracket</h4>
-          
-          <div className="relative flex">
-            {/* Round 1 */}
-            <div className="flex flex-col gap-8">
+          {/* Championship Game */}
+          <div className="relative">
+            <div className="absolute top-1/4 -left-16 w-16 h-[50%] border-r-2 border-t-2 border-b-2 border-primary"></div>
+            <Matchup 
+              team1="Winner 1v4" 
+              team2="Winner 2v3"
+              className="mt-[25%]"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Consolation Bracket */}
+      <div className="space-y-8">
+        <h4 className="text-xl font-semibold text-secondary">Consolation Bracket</h4>
+        
+        <div className="flex gap-16">
+          {/* Round 1 */}
+          <div className="flex flex-col gap-8">
+            <div className="relative">
               <Matchup 
                 team1="#5 Seed" 
                 team2="#6 Seed"
-                className="relative"
               />
+              <div className="absolute top-1/2 right-0 w-16 h-[2px] bg-secondary translate-x-full"></div>
+            </div>
+            <div className="relative">
               <Matchup 
                 team1="#7 Seed" 
                 team2="#8 Seed"
-                className="relative"
               />
+              <div className="absolute top-1/2 right-0 w-16 h-[2px] bg-secondary translate-x-full"></div>
+            </div>
+            <div className="relative">
               <Matchup 
                 team1="#9 Seed" 
                 team2="#10 Seed"
-                className="relative"
               />
+              <div className="absolute top-1/2 right-0 w-16 h-[2px] bg-secondary translate-x-full"></div>
             </div>
+          </div>
 
-            {/* Connecting Lines */}
-            <div className="relative ml-4">
-              <div className="absolute top-[15%] left-0 w-8 h-[25%] border-r-2 border-t-2 border-b-2 border-primary"></div>
-              
-              {/* Final Placement Games */}
-              <div className="ml-8 space-y-8">
-                <Matchup 
-                  team1="Winner 5v6" 
-                  team2="Winner 7v8"
-                  className="border-l-2 border-primary pl-4 mt-[20%]"
-                />
-                <Matchup 
-                  team1="Winner 9v10" 
-                  team2="Loser 5v6"
-                  className="border-l-2 border-secondary pl-4"
-                />
-                <Matchup 
-                  team1="Loser 9v10" 
-                  team2="Loser 7v8"
-                  className="border-l-2 border-muted pl-4"
-                />
-              </div>
+          {/* Final Placement Games */}
+          <div className="relative">
+            <div className="absolute top-[15%] -left-16 w-16 h-[25%] border-r-2 border-t-2 border-b-2 border-secondary"></div>
+            <div className="space-y-8">
+              <Matchup 
+                team1="Winner 5v6" 
+                team2="Winner 7v8"
+                className="mt-[10%]"
+              />
+              <Matchup 
+                team1="Winner 9v10" 
+                team2="Loser 5v6"
+              />
+              <Matchup 
+                team1="Loser 9v10" 
+                team2="Loser 7v8"
+              />
             </div>
           </div>
         </div>
