@@ -36,7 +36,13 @@ const PlayoffBracket = ({ season }: { season: string }) => {
       
       {/* Championship Bracket */}
       <div className="space-y-8 mb-16">
-        <h4 className="text-xl font-semibold text-primary">Championship Bracket</h4>
+        <div className="flex justify-between items-center mb-4">
+          <h4 className="text-xl font-semibold text-primary">Championship Bracket</h4>
+          <div className="flex gap-16">
+            <span className="text-sm text-muted-foreground">Week 14</span>
+            <span className="text-sm text-muted-foreground">Week 15</span>
+          </div>
+        </div>
         
         <div className="flex gap-24">
           {/* Semifinals */}
@@ -74,7 +80,13 @@ const PlayoffBracket = ({ season }: { season: string }) => {
 
       {/* Consolation Bracket */}
       <div className="space-y-8">
-        <h4 className="text-xl font-semibold text-secondary">Consolation Bracket</h4>
+        <div className="flex justify-between items-center mb-4">
+          <h4 className="text-xl font-semibold text-secondary">Consolation Bracket</h4>
+          <div className="flex gap-16">
+            <span className="text-sm text-muted-foreground">Week 14</span>
+            <span className="text-sm text-muted-foreground">Week 15</span>
+          </div>
+        </div>
         
         <div className="flex gap-24">
           {/* First Round */}
@@ -83,7 +95,7 @@ const PlayoffBracket = ({ season }: { season: string }) => {
               <Matchup 
                 team1="#5 Seed" 
                 team2="#6 Seed"
-                label="Round 1"
+                label="5th Place Semifinal"
               />
               <div className="absolute top-1/2 right-0 w-24 h-[2px] bg-secondary translate-x-full"></div>
             </div>
@@ -91,7 +103,7 @@ const PlayoffBracket = ({ season }: { season: string }) => {
               <Matchup 
                 team1="#7 Seed" 
                 team2="#8 Seed"
-                label="Round 1"
+                label="7th Place Semifinal"
               />
               <div className="absolute top-1/2 right-0 w-24 h-[2px] bg-secondary translate-x-full"></div>
             </div>
@@ -99,9 +111,8 @@ const PlayoffBracket = ({ season }: { season: string }) => {
               <Matchup 
                 team1="#9 Seed" 
                 team2="#10 Seed"
-                label="Round 1"
+                label="9th Place Game"
               />
-              <div className="absolute top-1/2 right-0 w-24 h-[2px] bg-secondary translate-x-full"></div>
             </div>
           </div>
 
@@ -116,14 +127,9 @@ const PlayoffBracket = ({ season }: { season: string }) => {
                 className="mt-[10%]"
               />
               <Matchup 
-                team1="Winner 9v10" 
-                team2="Loser 5v6"
-                label="7th Place Game"
-              />
-              <Matchup 
-                team1="Loser 9v10" 
+                team1="Loser 5v6" 
                 team2="Loser 7v8"
-                label="9th Place Game"
+                label="7th Place Game"
               />
             </div>
           </div>
