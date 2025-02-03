@@ -110,13 +110,13 @@ const PlayoffBracket = ({ season }: { season: string }) => {
       <Card className="p-8">
         <h3 className="text-2xl font-bold mb-8">Playoff Bracket</h3>
         
-        {/* Championship Bracket - Same as seasons 1-7 */}
+        {/* Championship Bracket */}
         <div className="space-y-8 mb-16">
           <div className="flex justify-between items-center mb-4">
             <h4 className="text-xl font-semibold text-primary">Championship Bracket</h4>
-            <div className="flex gap-16">
-              <span className="text-sm text-muted-foreground">Week 15</span>
-              <span className="text-sm text-muted-foreground">Week 16</span>
+            <div className="flex gap-24 pr-24">
+              <span className="text-sm text-muted-foreground w-[240px] text-center">Week 15</span>
+              <span className="text-sm text-muted-foreground w-[240px] text-center">Week 16</span>
             </div>
           </div>
           
@@ -143,9 +143,9 @@ const PlayoffBracket = ({ season }: { season: string }) => {
         <div className="space-y-8">
           <div className="flex justify-between items-center mb-4">
             <h4 className="text-xl font-semibold text-secondary">Consolation Bracket</h4>
-            <div className="flex gap-16">
-              <span className="text-sm text-muted-foreground">Week 15</span>
-              <span className="text-sm text-muted-foreground">Week 16</span>
+            <div className="flex gap-24 pr-24">
+              <span className="text-sm text-muted-foreground w-[240px] text-center">Week 15</span>
+              <span className="text-sm text-muted-foreground w-[240px] text-center">Week 16</span>
             </div>
           </div>
           
@@ -193,10 +193,10 @@ const PlayoffBracket = ({ season }: { season: string }) => {
         <div className="space-y-8 mb-16">
           <div className="flex justify-between items-center mb-4">
             <h4 className="text-xl font-semibold text-primary">Championship Bracket</h4>
-            <div className="flex gap-16">
-              <span className="text-sm text-muted-foreground">Week 15</span>
-              <span className="text-sm text-muted-foreground">Week 16</span>
-              <span className="text-sm text-muted-foreground">Week 17</span>
+            <div className="flex gap-24 pr-24">
+              <span className="text-sm text-muted-foreground w-[240px] text-center">Week 15</span>
+              <span className="text-sm text-muted-foreground w-[240px] text-center">Week 16</span>
+              <span className="text-sm text-muted-foreground w-[240px] text-center">Week 17</span>
             </div>
           </div>
           
@@ -228,9 +228,9 @@ const PlayoffBracket = ({ season }: { season: string }) => {
         <div className="space-y-8">
           <div className="flex justify-between items-center mb-4">
             <h4 className="text-xl font-semibold text-secondary">Consolation Bracket</h4>
-            <div className="flex gap-16">
-              <span className="text-sm text-muted-foreground">Week 16</span>
-              <span className="text-sm text-muted-foreground">Week 17</span>
+            <div className="flex gap-24 pr-24">
+              <span className="text-sm text-muted-foreground w-[240px] text-center">Week 16</span>
+              <span className="text-sm text-muted-foreground w-[240px] text-center">Week 17</span>
             </div>
           </div>
           
@@ -268,10 +268,10 @@ const PlayoffBracket = ({ season }: { season: string }) => {
       <div className="space-y-8 mb-16">
         <div className="flex justify-between items-center mb-4">
           <h4 className="text-xl font-semibold text-primary">Championship Bracket</h4>
-          <div className="flex gap-16">
-            <span className="text-sm text-muted-foreground">Week 15</span>
-            <span className="text-sm text-muted-foreground">Week 16</span>
-            <span className="text-sm text-muted-foreground">Week 17</span>
+          <div className="flex gap-24 pr-24">
+            <span className="text-sm text-muted-foreground w-[240px] text-center">Week 15</span>
+            <span className="text-sm text-muted-foreground w-[240px] text-center">Week 16</span>
+            <span className="text-sm text-muted-foreground w-[240px] text-center">Week 17</span>
           </div>
         </div>
         
@@ -302,9 +302,9 @@ const PlayoffBracket = ({ season }: { season: string }) => {
       <div className="space-y-8">
         <div className="flex justify-between items-center mb-4">
           <h4 className="text-xl font-semibold text-secondary">Consolation Bracket</h4>
-          <div className="flex gap-16">
-            <span className="text-sm text-muted-foreground">Week 16</span>
-            <span className="text-sm text-muted-foreground">Week 17</span>
+          <div className="flex gap-24 pr-24">
+            <span className="text-sm text-muted-foreground w-[240px] text-center">Week 16</span>
+            <span className="text-sm text-muted-foreground w-[240px] text-center">Week 17</span>
           </div>
         </div>
         
