@@ -39,8 +39,8 @@ const PlayoffBracket = ({ season }: { season: string }) => {
         <div className="flex justify-between items-center mb-4">
           <h4 className="text-xl font-semibold text-primary">Championship Bracket</h4>
           <div className="flex gap-16">
-            <span className="text-sm text-muted-foreground">Week 14</span>
             <span className="text-sm text-muted-foreground">Week 15</span>
+            <span className="text-sm text-muted-foreground">Week 16</span>
           </div>
         </div>
         
@@ -83,8 +83,8 @@ const PlayoffBracket = ({ season }: { season: string }) => {
         <div className="flex justify-between items-center mb-4">
           <h4 className="text-xl font-semibold text-secondary">Consolation Bracket</h4>
           <div className="flex gap-16">
-            <span className="text-sm text-muted-foreground">Week 14</span>
             <span className="text-sm text-muted-foreground">Week 15</span>
+            <span className="text-sm text-muted-foreground">Week 16</span>
           </div>
         </div>
         
@@ -111,8 +111,9 @@ const PlayoffBracket = ({ season }: { season: string }) => {
               <Matchup 
                 team1="#9 Seed" 
                 team2="#10 Seed"
-                label="9th Place Game"
+                label="9th Place Semifinal"
               />
+              <div className="absolute top-1/2 right-0 w-24 h-[2px] bg-secondary translate-x-full"></div>
             </div>
           </div>
 
@@ -127,9 +128,14 @@ const PlayoffBracket = ({ season }: { season: string }) => {
                 className="mt-[10%]"
               />
               <Matchup 
-                team1="Loser 5v6" 
-                team2="Loser 7v8"
+                team1="Winner 9v10" 
+                team2="Loser 5v6"
                 label="7th Place Game"
+              />
+              <Matchup 
+                team1="Loser 9v10" 
+                team2="Loser 7v8"
+                label="9th Place Game"
               />
             </div>
           </div>
