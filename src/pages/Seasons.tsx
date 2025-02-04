@@ -49,7 +49,7 @@ const Seasons = () => {
           team1:teams!weekly_matchups_team1_id_fkey(*),
           team2:teams!weekly_matchups_team2_id_fkey(*)
         `)
-        .eq('season_id', selectedSeason)
+        .eq('season_id', parseInt(selectedSeason, 10))
         .eq('is_playoff', false);
 
       if (error) throw error;
