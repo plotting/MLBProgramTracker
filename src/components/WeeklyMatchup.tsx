@@ -25,7 +25,7 @@ const WeeklyMatchup = () => {
           team2:teams!weekly_matchups_team2_id_fkey(name)
         `)
         .eq('week_number', parseInt(selectedWeek, 10))
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;
@@ -54,7 +54,7 @@ const WeeklyMatchup = () => {
         </Select>
       </div>
 
-      {matchup && (
+      {matchup ? (
         <div className="flex justify-between items-center">
           <div className="text-center">
             <p className="text-lg font-semibold">{matchup.team1.name}</p>
@@ -67,6 +67,10 @@ const WeeklyMatchup = () => {
             <p className="text-lg font-semibold">{matchup.team2.name}</p>
             <p className="text-3xl font-bold text-secondary">{matchup.team2_score}</p>
           </div>
+        </div>
+      ) : (
+        <div className="text-center py-8 text-muted-foreground">
+          No matchup found for Week {selectedWeek}
         </div>
       )}
     </Card>
