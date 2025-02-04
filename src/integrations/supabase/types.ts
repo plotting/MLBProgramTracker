@@ -9,7 +9,258 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      draft_picks: {
+        Row: {
+          created_at: string
+          id: number
+          pick_number: number
+          player_name: string
+          round: number
+          season_id: number | null
+          team_id: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          pick_number: number
+          player_name: string
+          round: number
+          season_id?: number | null
+          team_id?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          pick_number?: number
+          player_name?: string
+          round?: number
+          season_id?: number | null
+          team_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "draft_picks_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "draft_picks_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seasons: {
+        Row: {
+          created_at: string
+          id: number
+          playoff_format: string
+          season_number: number
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          playoff_format: string
+          season_number: number
+          year: number
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          playoff_format?: string
+          season_number?: number
+          year?: number
+        }
+        Relationships: []
+      }
+      teams: {
+        Row: {
+          created_at: string
+          id: number
+          name: string
+          owner_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          name: string
+          owner_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          name?: string
+          owner_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      trade_items: {
+        Row: {
+          created_at: string
+          from_team_id: number | null
+          id: number
+          item_description: string
+          item_type: string
+          to_team_id: number | null
+          trade_id: number | null
+        }
+        Insert: {
+          created_at?: string
+          from_team_id?: number | null
+          id?: number
+          item_description: string
+          item_type: string
+          to_team_id?: number | null
+          trade_id?: number | null
+        }
+        Update: {
+          created_at?: string
+          from_team_id?: number | null
+          id?: number
+          item_description?: string
+          item_type?: string
+          to_team_id?: number | null
+          trade_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_items_from_team_id_fkey"
+            columns: ["from_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_items_to_team_id_fkey"
+            columns: ["to_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_items_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trades: {
+        Row: {
+          created_at: string
+          id: number
+          season_id: number | null
+          team1_id: number | null
+          team2_id: number | null
+          trade_date: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          season_id?: number | null
+          team1_id?: number | null
+          team2_id?: number | null
+          trade_date?: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          season_id?: number | null
+          team1_id?: number | null
+          team2_id?: number | null
+          trade_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trades_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trades_team1_id_fkey"
+            columns: ["team1_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trades_team2_id_fkey"
+            columns: ["team2_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      weekly_matchups: {
+        Row: {
+          created_at: string
+          id: number
+          is_playoff: boolean | null
+          season_id: number | null
+          team1_id: number | null
+          team1_score: number
+          team2_id: number | null
+          team2_score: number
+          week_number: number
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          is_playoff?: boolean | null
+          season_id?: number | null
+          team1_id?: number | null
+          team1_score: number
+          team2_id?: number | null
+          team2_score: number
+          week_number: number
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          is_playoff?: boolean | null
+          season_id?: number | null
+          team1_id?: number | null
+          team1_score?: number
+          team2_id?: number | null
+          team2_score?: number
+          week_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_matchups_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weekly_matchups_team1_id_fkey"
+            columns: ["team1_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weekly_matchups_team2_id_fkey"
+            columns: ["team2_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

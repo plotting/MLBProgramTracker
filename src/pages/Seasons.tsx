@@ -14,23 +14,107 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import WeeklyMatchup from "@/components/WeeklyMatchup";
 import { getAllSeasons, getSeasonLabel } from "@/utils/seasonUtils";
 import PlayoffBracket from "@/components/PlayoffBracket";
+import { supabase } from "@/integrations/supabase/client";
+import { Team } from "@/types/database";
+import { useQuery } from "@tanstack/react-query";
 
 const Seasons = () => {
   const [selectedSeason, setSelectedSeason] = useState("13"); // Default to latest season
-  
-  const standings = Array.from({ length: 10 }, (_, i) => ({ 
-    id: i + 1,
-    team: `Team ${i + 1}`,
-    record: "10-3",
-    pointsFor: 1724.8 - (i * 20),
-    pointsAgainst: 1652.3 - (i * 15),
-    avgPoints: 156.8 - (i * 2)
-  }));
+
+  const { data: teams, isLoading } = useQuery({
+    queryKey: ['teams'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('teams')
+        .select('*')
+        .order('name');
+      
+      if (error) throw error;
+      return data as Team[];
+    },
+  });
+
+  const { data: standings } = useQuery({
+    queryKey: ['standings', selectedSeason],
+    queryFn: async () => {
+      const { data: matchups, error } = await supabase
+        .from('weekly_matchups')
+        .select(`
+          *,
+          team1:teams!weekly_matchups_team1_id_fkey(*),
+          team2:teams!weekly_matchups_team2_id_fkey(*)
+        `)
+        .eq('season_id', selectedSeason)
+        .eq('is_playoff', false);
+
+      if (error) throw error;
+
+      // Calculate standings from matchups
+      const standingsMap = new Map();
+      
+      matchups?.forEach((matchup) => {
+        // Process team1
+        if (!standingsMap.has(matchup.team1_id)) {
+          standingsMap.set(matchup.team1_id, {
+            id: matchup.team1_id,
+            team: matchup.team1.name,
+            wins: 0,
+            losses: 0,
+            pointsFor: 0,
+            pointsAgainst: 0,
+          });
+        }
+        
+        // Process team2
+        if (!standingsMap.has(matchup.team2_id)) {
+          standingsMap.set(matchup.team2_id, {
+            id: matchup.team2_id,
+            team: matchup.team2.name,
+            wins: 0,
+            losses: 0,
+            pointsFor: 0,
+            pointsAgainst: 0,
+          });
+        }
+
+        const team1Stats = standingsMap.get(matchup.team1_id);
+        const team2Stats = standingsMap.get(matchup.team2_id);
+
+        // Update wins/losses
+        if (matchup.team1_score > matchup.team2_score) {
+          team1Stats.wins++;
+          team2Stats.losses++;
+        } else {
+          team1Stats.losses++;
+          team2Stats.wins++;
+        }
+
+        // Update points
+        team1Stats.pointsFor += Number(matchup.team1_score);
+        team1Stats.pointsAgainst += Number(matchup.team2_score);
+        team2Stats.pointsFor += Number(matchup.team2_score);
+        team2Stats.pointsAgainst += Number(matchup.team1_score);
+      });
+
+      // Convert to array and calculate averages
+      return Array.from(standingsMap.values())
+        .map(team => ({
+          ...team,
+          record: `${team.wins}-${team.losses}`,
+          avgPoints: team.pointsFor / (team.wins + team.losses),
+        }))
+        .sort((a, b) => b.wins - a.wins || b.pointsFor - a.pointsFor);
+    },
+  });
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="min-h-screen space-y-8">
@@ -71,7 +155,7 @@ const Seasons = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {standings.map((team) => (
+              {standings?.map((team) => (
                 <TableRow key={team.id}>
                   <TableCell className="font-medium">
                     <Link 
@@ -92,7 +176,6 @@ const Seasons = () => {
         </div>
       </Card>
 
-      {/* Add Playoff Bracket */}
       <PlayoffBracket season={selectedSeason} />
 
       <div className="grid gap-6">
