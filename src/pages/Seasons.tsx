@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import WeeklyMatchup from "@/components/WeeklyMatchup";
 import { getAllSeasons, getSeasonLabel } from "@/utils/seasonUtils";

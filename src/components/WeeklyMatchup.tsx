@@ -7,33 +7,44 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const WeeklyMatchup = () => {
-  const [selectedWeek, setSelectedWeek] = useState("current");
+  const [selectedWeek, setSelectedWeek] = useState("1");
   const weeks = Array.from({ length: 17 }, (_, i) => i + 1);
 
-  // Mock data - replace with real data later
-  const matchups = {
-    current: {
-      team1: { name: "Your Team", score: 142.6, projected: 138.5 },
-      team2: { name: "Opponent", score: 138.2, projected: 135.8 },
+  const { data: matchup, isLoading } = useQuery({
+    queryKey: ['matchup', selectedWeek],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('weekly_matchups')
+        .select(`
+          *,
+          team1:teams!weekly_matchups_team1_id_fkey(name),
+          team2:teams!weekly_matchups_team2_id_fkey(name)
+        `)
+        .eq('week_number', parseInt(selectedWeek, 10))
+        .single();
+
+      if (error) throw error;
+      return data;
     },
-    // Add historical matchups here
-  };
+  });
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <Card className="p-6">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold">Weekly Matchup</h2>
-        <Select
-          value={selectedWeek}
-          onValueChange={(value) => setSelectedWeek(value)}
-        >
+        <Select value={selectedWeek} onValueChange={setSelectedWeek}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Select Week" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="current">Current Week</SelectItem>
             {weeks.map((week) => (
               <SelectItem key={week} value={week.toString()}>
                 Week {week}
@@ -43,21 +54,21 @@ const WeeklyMatchup = () => {
         </Select>
       </div>
 
-      <div className="flex justify-between items-center">
-        <div className="text-center">
-          <p className="text-lg font-semibold">Your Team</p>
-          <p className="text-3xl font-bold text-primary">142.6</p>
-          <p className="text-sm text-muted-foreground">Projected: 138.5</p>
+      {matchup && (
+        <div className="flex justify-between items-center">
+          <div className="text-center">
+            <p className="text-lg font-semibold">{matchup.team1.name}</p>
+            <p className="text-3xl font-bold text-primary">{matchup.team1_score}</p>
+          </div>
+          
+          <div className="text-xl font-bold text-muted-foreground">VS</div>
+          
+          <div className="text-center">
+            <p className="text-lg font-semibold">{matchup.team2.name}</p>
+            <p className="text-3xl font-bold text-secondary">{matchup.team2_score}</p>
+          </div>
         </div>
-        
-        <div className="text-xl font-bold text-muted-foreground">VS</div>
-        
-        <div className="text-center">
-          <p className="text-lg font-semibold">Opponent</p>
-          <p className="text-3xl font-bold text-secondary">138.2</p>
-          <p className="text-sm text-muted-foreground">Projected: 135.8</p>
-        </div>
-      </div>
+      )}
     </Card>
   );
 };
