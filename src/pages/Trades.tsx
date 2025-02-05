@@ -16,35 +16,39 @@ import {
 } from "@/components/ui/table";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { getAllSeasons, getSeasonLabel } from "@/utils/seasonUtils";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { getAllSeasons } from "@/utils/seasonUtils";
+import { format } from "date-fns";
 
 const Trades = () => {
   const [selectedSeason, setSelectedSeason] = useState("13");
 
-  const teams = Array.from({ length: 10 }, (_, i) => ({
-    id: i + 1,
-    name: `Team ${i + 1}`,
-  }));
+  const { data: trades, isLoading } = useQuery({
+    queryKey: ["trades", selectedSeason],
+    queryFn: async () => {
+      const { data: tradesData, error } = await supabase
+        .from("trades")
+        .select(`
+          *,
+          team1:teams!trades_team1_id_fkey(name),
+          team2:teams!trades_team2_id_fkey(name),
+          items:trade_items(
+            item_type,
+            item_description,
+            from_team_id,
+            to_team_id,
+            from_team:teams!trade_items_from_team_id_fkey(name),
+            to_team:teams!trade_items_to_team_id_fkey(name)
+          )
+        `)
+        .eq("season_id", selectedSeason)
+        .order("trade_date", { ascending: false });
 
-  // Mock data - replace with real data later
-  const trades = [
-    {
-      id: 1,
-      date: "2023-08-15",
-      team1: teams[0],
-      team2: teams[1],
-      team1Receives: ["Player A", "2024 1st Round Pick"],
-      team2Receives: ["Player B", "Player C", "2024 2nd Round Pick"],
+      if (error) throw error;
+      return tradesData;
     },
-    {
-      id: 2,
-      date: "2023-08-20",
-      team1: teams[2],
-      team2: teams[3],
-      team1Receives: ["Player D", "2024 3rd Round Pick"],
-      team2Receives: ["Player E"],
-    },
-  ];
+  });
 
   return (
     <div className="min-h-screen">
@@ -59,65 +63,89 @@ const Trades = () => {
               <SelectValue placeholder="Select Season" />
             </SelectTrigger>
             <SelectContent>
-              {getAllSeasons().reverse().map((season) => (
-                <SelectItem key={season.value} value={season.value}>
-                  {season.label}
-                </SelectItem>
-              ))}
+              {getAllSeasons()
+                .reverse()
+                .map((season) => (
+                  <SelectItem key={season.value} value={season.value}>
+                    {season.label}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>
       </header>
 
       <Card className="p-6">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Team</TableHead>
-              <TableHead>Received</TableHead>
-              <TableHead>Team</TableHead>
-              <TableHead>Received</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {trades.map((trade) => (
-              <TableRow key={trade.id}>
-                <TableCell>{trade.date}</TableCell>
-                <TableCell className="font-medium">
-                  <Link 
-                    to={`/team/${trade.team1.id}?season=${selectedSeason}`} 
-                    className="text-primary hover:underline"
-                  >
-                    {trade.team1.name}
-                  </Link>
-                </TableCell>
-                <TableCell>
-                  <ul className="list-disc list-inside">
-                    {trade.team1Receives.map((item, index) => (
-                      <li key={index} className="text-sm">{item}</li>
-                    ))}
-                  </ul>
-                </TableCell>
-                <TableCell className="font-medium">
-                  <Link 
-                    to={`/team/${trade.team2.id}?season=${selectedSeason}`} 
-                    className="text-primary hover:underline"
-                  >
-                    {trade.team2.name}
-                  </Link>
-                </TableCell>
-                <TableCell>
-                  <ul className="list-disc list-inside">
-                    {trade.team2Receives.map((item, index) => (
-                      <li key={index} className="text-sm">{item}</li>
-                    ))}
-                  </ul>
-                </TableCell>
+        {isLoading ? (
+          <div className="text-center py-4">Loading trades...</div>
+        ) : trades && trades.length > 0 ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Team</TableHead>
+                <TableHead>Received</TableHead>
+                <TableHead>Team</TableHead>
+                <TableHead>Received</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {trades.map((trade) => (
+                <TableRow key={trade.id}>
+                  <TableCell>
+                    {format(new Date(trade.trade_date), "MMM d, yyyy")}
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    <Link
+                      to={`/team/${trade.team1_id}?season=${selectedSeason}`}
+                      className="text-primary hover:underline"
+                    >
+                      {trade.team1.name}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <ul className="list-disc list-inside">
+                      {trade.items
+                        .filter(
+                          (item) => item.to_team_id === trade.team1_id
+                        )
+                        .map((item, index) => (
+                          <li key={index} className="text-sm">
+                            {item.item_description}
+                          </li>
+                        ))}
+                    </ul>
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    <Link
+                      to={`/team/${trade.team2_id}?season=${selectedSeason}`}
+                      className="text-primary hover:underline"
+                    >
+                      {trade.team2.name}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <ul className="list-disc list-inside">
+                      {trade.items
+                        .filter(
+                          (item) => item.to_team_id === trade.team2_id
+                        )
+                        .map((item, index) => (
+                          <li key={index} className="text-sm">
+                            {item.item_description}
+                          </li>
+                        ))}
+                    </ul>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <div className="text-center py-4 text-muted-foreground">
+            No trades found for this season
+          </div>
+        )}
       </Card>
     </div>
   );
