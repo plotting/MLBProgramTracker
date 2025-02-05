@@ -6,6 +6,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getAllSeasons, getSeasonLabel } from "@/utils/seasonUtils";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import type { Team } from "@/types/database";
 
 type SeasonHeaderProps = {
   selectedSeason: string;
@@ -13,6 +16,19 @@ type SeasonHeaderProps = {
 };
 
 const SeasonHeader = ({ selectedSeason, setSelectedSeason }: SeasonHeaderProps) => {
+  const { data: teams } = useQuery({
+    queryKey: ['teams'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('teams')
+        .select('*')
+        .order('id');
+      
+      if (error) throw error;
+      return data as Team[];
+    },
+  });
+
   return (
     <header className="mb-8">
       <div className="flex justify-between items-center">
@@ -21,6 +37,15 @@ const SeasonHeader = ({ selectedSeason, setSelectedSeason }: SeasonHeaderProps) 
             {getSeasonLabel(selectedSeason)}
           </h1>
           <p className="text-muted-foreground">League Standings and Weekly Matchups</p>
+          {teams && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {teams.map((team) => (
+                <span key={team.id} className="text-sm text-muted-foreground">
+                  {team.name}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
         <Select value={selectedSeason} onValueChange={setSelectedSeason}>
           <SelectTrigger className="w-[180px]">
