@@ -21,7 +21,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 const Draft = () => {
-  const [selectedSeason, setSelectedSeason] = useState("13");
+  const [selectedSeason, setSelectedSeason] = useState("1"); // Start with season 1 to see the first draft
 
   const { data: draftPicks, isLoading } = useQuery({
     queryKey: ['draft', selectedSeason],
@@ -32,7 +32,7 @@ const Draft = () => {
           *,
           team:teams(name)
         `)
-        .eq('season_id', parseInt(selectedSeason, 10))
+        .eq('season_id', parseInt(selectedSeason))
         .order('round')
         .order('pick_number');
 

@@ -22,7 +22,7 @@ import { getAllSeasons } from "@/utils/seasonUtils";
 import { format } from "date-fns";
 
 const Trades = () => {
-  const [selectedSeason, setSelectedSeason] = useState("13");
+  const [selectedSeason, setSelectedSeason] = useState("1"); // Start with season 1 to see the first trade
 
   const { data: trades, isLoading } = useQuery({
     queryKey: ["trades", selectedSeason],
@@ -42,7 +42,7 @@ const Trades = () => {
             to_team:teams!trade_items_to_team_id_fkey(name)
           )
         `)
-        .eq("season_id", parseInt(selectedSeason)) // Convert string to number here
+        .eq("season_id", parseInt(selectedSeason))
         .order("trade_date", { ascending: false });
 
       if (error) throw error;
