@@ -17,10 +17,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { getAllSeasons } from "@/utils/seasonUtils";
+import { getAllSeasons, getSeasonLabel } from "@/utils/seasonUtils";
 
 const Draft = () => {
-  const [selectedSeason, setSelectedSeason] = useState("1");
+  const [selectedSeason, setSelectedSeason] = useState("1"); // Default to season 1 to show initial draft
 
   const { data: draftPicks, isLoading } = useQuery({
     queryKey: ['draft', selectedSeason],
@@ -29,13 +29,14 @@ const Draft = () => {
         .from('draft_picks')
         .select(`
           *,
-          team:teams(name)
+          team:teams(*)
         `)
         .eq('season_id', parseInt(selectedSeason))
         .order('round')
         .order('pick_number');
 
       if (error) throw error;
+      console.log('Draft picks:', data);
       return data;
     },
   });
@@ -45,7 +46,9 @@ const Draft = () => {
       <header className="mb-8">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-4xl font-bold text-white mb-2">Draft History</h1>
+            <h1 className="text-4xl font-bold text-white mb-2">
+              {getSeasonLabel(selectedSeason)} Draft
+            </h1>
             <p className="text-muted-foreground">View draft picks across seasons</p>
           </div>
           <Select value={selectedSeason} onValueChange={setSelectedSeason}>
@@ -81,7 +84,7 @@ const Draft = () => {
                 <TableRow key={pick.id}>
                   <TableCell>{pick.round}</TableCell>
                   <TableCell>{pick.pick_number}</TableCell>
-                  <TableCell>{pick.team.name}</TableCell>
+                  <TableCell>{pick.team?.name || 'Unknown Team'}</TableCell>
                   <TableCell>{pick.player_name}</TableCell>
                 </TableRow>
               ))}

@@ -25,6 +25,7 @@ const SeasonHeader = ({ selectedSeason, setSelectedSeason }: SeasonHeaderProps) 
         .order('id');
       
       if (error) throw error;
+      console.log('Teams:', data);
       return data as Team[];
     },
   });
@@ -37,14 +38,16 @@ const SeasonHeader = ({ selectedSeason, setSelectedSeason }: SeasonHeaderProps) 
             {getSeasonLabel(selectedSeason)}
           </h1>
           <p className="text-muted-foreground">League Standings and Weekly Matchups</p>
-          {teams && (
+          {teams && teams.length > 0 ? (
             <div className="mt-2 flex flex-wrap gap-2">
               {teams.map((team) => (
-                <span key={team.id} className="text-sm text-muted-foreground">
+                <span key={team.id} className="text-sm text-muted-foreground bg-secondary px-2 py-1 rounded">
                   {team.name}
                 </span>
               ))}
             </div>
+          ) : (
+            <p className="text-sm text-muted-foreground mt-2">Loading teams...</p>
           )}
         </div>
         <Select value={selectedSeason} onValueChange={setSelectedSeason}>
