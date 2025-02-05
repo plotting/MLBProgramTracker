@@ -42,7 +42,7 @@ const Trades = () => {
             to_team:teams!trade_items_to_team_id_fkey(name)
           )
         `)
-        .eq("season_id", selectedSeason)
+        .eq("season_id", parseInt(selectedSeason)) // Convert string to number here
         .order("trade_date", { ascending: false });
 
       if (error) throw error;
