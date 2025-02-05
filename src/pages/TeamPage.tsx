@@ -24,25 +24,28 @@ const TeamPage = () => {
   const { data: team, isLoading } = useQuery({
     queryKey: ['team', id],
     queryFn: async () => {
+      if (!id) throw new Error('No team ID provided');
       const { data, error } = await supabase
         .from('teams')
         .select('*')
-        .eq('id', id)
+        .eq('id', parseInt(id))
         .single();
       
       if (error) throw error;
       return data;
     },
+    enabled: !!id,
   });
 
   const { data: stats } = useQuery({
     queryKey: ['team-stats', id, selectedSeason],
     queryFn: async () => {
+      if (!id) throw new Error('No team ID provided');
       const { data: matchups, error } = await supabase
         .from('weekly_matchups')
         .select('*')
         .eq('season_id', parseInt(selectedSeason))
-        .or(`team1_id.eq.${id},team2_id.eq.${id}`);
+        .or(`team1_id.eq.${parseInt(id)},team2_id.eq.${parseInt(id)}`);
 
       if (error) throw error;
 
@@ -54,7 +57,7 @@ const TeamPage = () => {
       };
 
       matchups?.forEach(matchup => {
-        const isTeam1 = matchup.team1_id === parseInt(id!);
+        const isTeam1 = matchup.team1_id === parseInt(id);
         const teamScore = isTeam1 ? matchup.team1_score : matchup.team2_score;
         const opponentScore = isTeam1 ? matchup.team2_score : matchup.team1_score;
 
