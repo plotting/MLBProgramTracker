@@ -12,6 +12,7 @@ import { useState, useEffect } from "react";
 import { getAllSeasons } from "@/utils/seasonUtils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
 
 const TeamPage = () => {
   const { id } = useParams();
@@ -71,6 +72,34 @@ const TeamPage = () => {
       });
 
       return stats;
+    },
+    enabled: !!id,
+  });
+
+  const { data: trades } = useQuery({
+    queryKey: ['team-trades', id, selectedSeason],
+    queryFn: async () => {
+      if (!id) throw new Error('No team ID provided');
+      const { data, error } = await supabase
+        .from('trades')
+        .select(`
+          *,
+          team1:teams!trades_team1_id_fkey(name),
+          team2:teams!trades_team2_id_fkey(name),
+          items:trade_items(
+            item_type,
+            item_description,
+            from_team_id,
+            to_team_id,
+            from_team:teams!trade_items_from_team_id_fkey(name),
+            to_team:teams!trade_items_to_team_id_fkey(name)
+          )
+        `)
+        .eq('season_id', parseInt(selectedSeason))
+        .or(`team1_id.eq.${parseInt(id)},team2_id.eq.${parseInt(id)}`);
+
+      if (error) throw error;
+      return data;
     },
     enabled: !!id,
   });
@@ -143,12 +172,70 @@ const TeamPage = () => {
         </Card>
       </div>
 
-      <Card className="p-6">
-        <h2 className="text-xl font-bold mb-4">Weekly Matchups</h2>
-        <p className="text-muted-foreground">Matchup data coming soon...</p>
-      </Card>
+      <div className="space-y-6">
+        <Card className="p-6">
+          <h2 className="text-xl font-bold mb-4">Weekly Matchups</h2>
+          <p className="text-muted-foreground">Matchup data coming soon...</p>
+        </Card>
+
+        <Card className="p-6">
+          <h2 className="text-xl font-bold mb-4">Trades History</h2>
+          {trades && trades.length > 0 ? (
+            <div className="space-y-4">
+              {trades.map((trade) => {
+                const isTeam1 = trade.team1_id === parseInt(id);
+                const otherTeam = isTeam1 ? trade.team2 : trade.team1;
+                const receivedItems = trade.items.filter(item => 
+                  item.to_team_id === parseInt(id)
+                );
+                const sentItems = trade.items.filter(item => 
+                  item.from_team_id === parseInt(id)
+                );
+
+                return (
+                  <div key={trade.id} className="border-b border-border pb-4 last:border-0 last:pb-0">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="font-medium">Trade with {otherTeam.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {format(new Date(trade.trade_date), "MMM d, yyyy")}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm font-medium mb-1">Received:</p>
+                        <ul className="list-disc list-inside text-sm space-y-1">
+                          {receivedItems.map((item, index) => (
+                            <li key={index} className="text-muted-foreground">
+                              {item.item_description}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium mb-1">Sent:</p>
+                        <ul className="list-disc list-inside text-sm space-y-1">
+                          {sentItems.map((item, index) => (
+                            <li key={index} className="text-muted-foreground">
+                              {item.item_description}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-muted-foreground">No trades found for this season</p>
+          )}
+        </Card>
+      </div>
     </div>
   );
 };
 
 export default TeamPage;
+
