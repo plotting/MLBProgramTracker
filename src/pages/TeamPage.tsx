@@ -1,3 +1,4 @@
+
 import { useParams, useSearchParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import {
@@ -21,7 +22,7 @@ const TeamPage = () => {
     setSearchParams({ season: selectedSeason });
   }, [selectedSeason, setSearchParams]);
 
-  const { data: team, isLoading } = useQuery({
+  const { data: team, isLoading, error } = useQuery({
     queryKey: ['team', id],
     queryFn: async () => {
       if (!id) throw new Error('No team ID provided');
@@ -29,9 +30,10 @@ const TeamPage = () => {
         .from('teams')
         .select('*')
         .eq('id', parseInt(id))
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
+      if (!data) throw new Error('Team not found');
       return data;
     },
     enabled: !!id,
@@ -73,14 +75,28 @@ const TeamPage = () => {
     enabled: !!id,
   });
 
-  if (isLoading) return <div>Loading...</div>;
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-lg text-muted-foreground">Loading team data...</p>
+      </div>
+    );
+  }
+
+  if (error || !team) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-lg text-muted-foreground">Team not found</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
       <header className="mb-8">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-4xl font-bold text-white mb-2">{team?.name}</h1>
+            <h1 className="text-4xl font-bold text-white mb-2">{team.name}</h1>
             <p className="text-muted-foreground">Team Statistics</p>
           </div>
           <Select value={selectedSeason} onValueChange={setSelectedSeason}>
