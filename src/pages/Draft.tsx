@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,7 +21,7 @@ import { Card } from "@/components/ui/card";
 import { getAllSeasons, getSeasonLabel } from "@/utils/seasonUtils";
 
 const Draft = () => {
-  const [selectedSeason, setSelectedSeason] = useState("1"); // Default to season 1 to show initial draft
+  const [selectedSeason, setSelectedSeason] = useState("1"); // Default to season 1
 
   const { data: draftPicks, isLoading } = useQuery({
     queryKey: ['draft', selectedSeason],
@@ -68,7 +69,7 @@ const Draft = () => {
 
       <Card className="p-6">
         {isLoading ? (
-          <div>Loading draft picks...</div>
+          <div className="text-center py-4">Loading draft picks...</div>
         ) : draftPicks && draftPicks.length > 0 ? (
           <Table>
             <TableHeader>

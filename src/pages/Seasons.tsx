@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import { useState } from "react";
 import WeeklyMatchup from "@/components/WeeklyMatchup";
@@ -9,7 +10,7 @@ import StandingsTable from "@/components/standings/StandingsTable";
 import SeasonHeader from "@/components/seasons/SeasonHeader";
 
 const Seasons = () => {
-  const [selectedSeason, setSelectedSeason] = useState("13");
+  const [selectedSeason, setSelectedSeason] = useState("1"); // Default to season 1
 
   const { data: teams, isLoading: teamsLoading } = useQuery({
     queryKey: ['teams'],
@@ -20,6 +21,7 @@ const Seasons = () => {
         .order('id');
       
       if (error) throw error;
+      console.log('Teams loaded:', data);
       return data as Team[];
     },
   });
@@ -44,6 +46,7 @@ const Seasons = () => {
         .eq('is_playoff', false);
 
       if (error) throw error;
+      console.log('Matchups loaded:', matchups);
 
       const standingsMap = new Map();
       
@@ -87,12 +90,12 @@ const Seasons = () => {
         team2Stats.pointsAgainst += Number(matchup.team1_score);
       });
 
-      // If there are teams without any matchups, add them with 0s
+      // Add teams with no matchups
       teams?.forEach(team => {
         if (!standingsMap.has(team.id)) {
           standingsMap.set(team.id, {
             id: team.id,
-            team: teamNames[team.id],
+            team: team.name,
             wins: 0,
             losses: 0,
             pointsFor: 0,
@@ -114,7 +117,9 @@ const Seasons = () => {
   });
 
   if (teamsLoading || standingsLoading) {
-    return <div>Loading...</div>;
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="text-lg text-muted-foreground">Loading league data...</div>
+    </div>;
   }
 
   return (

@@ -1,3 +1,4 @@
+
 import {
   Select,
   SelectContent,
@@ -41,7 +42,7 @@ const SeasonHeader = ({ selectedSeason, setSelectedSeason }: SeasonHeaderProps) 
           {teams && teams.length > 0 ? (
             <div className="mt-2 flex flex-wrap gap-2">
               {teams.map((team) => (
-                <span key={team.id} className="text-sm text-muted-foreground bg-secondary px-2 py-1 rounded">
+                <span key={team.id} className="text-sm text-white bg-secondary px-2 py-1 rounded">
                   {team.name}
                 </span>
               ))}
