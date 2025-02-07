@@ -1,3 +1,4 @@
+
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,9 +17,25 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Menu } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Team } from "@/types/database";
 
 const Navigation = () => {
   const isMobile = useIsMobile();
+
+  const { data: teams, isLoading } = useQuery({
+    queryKey: ['teams'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('teams')
+        .select('*')
+        .order('id');
+      
+      if (error) throw error;
+      return data as Team[];
+    },
+  });
 
   const links = [
     { to: "/", label: "Seasons" },
@@ -29,11 +46,6 @@ const Navigation = () => {
     { to: "/head-to-head", label: "Head to Head" },
     { to: "/records", label: "Records" },
   ];
-
-  const teams = Array.from({ length: 10 }, (_, i) => ({
-    id: i + 1,
-    name: `Team ${i + 1}`,
-  }));
 
   const NavLinks = () => (
     <>
@@ -51,7 +63,9 @@ const Navigation = () => {
           Teams
         </DropdownMenuTrigger>
         <DropdownMenuContent>
-          {teams.map((team) => (
+          {isLoading ? (
+            <DropdownMenuItem>Loading teams...</DropdownMenuItem>
+          ) : teams?.map((team) => (
             <DropdownMenuItem key={team.id}>
               <Link
                 to={`/team/${team.id}`}
@@ -80,7 +94,9 @@ const Navigation = () => {
       ))}
       <div className="space-y-2">
         <div className="font-medium">Teams</div>
-        {teams.map((team) => (
+        {isLoading ? (
+          <div className="text-muted-foreground">Loading teams...</div>
+        ) : teams?.map((team) => (
           <SheetClose asChild key={team.id}>
             <Link
               to={`/team/${team.id}`}
