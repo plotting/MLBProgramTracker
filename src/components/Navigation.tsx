@@ -27,6 +27,7 @@ const Navigation = () => {
   const { data: teams, isLoading } = useQuery({
     queryKey: ['teams'],
     queryFn: async () => {
+      console.log('Fetching teams...');
       const { data, error } = await supabase
         .from('teams')
         .select('*')
@@ -37,6 +38,9 @@ const Navigation = () => {
         throw error;
       }
       console.log('Teams loaded:', data);
+      if (!data || data.length === 0) {
+        console.log('No teams found in the database');
+      }
       return data as Team[];
     },
   });
@@ -71,7 +75,7 @@ const Navigation = () => {
             <DropdownMenuItem disabled>Loading teams...</DropdownMenuItem>
           ) : teams && teams.length > 0 ? (
             teams.map((team) => (
-              <DropdownMenuItem key={team.id}>
+              <DropdownMenuItem key={team.id} asChild>
                 <Link
                   to={`/team/${team.id}`}
                   className="w-full text-muted-foreground hover:text-primary"
