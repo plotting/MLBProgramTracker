@@ -32,7 +32,11 @@ const Navigation = () => {
         .select('*')
         .order('id');
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching teams:', error);
+        throw error;
+      }
+      console.log('Teams loaded:', data);
       return data as Team[];
     },
   });
@@ -64,17 +68,21 @@ const Navigation = () => {
         </DropdownMenuTrigger>
         <DropdownMenuContent>
           {isLoading ? (
-            <DropdownMenuItem>Loading teams...</DropdownMenuItem>
-          ) : teams?.map((team) => (
-            <DropdownMenuItem key={team.id}>
-              <Link
-                to={`/team/${team.id}`}
-                className="w-full text-muted-foreground hover:text-primary"
-              >
-                {team.name}
-              </Link>
-            </DropdownMenuItem>
-          ))}
+            <DropdownMenuItem disabled>Loading teams...</DropdownMenuItem>
+          ) : teams && teams.length > 0 ? (
+            teams.map((team) => (
+              <DropdownMenuItem key={team.id}>
+                <Link
+                  to={`/team/${team.id}`}
+                  className="w-full text-muted-foreground hover:text-primary"
+                >
+                  {team.name}
+                </Link>
+              </DropdownMenuItem>
+            ))
+          ) : (
+            <DropdownMenuItem disabled>No teams found</DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </>
@@ -96,16 +104,20 @@ const Navigation = () => {
         <div className="font-medium">Teams</div>
         {isLoading ? (
           <div className="text-muted-foreground">Loading teams...</div>
-        ) : teams?.map((team) => (
-          <SheetClose asChild key={team.id}>
-            <Link
-              to={`/team/${team.id}`}
-              className="block text-muted-foreground hover:text-primary"
-            >
-              {team.name}
-            </Link>
-          </SheetClose>
-        ))}
+        ) : teams && teams.length > 0 ? (
+          teams.map((team) => (
+            <SheetClose asChild key={team.id}>
+              <Link
+                to={`/team/${team.id}`}
+                className="block text-muted-foreground hover:text-primary"
+              >
+                {team.name}
+              </Link>
+            </SheetClose>
+          ))
+        ) : (
+          <div className="text-muted-foreground">No teams found</div>
+        )}
       </div>
     </>
   );
