@@ -17,20 +17,6 @@ type SeasonHeaderProps = {
 };
 
 const SeasonHeader = ({ selectedSeason, setSelectedSeason }: SeasonHeaderProps) => {
-  const { data: teams } = useQuery({
-    queryKey: ['teams'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('teams')
-        .select('*')
-        .order('id');
-      
-      if (error) throw error;
-      console.log('Teams:', data);
-      return data as Team[];
-    },
-  });
-
   return (
     <header className="mb-8">
       <div className="flex justify-between items-center">
@@ -39,17 +25,6 @@ const SeasonHeader = ({ selectedSeason, setSelectedSeason }: SeasonHeaderProps) 
             {getSeasonLabel(selectedSeason)}
           </h1>
           <p className="text-muted-foreground">League Standings and Weekly Matchups</p>
-          {teams && teams.length > 0 ? (
-            <div className="mt-2 flex flex-wrap gap-2">
-              {teams.map((team) => (
-                <span key={team.id} className="text-sm text-white bg-secondary px-2 py-1 rounded">
-                  {team.name}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground mt-2">Loading teams...</p>
-          )}
         </div>
         <Select value={selectedSeason} onValueChange={setSelectedSeason}>
           <SelectTrigger className="w-[180px]">
