@@ -1,3 +1,4 @@
+
 export interface Team {
   id: number;
   name: string;
@@ -24,4 +25,16 @@ export interface WeeklyMatchup {
   team2_score: number;
   is_playoff: boolean;
   created_at: string;
+}
+
+export interface StandingsView {
+  team_id: number;
+  team_name: string;
+  season_id: number;
+  wins: number;
+  losses: number;
+  ties: number;
+  points_for: number;
+  points_against: number;
+  avg_points: number;
 }

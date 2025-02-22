@@ -4,119 +4,31 @@ import { useState } from "react";
 import WeeklyMatchup from "@/components/WeeklyMatchup";
 import PlayoffBracket from "@/components/PlayoffBracket";
 import { supabase } from "@/integrations/supabase/client";
-import { Team } from "@/types/database";
+import { StandingsView } from "@/types/database";
 import { useQuery } from "@tanstack/react-query";
 import StandingsTable from "@/components/standings/StandingsTable";
 import SeasonHeader from "@/components/seasons/SeasonHeader";
 
 const Seasons = () => {
-  const [selectedSeason, setSelectedSeason] = useState("1"); // Default to season 1
-
-  const { data: teams, isLoading: teamsLoading } = useQuery({
-    queryKey: ['teams'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('teams')
-        .select('*')
-        .order('id');
-      
-      if (error) throw error;
-      console.log('Teams loaded:', data);
-      return data as Team[];
-    },
-  });
-
-  // Create a map of team IDs to names
-  const teamNames = teams?.reduce((acc, team) => ({
-    ...acc,
-    [team.id]: team.name
-  }), {}) || {};
+  const [selectedSeason, setSelectedSeason] = useState("1");
 
   const { data: standings, isLoading: standingsLoading } = useQuery({
     queryKey: ['standings', selectedSeason],
     queryFn: async () => {
-      const { data: matchups, error } = await supabase
-        .from('weekly_matchups')
-        .select(`
-          *,
-          team1:teams!weekly_matchups_team1_id_fkey(*),
-          team2:teams!weekly_matchups_team2_id_fkey(*)
-        `)
+      const { data, error } = await supabase
+        .from('standings_view')
+        .select('*')
         .eq('season_id', parseInt(selectedSeason))
-        .eq('is_playoff', false);
+        .order('wins', { ascending: false })
+        .order('points_for', { ascending: false });
 
       if (error) throw error;
-      console.log('Matchups loaded:', matchups);
-
-      const standingsMap = new Map();
-      
-      matchups?.forEach((matchup) => {
-        if (!standingsMap.has(matchup.team1_id)) {
-          standingsMap.set(matchup.team1_id, {
-            id: matchup.team1_id,
-            team: teamNames[matchup.team1_id] || `Team ${matchup.team1_id}`,
-            wins: 0,
-            losses: 0,
-            pointsFor: 0,
-            pointsAgainst: 0,
-          });
-        }
-        
-        if (!standingsMap.has(matchup.team2_id)) {
-          standingsMap.set(matchup.team2_id, {
-            id: matchup.team2_id,
-            team: teamNames[matchup.team2_id] || `Team ${matchup.team2_id}`,
-            wins: 0,
-            losses: 0,
-            pointsFor: 0,
-            pointsAgainst: 0,
-          });
-        }
-
-        const team1Stats = standingsMap.get(matchup.team1_id);
-        const team2Stats = standingsMap.get(matchup.team2_id);
-
-        if (matchup.team1_score > matchup.team2_score) {
-          team1Stats.wins++;
-          team2Stats.losses++;
-        } else {
-          team1Stats.losses++;
-          team2Stats.wins++;
-        }
-
-        team1Stats.pointsFor += Number(matchup.team1_score);
-        team1Stats.pointsAgainst += Number(matchup.team2_score);
-        team2Stats.pointsFor += Number(matchup.team2_score);
-        team2Stats.pointsAgainst += Number(matchup.team1_score);
-      });
-
-      // Add teams with no matchups
-      teams?.forEach(team => {
-        if (!standingsMap.has(team.id)) {
-          standingsMap.set(team.id, {
-            id: team.id,
-            team: team.name,
-            wins: 0,
-            losses: 0,
-            pointsFor: 0,
-            pointsAgainst: 0,
-            avgPoints: 0,
-          });
-        }
-      });
-
-      return Array.from(standingsMap.values())
-        .map(team => ({
-          ...team,
-          record: `${team.wins}-${team.losses}`,
-          avgPoints: team.wins + team.losses > 0 ? team.pointsFor / (team.wins + team.losses) : 0,
-        }))
-        .sort((a, b) => b.wins - a.wins || b.pointsFor - a.pointsFor);
+      console.log('Standings loaded:', data);
+      return data as StandingsView[];
     },
-    enabled: !!teams, // Only run this query after teams are loaded
   });
 
-  if (teamsLoading || standingsLoading) {
+  if (standingsLoading) {
     return <div className="flex items-center justify-center min-h-screen">
       <div className="text-lg text-muted-foreground">Loading league data...</div>
     </div>;

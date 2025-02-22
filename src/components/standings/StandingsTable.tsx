@@ -8,16 +8,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { StandingsView } from "@/types/database";
 
 type StandingsProps = {
-  standings: Array<{
-    id: number;
-    team: string;
-    record: string;
-    pointsFor: number;
-    pointsAgainst: number;
-    avgPoints: number;
-  }>;
+  standings: StandingsView[];
   selectedSeason: string;
 };
 
@@ -63,19 +57,19 @@ const StandingsTable = ({ standings, selectedSeason }: StandingsProps) => {
       </TableHeader>
       <TableBody>
         {standings?.map((team, index) => (
-          <TableRow key={team.id}>
+          <TableRow key={team.team_id}>
             <TableCell className="font-medium">
               <Link 
-                to={`/team/${team.id}?season=${selectedSeason}`} 
+                to={`/team/${team.team_id}?season=${selectedSeason}`} 
                 className="text-primary hover:underline"
               >
-                {team.team}
+                {team.team_name}
               </Link>
             </TableCell>
-            <TableCell>{team.record}</TableCell>
-            <TableCell>{team.pointsFor.toFixed(1)}</TableCell>
-            <TableCell>{team.pointsAgainst.toFixed(1)}</TableCell>
-            <TableCell>{team.avgPoints.toFixed(1)}</TableCell>
+            <TableCell>{`${team.wins}-${team.losses}${team.ties > 0 ? `-${team.ties}` : ''}`}</TableCell>
+            <TableCell>{team.points_for.toFixed(1)}</TableCell>
+            <TableCell>{team.points_against.toFixed(1)}</TableCell>
+            <TableCell>{team.avg_points.toFixed(1)}</TableCell>
             <TableCell>{getPlacementEmoji(index)}</TableCell>
           </TableRow>
         ))}
