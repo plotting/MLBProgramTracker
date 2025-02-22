@@ -1,3 +1,4 @@
+
 import { Link } from "react-router-dom";
 import {
   Table,
@@ -20,11 +21,39 @@ type StandingsProps = {
   selectedSeason: string;
 };
 
+const getPlacementEmoji = (index: number): string => {
+  switch (index + 1) {
+    case 1:
+      return "🥇 1st Place";
+    case 2:
+      return "🥈 2nd Place";
+    case 3:
+      return "🥉 3rd Place";
+    case 4:
+      return "🏆 4th Place";
+    case 5:
+      return "🌟 5th Place";
+    case 6:
+      return "🛡️ 6th Place";
+    case 7:
+      return "🚽 7th Place";
+    case 8:
+      return "🤡 8th Place";
+    case 9:
+      return "🤮 9th Place";
+    case 10:
+      return "💩 10th Place";
+    default:
+      return `${index + 1}th Place`;
+  }
+};
+
 const StandingsTable = ({ standings, selectedSeason }: StandingsProps) => {
   return (
     <Table>
       <TableHeader>
         <TableRow>
+          <TableHead>Placement</TableHead>
           <TableHead>Team</TableHead>
           <TableHead>Record</TableHead>
           <TableHead>Points For</TableHead>
@@ -33,8 +62,9 @@ const StandingsTable = ({ standings, selectedSeason }: StandingsProps) => {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {standings?.map((team) => (
+        {standings?.map((team, index) => (
           <TableRow key={team.id}>
+            <TableCell>{getPlacementEmoji(index)}</TableCell>
             <TableCell className="font-medium">
               <Link 
                 to={`/team/${team.id}?season=${selectedSeason}`} 
