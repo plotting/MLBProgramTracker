@@ -28,19 +28,31 @@ const Navigation = () => {
     queryKey: ['teams'],
     queryFn: async () => {
       console.log('Fetching teams...');
+      // Let's try to get all columns explicitly and add more detailed logging
       const { data, error } = await supabase
         .from('teams')
-        .select('*')
+        .select('id, name, owner_id, created_at, updated_at')
         .order('id');
       
       if (error) {
         console.error('Error fetching teams:', error);
         throw error;
       }
+
+      // Add more detailed logging
+      console.log('Raw response:', { data, error });
       console.log('Teams loaded:', data);
+      
       if (!data || data.length === 0) {
         console.log('No teams found in the database');
+        // Let's also log the query that was executed
+        console.log('Query details:', {
+          table: 'teams',
+          columns: ['id', 'name', 'owner_id', 'created_at', 'updated_at'],
+          orderBy: 'id'
+        });
       }
+      
       return data as Team[];
     },
   });
@@ -70,12 +82,12 @@ const Navigation = () => {
         <DropdownMenuTrigger className="text-muted-foreground hover:text-primary transition-colors">
           Teams
         </DropdownMenuTrigger>
-        <DropdownMenuContent>
+        <DropdownMenuContent align="end">
           {isLoading ? (
             <DropdownMenuItem disabled>Loading teams...</DropdownMenuItem>
           ) : teams && teams.length > 0 ? (
             teams.map((team) => (
-              <DropdownMenuItem key={team.id} asChild>
+              <DropdownMenuItem key={team.id}>
                 <Link
                   to={`/team/${team.id}`}
                   className="w-full text-muted-foreground hover:text-primary"
