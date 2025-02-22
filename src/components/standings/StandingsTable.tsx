@@ -53,18 +53,17 @@ const StandingsTable = ({ standings, selectedSeason }: StandingsProps) => {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Placement</TableHead>
           <TableHead>Team</TableHead>
           <TableHead>Record</TableHead>
           <TableHead>Points For</TableHead>
           <TableHead>Points Against</TableHead>
           <TableHead>Avg Points</TableHead>
+          <TableHead>Final Standing</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {standings?.map((team, index) => (
           <TableRow key={team.id}>
-            <TableCell>{getPlacementEmoji(index)}</TableCell>
             <TableCell className="font-medium">
               <Link 
                 to={`/team/${team.id}?season=${selectedSeason}`} 
@@ -77,6 +76,7 @@ const StandingsTable = ({ standings, selectedSeason }: StandingsProps) => {
             <TableCell>{team.pointsFor.toFixed(1)}</TableCell>
             <TableCell>{team.pointsAgainst.toFixed(1)}</TableCell>
             <TableCell>{team.avgPoints.toFixed(1)}</TableCell>
+            <TableCell>{getPlacementEmoji(index)}</TableCell>
           </TableRow>
         ))}
       </TableBody>
