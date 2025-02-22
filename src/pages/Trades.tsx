@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import {
   Select,
@@ -22,7 +23,7 @@ import { getAllSeasons } from "@/utils/seasonUtils";
 import { format } from "date-fns";
 
 const Trades = () => {
-  const [selectedSeason, setSelectedSeason] = useState("1"); // Start with season 1 to see the first trade
+  const [selectedSeason, setSelectedSeason] = useState("1");
 
   const { data: trades, isLoading } = useQuery({
     queryKey: ["trades", selectedSeason],
@@ -46,6 +47,9 @@ const Trades = () => {
         .order("trade_date", { ascending: false });
 
       if (error) throw error;
+      
+      // Add logging to help debug the response
+      console.log("Trades data:", tradesData);
       return tradesData;
     },
   });
@@ -96,19 +100,21 @@ const Trades = () => {
                     {format(new Date(trade.trade_date), "MMM d, yyyy")}
                   </TableCell>
                   <TableCell className="font-medium">
-                    <Link
-                      to={`/team/${trade.team1_id}?season=${selectedSeason}`}
-                      className="text-primary hover:underline"
-                    >
-                      {trade.team1.name}
-                    </Link>
+                    {trade.team1 ? (
+                      <Link
+                        to={`/team/${trade.team1_id}?season=${selectedSeason}`}
+                        className="text-primary hover:underline"
+                      >
+                        {trade.team1.name}
+                      </Link>
+                    ) : (
+                      <span className="text-muted-foreground">Unknown Team</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <ul className="list-disc list-inside">
                       {trade.items
-                        .filter(
-                          (item) => item.to_team_id === trade.team1_id
-                        )
+                        ?.filter((item) => item.to_team_id === trade.team1_id)
                         .map((item, index) => (
                           <li key={index} className="text-sm">
                             {item.item_description}
@@ -117,19 +123,21 @@ const Trades = () => {
                     </ul>
                   </TableCell>
                   <TableCell className="font-medium">
-                    <Link
-                      to={`/team/${trade.team2_id}?season=${selectedSeason}`}
-                      className="text-primary hover:underline"
-                    >
-                      {trade.team2.name}
-                    </Link>
+                    {trade.team2 ? (
+                      <Link
+                        to={`/team/${trade.team2_id}?season=${selectedSeason}`}
+                        className="text-primary hover:underline"
+                      >
+                        {trade.team2.name}
+                      </Link>
+                    ) : (
+                      <span className="text-muted-foreground">Unknown Team</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <ul className="list-disc list-inside">
                       {trade.items
-                        .filter(
-                          (item) => item.to_team_id === trade.team2_id
-                        )
+                        ?.filter((item) => item.to_team_id === trade.team2_id)
                         .map((item, index) => (
                           <li key={index} className="text-sm">
                             {item.item_description}
