@@ -96,7 +96,8 @@ const TeamPage = () => {
           )
         `)
         .eq('season_id', parseInt(selectedSeason))
-        .or(`team1_id.eq.${parseInt(id)},team2_id.eq.${parseInt(id)}`);
+        .or(`team1_id.eq.${parseInt(id)},team2_id.eq.${parseInt(id)}`)
+        .order('trade_date', { ascending: true }); // Changed to ascending order
 
       if (error) throw error;
       return data;
@@ -238,4 +239,3 @@ const TeamPage = () => {
 };
 
 export default TeamPage;
-
