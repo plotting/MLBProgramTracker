@@ -1,101 +1,32 @@
 
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
-import { getAllSeasons, getSeasonLabel } from "@/utils/seasonUtils";
+import { Button } from "@/components/ui/button";
 
 const Draft = () => {
-  const [selectedSeason, setSelectedSeason] = useState("1"); // Default to season 1
-
-  const { data: draftPicks, isLoading } = useQuery({
-    queryKey: ['draft', selectedSeason],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('draft_picks')
-        .select(`
-          *,
-          team:teams(*)
-        `)
-        .eq('season_id', parseInt(selectedSeason))
-        .order('round')
-        .order('pick_number');
-
-      if (error) throw error;
-      console.log('Draft picks:', data);
-      return data;
-    },
-  });
-
   return (
     <div className="min-h-screen">
       <header className="mb-8">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-4xl font-bold text-white mb-2">
-              {getSeasonLabel(selectedSeason)} Draft
-            </h1>
-            <p className="text-muted-foreground">View draft picks across seasons</p>
+            <h1 className="text-4xl font-bold text-white mb-2">Draft Central</h1>
+            <p className="text-muted-foreground">View draft picks across all seasons</p>
           </div>
-          <Select value={selectedSeason} onValueChange={setSelectedSeason}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select Season" />
-            </SelectTrigger>
-            <SelectContent>
-              {getAllSeasons().reverse().map((season) => (
-                <SelectItem key={season.value} value={season.value}>
-                  {season.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
       </header>
 
       <Card className="p-6">
-        {isLoading ? (
-          <div className="text-center py-4">Loading draft picks...</div>
-        ) : draftPicks && draftPicks.length > 0 ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Round</TableHead>
-                <TableHead>Pick</TableHead>
-                <TableHead>Team</TableHead>
-                <TableHead>Player</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {draftPicks.map((pick) => (
-                <TableRow key={pick.id}>
-                  <TableCell>{pick.round}</TableCell>
-                  <TableCell>{pick.pick_number}</TableCell>
-                  <TableCell>{pick.team?.name || 'Unknown Team'}</TableCell>
-                  <TableCell>{pick.player_name}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        ) : (
-          <div className="text-center py-4 text-muted-foreground">
-            No draft picks found for this season
-          </div>
-        )}
+        <div className="text-center">
+          <h2 className="text-2xl font-semibold mb-4">View Draft History</h2>
+          <p className="text-muted-foreground mb-6">
+            Track all draft picks across seasons with our comprehensive draft history view
+          </p>
+          <Link to="/draft-history">
+            <Button size="lg">
+              View Draft History
+            </Button>
+          </Link>
+        </div>
       </Card>
     </div>
   );
