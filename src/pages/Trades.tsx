@@ -44,11 +44,10 @@ const Trades = () => {
           )
         `)
         .eq("season_id", parseInt(selectedSeason))
-        .order("trade_date", { ascending: false });
+        .order("trade_date", { ascending: true }); // Changed to ascending order
 
       if (error) throw error;
       
-      // Add logging to help debug the response
       console.log("Trades data:", tradesData);
       return tradesData;
     },
