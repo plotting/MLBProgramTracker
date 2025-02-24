@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import {
   Select,
@@ -16,21 +17,64 @@ import {
 } from "@/components/ui/table";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { getAllSeasons, getSeasonLabel } from "@/utils/seasonUtils";
 
 const WeeklyScores = () => {
   const [selectedSeason, setSelectedSeason] = useState("13");
 
-  // Mock data for 10 teams
-  const teams = Array.from({ length: 10 }, (_, i) => ({
-    id: i + 1,
-    name: `Team ${i + 1}`,
-    records: Array.from({ length: 17 }, (_, weekIndex) => {
-      const wins = Math.floor(Math.random() * (weekIndex + 1));
-      const losses = weekIndex + 1 - wins;
+  const { data: teams } = useQuery({
+    queryKey: ["teams"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("teams")
+        .select("*")
+        .order("id");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: matchups, isLoading } = useQuery({
+    queryKey: ["weekly-matchups", selectedSeason],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("weekly_matchups")
+        .select("*")
+        .eq("season_id", parseInt(selectedSeason))
+        .order("week_number");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Process matchups into team records
+  const teamRecords = teams?.reduce((acc, team) => {
+    acc[team.id] = Array.from({ length: 17 }, (_, weekIndex) => {
+      const weekNumber = weekIndex + 1;
+      let wins = 0;
+      let losses = 0;
+
+      // Find all matchups for this team up to this week
+      const relevantMatchups = matchups?.filter(m => 
+        (m.team1_id === team.id || m.team2_id === team.id) && 
+        m.week_number <= weekNumber
+      ) || [];
+
+      relevantMatchups.forEach(matchup => {
+        const isTeam1 = matchup.team1_id === team.id;
+        const teamScore = isTeam1 ? matchup.team1_score : matchup.team2_score;
+        const opponentScore = isTeam1 ? matchup.team2_score : matchup.team1_score;
+
+        if (teamScore > opponentScore) wins++;
+        else losses++;
+      });
+
       return `${wins}-${losses}`;
-    }),
-  }));
+    });
+    return acc;
+  }, {} as Record<number, string[]>) || {};
 
   return (
     <div className="min-h-screen">
@@ -68,7 +112,7 @@ const WeeklyScores = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {teams.map((team) => (
+            {teams?.map((team) => (
               <TableRow key={team.id}>
                 <TableCell className="font-medium sticky left-0 bg-background z-10">
                   <Link 
@@ -78,9 +122,9 @@ const WeeklyScores = () => {
                     {team.name}
                   </Link>
                 </TableCell>
-                {team.records.map((record, weekIndex) => (
+                {Array.from({ length: 17 }, (_, weekIndex) => (
                   <TableCell key={weekIndex} className="text-center">
-                    {record}
+                    {teamRecords[team.id]?.[weekIndex] || "-"}
                   </TableCell>
                 ))}
               </TableRow>
