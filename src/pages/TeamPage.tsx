@@ -8,11 +8,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useState, useEffect } from "react";
 import { getAllSeasons } from "@/utils/seasonUtils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { Link } from "react-router-dom";
 
 const TeamPage = () => {
   const { id } = useParams();
@@ -35,6 +44,27 @@ const TeamPage = () => {
       
       if (error) throw error;
       if (!data) throw new Error('Team not found');
+      return data;
+    },
+    enabled: !!id,
+  });
+
+  const { data: matchups } = useQuery({
+    queryKey: ['team-matchups', id, selectedSeason],
+    queryFn: async () => {
+      if (!id) throw new Error('No team ID provided');
+      const { data, error } = await supabase
+        .from('weekly_matchups')
+        .select(`
+          *,
+          team1:teams!weekly_matchups_team1_id_fkey(id, name),
+          team2:teams!weekly_matchups_team2_id_fkey(id, name)
+        `)
+        .eq('season_id', parseInt(selectedSeason))
+        .or(`team1_id.eq.${parseInt(id)},team2_id.eq.${parseInt(id)}`)
+        .order('week_number');
+
+      if (error) throw error;
       return data;
     },
     enabled: !!id,
@@ -97,7 +127,7 @@ const TeamPage = () => {
         `)
         .eq('season_id', parseInt(selectedSeason))
         .or(`team1_id.eq.${parseInt(id)},team2_id.eq.${parseInt(id)}`)
-        .order('trade_date', { ascending: true }); // Changed to ascending order
+        .order('trade_date', { ascending: true });
 
       if (error) throw error;
       return data;
@@ -120,6 +150,9 @@ const TeamPage = () => {
       </div>
     );
   }
+
+  const weekCount = parseInt(selectedSeason) <= 10 ? 16 : 17;
+  const regularSeasonWeeks = 14;
 
   return (
     <div className="min-h-screen">
@@ -176,7 +209,53 @@ const TeamPage = () => {
       <div className="space-y-6">
         <Card className="p-6">
           <h2 className="text-xl font-bold mb-4">Weekly Matchups</h2>
-          <p className="text-muted-foreground">Matchup data coming soon...</p>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Week</TableHead>
+                <TableHead>Opponent</TableHead>
+                <TableHead>Score</TableHead>
+                <TableHead>Record</TableHead>
+                <TableHead>Type</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {matchups?.map((matchup) => {
+                const isTeam1 = matchup.team1_id === parseInt(id);
+                const opponent = isTeam1 ? matchup.team2 : matchup.team1;
+                const teamScore = isTeam1 ? matchup.team1_score : matchup.team2_score;
+                const opponentScore = isTeam1 ? matchup.team2_score : matchup.team1_score;
+                const result = teamScore > opponentScore ? 'W' : 'L';
+
+                return (
+                  <TableRow key={matchup.week_number}>
+                    <TableCell>Week {matchup.week_number}</TableCell>
+                    <TableCell>
+                      <Link 
+                        to={`/team/${opponent.id}?season=${selectedSeason}`}
+                        className="text-primary hover:underline"
+                      >
+                        {opponent.name}
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      <span className={result === 'W' ? 'text-green-500' : 'text-red-500'}>
+                        {teamScore.toFixed(2)} - {opponentScore.toFixed(2)}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`font-bold ${result === 'W' ? 'text-green-500' : 'text-red-500'}`}>
+                        {result}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {matchup.week_number > regularSeasonWeeks ? 'Playoff' : 'Regular Season'}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         </Card>
 
         <Card className="p-6">
