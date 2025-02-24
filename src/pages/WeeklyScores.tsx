@@ -49,32 +49,46 @@ const WeeklyScores = () => {
     },
   });
 
-  // Process matchups into team records
-  const teamRecords = teams?.reduce((acc, team) => {
-    acc[team.id] = Array.from({ length: 17 }, (_, weekIndex) => {
-      const weekNumber = weekIndex + 1;
-      let wins = 0;
-      let losses = 0;
+  // Process matchups into team records and scores
+  const teamData = teams?.reduce((acc, team) => {
+    acc[team.id] = {
+      records: Array.from({ length: 17 }, (_, weekIndex) => {
+        const weekNumber = weekIndex + 1;
+        let wins = 0;
+        let losses = 0;
 
-      // Find all matchups for this team up to this week
-      const relevantMatchups = matchups?.filter(m => 
-        (m.team1_id === team.id || m.team2_id === team.id) && 
-        m.week_number <= weekNumber
-      ) || [];
+        // Find all matchups for this team up to this week
+        const relevantMatchups = matchups?.filter(m => 
+          (m.team1_id === team.id || m.team2_id === team.id) && 
+          m.week_number <= weekNumber
+        ) || [];
 
-      relevantMatchups.forEach(matchup => {
-        const isTeam1 = matchup.team1_id === team.id;
-        const teamScore = isTeam1 ? matchup.team1_score : matchup.team2_score;
-        const opponentScore = isTeam1 ? matchup.team2_score : matchup.team1_score;
+        relevantMatchups.forEach(matchup => {
+          const isTeam1 = matchup.team1_id === team.id;
+          const teamScore = isTeam1 ? matchup.team1_score : matchup.team2_score;
+          const opponentScore = isTeam1 ? matchup.team2_score : matchup.team1_score;
 
-        if (teamScore > opponentScore) wins++;
-        else losses++;
-      });
+          if (teamScore > opponentScore) wins++;
+          else losses++;
+        });
 
-      return `${wins}-${losses}`;
-    });
+        return `${wins}-${losses}`;
+      }),
+      scores: Array.from({ length: 17 }, (_, weekIndex) => {
+        const weekNumber = weekIndex + 1;
+        const matchup = matchups?.find(m => 
+          (m.team1_id === team.id || m.team2_id === team.id) && 
+          m.week_number === weekNumber
+        );
+
+        if (!matchup) return "-";
+        return matchup.team1_id === team.id ? 
+          matchup.team1_score.toFixed(2) : 
+          matchup.team2_score.toFixed(2);
+      }),
+    };
     return acc;
-  }, {} as Record<number, string[]>) || {};
+  }, {} as Record<number, { records: string[], scores: string[] }>) || {};
 
   return (
     <div className="min-h-screen">
@@ -82,7 +96,7 @@ const WeeklyScores = () => {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-4xl font-bold text-white mb-2">Weekly Scores</h1>
-            <p className="text-muted-foreground">Track team records week by week</p>
+            <p className="text-muted-foreground">Track team records and scores week by week</p>
           </div>
           <Select value={selectedSeason} onValueChange={setSelectedSeason}>
             <SelectTrigger className="w-[180px]">
@@ -99,39 +113,77 @@ const WeeklyScores = () => {
         </div>
       </header>
 
-      <Card className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="bg-card sticky left-0 z-10">Team</TableHead>
-              {Array.from({ length: 17 }, (_, i) => (
-                <TableHead key={i} className="text-center">
-                  Week {i + 1}
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {teams?.map((team) => (
-              <TableRow key={team.id}>
-                <TableCell className="font-medium sticky left-0 bg-background z-10">
-                  <Link 
-                    to={`/team/${team.id}?season=${selectedSeason}`} 
-                    className="text-primary hover:underline"
-                  >
-                    {team.name}
-                  </Link>
-                </TableCell>
-                {Array.from({ length: 17 }, (_, weekIndex) => (
-                  <TableCell key={weekIndex} className="text-center">
-                    {teamRecords[team.id]?.[weekIndex] || "-"}
-                  </TableCell>
+      <div className="space-y-8">
+        <Card className="overflow-x-auto">
+          <h2 className="text-lg font-semibold p-4 border-b">Records</h2>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="bg-card sticky left-0 z-10">Team</TableHead>
+                {Array.from({ length: 17 }, (_, i) => (
+                  <TableHead key={i} className="text-center">
+                    Week {i + 1}
+                  </TableHead>
                 ))}
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
+            </TableHeader>
+            <TableBody>
+              {teams?.map((team) => (
+                <TableRow key={team.id}>
+                  <TableCell className="font-medium sticky left-0 bg-background z-10">
+                    <Link 
+                      to={`/team/${team.id}?season=${selectedSeason}`} 
+                      className="text-primary hover:underline"
+                    >
+                      {team.name}
+                    </Link>
+                  </TableCell>
+                  {Array.from({ length: 17 }, (_, weekIndex) => (
+                    <TableCell key={weekIndex} className="text-center">
+                      {teamData[team.id]?.records[weekIndex] || "-"}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+
+        <Card className="overflow-x-auto">
+          <h2 className="text-lg font-semibold p-4 border-b">Weekly Scores</h2>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="bg-card sticky left-0 z-10">Team</TableHead>
+                {Array.from({ length: 17 }, (_, i) => (
+                  <TableHead key={i} className="text-center">
+                    Week {i + 1}
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {teams?.map((team) => (
+                <TableRow key={team.id}>
+                  <TableCell className="font-medium sticky left-0 bg-background z-10">
+                    <Link 
+                      to={`/team/${team.id}?season=${selectedSeason}`} 
+                      className="text-primary hover:underline"
+                    >
+                      {team.name}
+                    </Link>
+                  </TableCell>
+                  {Array.from({ length: 17 }, (_, weekIndex) => (
+                    <TableCell key={weekIndex} className="text-center">
+                      {teamData[team.id]?.scores[weekIndex] || "-"}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      </div>
     </div>
   );
 };
