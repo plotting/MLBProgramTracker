@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import {
   Select,
@@ -9,6 +10,7 @@ import {
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { MatchupScoresView } from "@/types/database";
 
 const WeeklyMatchup = () => {
   const [selectedWeek, setSelectedWeek] = useState("1");
@@ -18,17 +20,13 @@ const WeeklyMatchup = () => {
     queryKey: ['matchup', selectedWeek],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('weekly_matchups')
-        .select(`
-          *,
-          team1:teams!weekly_matchups_team1_id_fkey(name),
-          team2:teams!weekly_matchups_team2_id_fkey(name)
-        `)
+        .from('matchup_scores_view')
+        .select('*')
         .eq('week_number', parseInt(selectedWeek, 10))
         .maybeSingle();
 
       if (error) throw error;
-      return data;
+      return data as MatchupScoresView;
     },
   });
 
@@ -57,15 +55,19 @@ const WeeklyMatchup = () => {
       {matchup ? (
         <div className="flex justify-between items-center">
           <div className="text-center">
-            <p className="text-lg font-semibold">{matchup.team1.name}</p>
-            <p className="text-3xl font-bold text-primary">{matchup.team1_score}</p>
+            <p className="text-lg font-semibold">{matchup.home_team_name}</p>
+            <p className="text-3xl font-bold text-primary">
+              {matchup.home_score?.toFixed(2) || 'TBD'}
+            </p>
           </div>
           
           <div className="text-xl font-bold text-muted-foreground">VS</div>
           
           <div className="text-center">
-            <p className="text-lg font-semibold">{matchup.team2.name}</p>
-            <p className="text-3xl font-bold text-secondary">{matchup.team2_score}</p>
+            <p className="text-lg font-semibold">{matchup.away_team_name}</p>
+            <p className="text-3xl font-bold text-secondary">
+              {matchup.away_score?.toFixed(2) || 'TBD'}
+            </p>
           </div>
         </div>
       ) : (

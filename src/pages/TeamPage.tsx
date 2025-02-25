@@ -22,6 +22,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
+import type { MatchupScoresView, TeamRecordsView } from "@/types/database";
 
 const TeamPage = () => {
   const { id } = useParams();
@@ -54,54 +55,31 @@ const TeamPage = () => {
     queryFn: async () => {
       if (!id) throw new Error('No team ID provided');
       const { data, error } = await supabase
-        .from('weekly_matchups')
-        .select(`
-          *,
-          team1:teams!weekly_matchups_team1_id_fkey(id, name),
-          team2:teams!weekly_matchups_team2_id_fkey(id, name)
-        `)
+        .from('matchup_scores_view')
+        .select('*')
         .eq('season_id', parseInt(selectedSeason))
-        .or(`team1_id.eq.${parseInt(id)},team2_id.eq.${parseInt(id)}`)
+        .or(`home_team_id.eq.${parseInt(id)},away_team_id.eq.${parseInt(id)}`)
         .order('week_number');
 
       if (error) throw error;
-      return data;
+      return data as MatchupScoresView[];
     },
     enabled: !!id,
   });
 
-  const { data: stats } = useQuery({
-    queryKey: ['team-stats', id, selectedSeason],
+  const { data: teamRecords } = useQuery({
+    queryKey: ['team-records', id, selectedSeason],
     queryFn: async () => {
       if (!id) throw new Error('No team ID provided');
-      const { data: matchups, error } = await supabase
-        .from('weekly_matchups')
+      const { data, error } = await supabase
+        .from('team_records_view')
         .select('*')
         .eq('season_id', parseInt(selectedSeason))
-        .or(`team1_id.eq.${parseInt(id)},team2_id.eq.${parseInt(id)}`);
+        .eq('team_id', parseInt(id))
+        .maybeSingle();
 
       if (error) throw error;
-
-      const stats = {
-        wins: 0,
-        losses: 0,
-        pointsFor: 0,
-        pointsAgainst: 0,
-      };
-
-      matchups?.forEach(matchup => {
-        const isTeam1 = matchup.team1_id === parseInt(id);
-        const teamScore = isTeam1 ? matchup.team1_score : matchup.team2_score;
-        const opponentScore = isTeam1 ? matchup.team2_score : matchup.team1_score;
-
-        if (teamScore > opponentScore) stats.wins++;
-        else stats.losses++;
-
-        stats.pointsFor += Number(teamScore);
-        stats.pointsAgainst += Number(opponentScore);
-      });
-
-      return stats;
+      return data as TeamRecordsView;
     },
     enabled: !!id,
   });
@@ -151,9 +129,6 @@ const TeamPage = () => {
     );
   }
 
-  const weekCount = parseInt(selectedSeason) <= 10 ? 16 : 17;
-  const regularSeasonWeeks = 14;
-
   return (
     <div className="min-h-screen">
       <header className="mb-8">
@@ -181,26 +156,33 @@ const TeamPage = () => {
         <Card className="p-6">
           <h3 className="text-sm font-medium text-muted-foreground mb-2">Record</h3>
           <p className="text-2xl font-bold">
-            {stats ? `${stats.wins}-${stats.losses}` : '0-0'}
+            {teamRecords ? 
+              `${teamRecords.regular_season_wins + teamRecords.playoff_wins}-${teamRecords.regular_season_losses + teamRecords.playoff_losses}` 
+              : '0-0'}
           </p>
         </Card>
         <Card className="p-6">
           <h3 className="text-sm font-medium text-muted-foreground mb-2">Points For</h3>
-          <p className="text-2xl font-bold">{stats?.pointsFor.toFixed(1) || '0.0'}</p>
-        </Card>
-        <Card className="p-6">
-          <h3 className="text-sm font-medium text-muted-foreground mb-2">
-            Points Against
-          </h3>
-          <p className="text-2xl font-bold">{stats?.pointsAgainst.toFixed(1) || '0.0'}</p>
-        </Card>
-        <Card className="p-6">
-          <h3 className="text-sm font-medium text-muted-foreground mb-2">
-            Average Points
-          </h3>
           <p className="text-2xl font-bold">
-            {stats && (stats.wins + stats.losses > 0)
-              ? (stats.pointsFor / (stats.wins + stats.losses)).toFixed(1)
+            {teamRecords ? 
+              (teamRecords.regular_season_points_for + teamRecords.playoff_points_for).toFixed(1) 
+              : '0.0'}
+          </p>
+        </Card>
+        <Card className="p-6">
+          <h3 className="text-sm font-medium text-muted-foreground mb-2">Points Against</h3>
+          <p className="text-2xl font-bold">
+            {teamRecords ? 
+              (teamRecords.regular_season_points_against + teamRecords.playoff_points_against).toFixed(1) 
+              : '0.0'}
+          </p>
+        </Card>
+        <Card className="p-6">
+          <h3 className="text-sm font-medium text-muted-foreground mb-2">Average Points</h3>
+          <p className="text-2xl font-bold">
+            {teamRecords && (teamRecords.regular_season_wins + teamRecords.regular_season_losses + teamRecords.playoff_wins + teamRecords.playoff_losses > 0)
+              ? ((teamRecords.regular_season_points_for + teamRecords.playoff_points_for) / 
+                 (teamRecords.regular_season_wins + teamRecords.regular_season_losses + teamRecords.playoff_wins + teamRecords.playoff_losses)).toFixed(1)
               : '0.0'}
           </p>
         </Card>
@@ -221,35 +203,42 @@ const TeamPage = () => {
             </TableHeader>
             <TableBody>
               {matchups?.map((matchup) => {
-                const isTeam1 = matchup.team1_id === parseInt(id);
-                const opponent = isTeam1 ? matchup.team2 : matchup.team1;
-                const teamScore = isTeam1 ? matchup.team1_score : matchup.team2_score;
-                const opponentScore = isTeam1 ? matchup.team2_score : matchup.team1_score;
-                const result = teamScore > opponentScore ? 'W' : 'L';
+                const isHomeTeam = matchup.home_team_id === parseInt(id);
+                const opponentId = isHomeTeam ? matchup.away_team_id : matchup.home_team_id;
+                const opponentName = isHomeTeam ? matchup.away_team_name : matchup.home_team_name;
+                const teamScore = isHomeTeam ? matchup.home_score : matchup.away_score;
+                const opponentScore = isHomeTeam ? matchup.away_score : matchup.home_score;
+                const result = teamScore && opponentScore && teamScore > opponentScore ? 'W' : 'L';
 
                 return (
                   <TableRow key={matchup.week_number}>
                     <TableCell>Week {matchup.week_number}</TableCell>
                     <TableCell>
                       <Link 
-                        to={`/team/${opponent.id}?season=${selectedSeason}`}
+                        to={`/team/${opponentId}?season=${selectedSeason}`}
                         className="text-primary hover:underline"
                       >
-                        {opponent.name}
+                        {opponentName}
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <span className={result === 'W' ? 'text-green-500' : 'text-red-500'}>
-                        {teamScore.toFixed(2)} - {opponentScore.toFixed(2)}
-                      </span>
+                      {teamScore !== null && opponentScore !== null ? (
+                        <span className={result === 'W' ? 'text-green-500' : 'text-red-500'}>
+                          {teamScore.toFixed(2)} - {opponentScore.toFixed(2)}
+                        </span>
+                      ) : (
+                        'TBD'
+                      )}
                     </TableCell>
                     <TableCell>
-                      <span className={`font-bold ${result === 'W' ? 'text-green-500' : 'text-red-500'}`}>
-                        {result}
-                      </span>
+                      {teamScore !== null && opponentScore !== null && (
+                        <span className={`font-bold ${result === 'W' ? 'text-green-500' : 'text-red-500'}`}>
+                          {result}
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell>
-                      {matchup.week_number > regularSeasonWeeks ? 'Playoff' : 'Regular Season'}
+                      {matchup.is_playoff ? 'Playoff' : 'Regular Season'}
                     </TableCell>
                   </TableRow>
                 );
