@@ -4,7 +4,7 @@ import { useState } from "react";
 import WeeklyMatchup from "@/components/WeeklyMatchup";
 import PlayoffBracket from "@/components/PlayoffBracket";
 import { supabase } from "@/integrations/supabase/client";
-import { StandingsView } from "@/types/database";
+import { TeamRecordsView } from "@/types/database";
 import { useQuery } from "@tanstack/react-query";
 import StandingsTable from "@/components/standings/StandingsTable";
 import SeasonHeader from "@/components/seasons/SeasonHeader";
@@ -16,15 +16,14 @@ const Seasons = () => {
     queryKey: ['standings', selectedSeason],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('standings_view')
+        .from('team_records_view')
         .select('*')
         .eq('season_id', parseInt(selectedSeason))
-        .order('wins', { ascending: false })
-        .order('points_for', { ascending: false });
+        .order('regular_season_wins', { ascending: false })
+        .order('regular_season_points_for', { ascending: false });
 
       if (error) throw error;
-      console.log('Standings loaded:', data);
-      return data as StandingsView[];
+      return data as TeamRecordsView[];
     },
   });
 

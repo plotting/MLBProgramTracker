@@ -8,10 +8,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { StandingsView } from "@/types/database";
+import { TeamRecordsView } from "@/types/database";
 
 type StandingsProps = {
-  standings: StandingsView[];
+  standings: TeamRecordsView[];
   selectedSeason: string;
 };
 
@@ -56,23 +56,30 @@ const StandingsTable = ({ standings, selectedSeason }: StandingsProps) => {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {standings?.map((team, index) => (
-          <TableRow key={team.team_id}>
-            <TableCell className="font-medium">
-              <Link 
-                to={`/team/${team.team_id}?season=${selectedSeason}`} 
-                className="text-primary hover:underline"
-              >
-                {team.team_name}
-              </Link>
-            </TableCell>
-            <TableCell>{`${team.wins}-${team.losses}${team.ties > 0 ? `-${team.ties}` : ''}`}</TableCell>
-            <TableCell>{team.points_for.toFixed(1)}</TableCell>
-            <TableCell>{team.points_against.toFixed(1)}</TableCell>
-            <TableCell>{team.avg_points.toFixed(1)}</TableCell>
-            <TableCell>{getPlacementEmoji(index)}</TableCell>
-          </TableRow>
-        ))}
+        {standings?.map((team, index) => {
+          const totalGames = team.regular_season_wins + team.regular_season_losses;
+          const avgPoints = totalGames > 0 
+            ? (team.regular_season_points_for / totalGames).toFixed(1) 
+            : "0.0";
+            
+          return (
+            <TableRow key={team.team_id}>
+              <TableCell className="font-medium">
+                <Link 
+                  to={`/team/${team.team_id}?season=${selectedSeason}`} 
+                  className="text-primary hover:underline"
+                >
+                  {team.team_name}
+                </Link>
+              </TableCell>
+              <TableCell>{`${team.regular_season_wins}-${team.regular_season_losses}`}</TableCell>
+              <TableCell>{team.regular_season_points_for.toFixed(1)}</TableCell>
+              <TableCell>{team.regular_season_points_against.toFixed(1)}</TableCell>
+              <TableCell>{avgPoints}</TableCell>
+              <TableCell>{getPlacementEmoji(index)}</TableCell>
+            </TableRow>
+          );
+        })}
       </TableBody>
     </Table>
   );
