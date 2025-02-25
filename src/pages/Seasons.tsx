@@ -51,7 +51,7 @@ const Seasons = () => {
 
       <div className="grid gap-6">
         <h2 className="text-2xl font-bold">Weekly Matchups</h2>
-        <WeeklyMatchup />
+        <WeeklyMatchup season={selectedSeason} />
       </div>
     </div>
   );

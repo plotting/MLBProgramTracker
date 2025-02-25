@@ -12,16 +12,21 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { MatchupScoresView } from "@/types/database";
 
-const WeeklyMatchup = () => {
+interface WeeklyMatchupProps {
+  season: string;
+}
+
+const WeeklyMatchup = ({ season }: WeeklyMatchupProps) => {
   const [selectedWeek, setSelectedWeek] = useState("1");
   const weeks = Array.from({ length: 17 }, (_, i) => i + 1);
 
   const { data: matchup, isLoading } = useQuery({
-    queryKey: ['matchup', selectedWeek],
+    queryKey: ['matchup', season, selectedWeek],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('matchup_scores_view')
         .select('*')
+        .eq('season_id', parseInt(season))
         .eq('week_number', parseInt(selectedWeek, 10))
         .maybeSingle();
 
