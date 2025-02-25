@@ -49,7 +49,7 @@ export type Database = {
             foreignKeyName: "draft_picks_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
-            referencedRelation: "standings_view"
+            referencedRelation: "team_records_view"
             referencedColumns: ["team_id"]
           },
           {
@@ -94,7 +94,7 @@ export type Database = {
             foreignKeyName: "schedules_away_team_id_fkey"
             columns: ["away_team_id"]
             isOneToOne: false
-            referencedRelation: "standings_view"
+            referencedRelation: "team_records_view"
             referencedColumns: ["team_id"]
           },
           {
@@ -108,7 +108,7 @@ export type Database = {
             foreignKeyName: "schedules_home_team_id_fkey"
             columns: ["home_team_id"]
             isOneToOne: false
-            referencedRelation: "standings_view"
+            referencedRelation: "team_records_view"
             referencedColumns: ["team_id"]
           },
           {
@@ -123,6 +123,55 @@ export type Database = {
             columns: ["season_id"]
             isOneToOne: false
             referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scores: {
+        Row: {
+          created_at: string
+          id: number
+          score: number
+          season_id: number | null
+          team_id: number | null
+          week_number: number
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          score: number
+          season_id?: number | null
+          team_id?: number | null
+          week_number: number
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          score?: number
+          season_id?: number | null
+          team_id?: number | null
+          week_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scores_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scores_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "team_records_view"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "scores_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
             referencedColumns: ["id"]
           },
         ]
@@ -208,7 +257,7 @@ export type Database = {
             foreignKeyName: "trade_items_from_team_id_fkey"
             columns: ["from_team_id"]
             isOneToOne: false
-            referencedRelation: "standings_view"
+            referencedRelation: "team_records_view"
             referencedColumns: ["team_id"]
           },
           {
@@ -222,7 +271,7 @@ export type Database = {
             foreignKeyName: "trade_items_to_team_id_fkey"
             columns: ["to_team_id"]
             isOneToOne: false
-            referencedRelation: "standings_view"
+            referencedRelation: "team_records_view"
             referencedColumns: ["team_id"]
           },
           {
@@ -278,7 +327,7 @@ export type Database = {
             foreignKeyName: "trades_team1_id_fkey"
             columns: ["team1_id"]
             isOneToOne: false
-            referencedRelation: "standings_view"
+            referencedRelation: "team_records_view"
             referencedColumns: ["team_id"]
           },
           {
@@ -292,7 +341,7 @@ export type Database = {
             foreignKeyName: "trades_team2_id_fkey"
             columns: ["team2_id"]
             isOneToOne: false
-            referencedRelation: "standings_view"
+            referencedRelation: "team_records_view"
             referencedColumns: ["team_id"]
           },
           {
@@ -304,126 +353,72 @@ export type Database = {
           },
         ]
       }
-      weekly_matchups: {
+    }
+    Views: {
+      matchup_scores_view: {
         Row: {
-          created_at: string
-          id: number
+          away_score: number | null
+          away_team_id: number | null
+          away_team_name: string | null
+          home_score: number | null
+          home_team_id: number | null
+          home_team_name: string | null
           is_playoff: boolean | null
+          scheduled_time: string | null
           season_id: number | null
-          team1_id: number | null
-          team1_score: number
-          team2_id: number | null
-          team2_score: number
-          week_number: number
-        }
-        Insert: {
-          created_at?: string
-          id?: number
-          is_playoff?: boolean | null
-          season_id?: number | null
-          team1_id?: number | null
-          team1_score: number
-          team2_id?: number | null
-          team2_score: number
-          week_number: number
-        }
-        Update: {
-          created_at?: string
-          id?: number
-          is_playoff?: boolean | null
-          season_id?: number | null
-          team1_id?: number | null
-          team1_score?: number
-          team2_id?: number | null
-          team2_score?: number
-          week_number?: number
+          week_number: number | null
         }
         Relationships: [
           {
-            foreignKeyName: "fk_weekly_matchups_season"
+            foreignKeyName: "schedules_away_team_id_fkey"
+            columns: ["away_team_id"]
+            isOneToOne: false
+            referencedRelation: "team_records_view"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "schedules_away_team_id_fkey"
+            columns: ["away_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedules_home_team_id_fkey"
+            columns: ["home_team_id"]
+            isOneToOne: false
+            referencedRelation: "team_records_view"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "schedules_home_team_id_fkey"
+            columns: ["home_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedules_season_id_fkey"
             columns: ["season_id"]
             isOneToOne: false
             referencedRelation: "seasons"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_weekly_matchups_team1"
-            columns: ["team1_id"]
-            isOneToOne: false
-            referencedRelation: "standings_view"
-            referencedColumns: ["team_id"]
-          },
-          {
-            foreignKeyName: "fk_weekly_matchups_team1"
-            columns: ["team1_id"]
-            isOneToOne: false
-            referencedRelation: "teams"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_weekly_matchups_team2"
-            columns: ["team2_id"]
-            isOneToOne: false
-            referencedRelation: "standings_view"
-            referencedColumns: ["team_id"]
-          },
-          {
-            foreignKeyName: "fk_weekly_matchups_team2"
-            columns: ["team2_id"]
-            isOneToOne: false
-            referencedRelation: "teams"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "weekly_matchups_season_id_fkey"
-            columns: ["season_id"]
-            isOneToOne: false
-            referencedRelation: "seasons"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "weekly_matchups_team1_id_fkey"
-            columns: ["team1_id"]
-            isOneToOne: false
-            referencedRelation: "standings_view"
-            referencedColumns: ["team_id"]
-          },
-          {
-            foreignKeyName: "weekly_matchups_team1_id_fkey"
-            columns: ["team1_id"]
-            isOneToOne: false
-            referencedRelation: "teams"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "weekly_matchups_team2_id_fkey"
-            columns: ["team2_id"]
-            isOneToOne: false
-            referencedRelation: "standings_view"
-            referencedColumns: ["team_id"]
-          },
-          {
-            foreignKeyName: "weekly_matchups_team2_id_fkey"
-            columns: ["team2_id"]
-            isOneToOne: false
-            referencedRelation: "teams"
             referencedColumns: ["id"]
           },
         ]
       }
-    }
-    Views: {
-      standings_view: {
+      team_records_view: {
         Row: {
-          avg_points: number | null
-          losses: number | null
-          points_against: number | null
-          points_for: number | null
+          playoff_losses: number | null
+          playoff_points_against: number | null
+          playoff_points_for: number | null
+          playoff_wins: number | null
+          regular_season_losses: number | null
+          regular_season_points_against: number | null
+          regular_season_points_for: number | null
+          regular_season_wins: number | null
           season_id: number | null
           team_id: number | null
           team_name: string | null
-          ties: number | null
-          wins: number | null
         }
         Relationships: []
       }

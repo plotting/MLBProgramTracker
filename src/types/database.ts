@@ -15,26 +15,39 @@ export interface Season {
   created_at: string;
 }
 
-export interface WeeklyMatchup {
+export interface Score {
   id: number;
   season_id: number;
   week_number: number;
-  team1_id: number;
-  team2_id: number;
-  team1_score: number;
-  team2_score: number;
-  is_playoff: boolean;
+  team_id: number;
+  score: number;
   created_at: string;
 }
 
-export interface StandingsView {
+export interface MatchupScoresView {
+  season_id: number;
+  week_number: number;
+  home_team_id: number;
+  away_team_id: number;
+  home_team_name: string;
+  away_team_name: string;
+  home_score: number | null;
+  away_score: number | null;
+  scheduled_time: string | null;
+  is_playoff: boolean;
+}
+
+export interface TeamRecordsView {
+  season_id: number;
   team_id: number;
   team_name: string;
-  season_id: number;
-  wins: number;
-  losses: number;
-  ties: number;
-  points_for: number;
-  points_against: number;
-  avg_points: number;
+  regular_season_wins: number;
+  regular_season_losses: number;
+  playoff_wins: number;
+  playoff_losses: number;
+  regular_season_points_for: number;
+  regular_season_points_against: number;
+  playoff_points_for: number;
+  playoff_points_against: number;
 }
+

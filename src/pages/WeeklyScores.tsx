@@ -20,6 +20,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getAllSeasons } from "@/utils/seasonUtils";
+import type { MatchupScoresView, TeamRecordsView } from "@/types/database";
 
 const WeeklyScores = () => {
   const [selectedSeason, setSelectedSeason] = useState("13");
@@ -39,73 +40,77 @@ const WeeklyScores = () => {
     },
   });
 
-  const { data: matchups } = useQuery({
-    queryKey: ["weekly-matchups", selectedSeason],
+  const { data: matchupScores } = useQuery({
+    queryKey: ["matchup-scores", selectedSeason],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("weekly_matchups")
+        .from("matchup_scores_view")
         .select("*")
         .eq("season_id", parseInt(selectedSeason))
         .order("week_number");
       if (error) throw error;
-      return data;
+      return data as MatchupScoresView[];
     },
   });
 
-  const { data: schedules } = useQuery({
-    queryKey: ["schedules", selectedSeason],
+  const { data: teamRecords } = useQuery({
+    queryKey: ["team-records", selectedSeason],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("schedules")
-        .select(`
-          *,
-          home_team:teams!schedules_home_team_id_fkey(id, name),
-          away_team:teams!schedules_away_team_id_fkey(id, name)
-        `)
-        .eq("season_id", parseInt(selectedSeason))
-        .order("week_number");
+        .from("team_records_view")
+        .select("*")
+        .eq("season_id", parseInt(selectedSeason));
       if (error) throw error;
-      return data;
+      return data as TeamRecordsView[];
     },
   });
 
-  // Process matchups into team records and scores
+  // Process matchup scores into team data structure
   const teamData = teams?.reduce((acc, team) => {
     acc[team.id] = {
       records: Array.from({ length: weekCount }, (_, weekIndex) => {
         const weekNumber = weekIndex + 1;
-        let wins = 0;
-        let losses = 0;
+        const teamRecord = teamRecords?.find(r => r.team_id === team.id);
+        
+        if (!teamRecord) return "-";
 
-        // Find all matchups for this team up to this week
-        const relevantMatchups = matchups?.filter(m => 
-          (m.team1_id === team.id || m.team2_id === team.id) && 
-          m.week_number <= weekNumber &&
-          m.week_number <= regularSeasonWeeks // Only count regular season games for record
-        ) || [];
+        // Only show regular season record until week 14
+        if (weekNumber <= regularSeasonWeeks) {
+          const relevantMatchups = matchupScores?.filter(m => 
+            (m.home_team_id === team.id || m.away_team_id === team.id) && 
+            m.week_number <= weekNumber &&
+            !m.is_playoff
+          ) || [];
 
-        relevantMatchups.forEach(matchup => {
-          const isTeam1 = matchup.team1_id === team.id;
-          const teamScore = isTeam1 ? matchup.team1_score : matchup.team2_score;
-          const opponentScore = isTeam1 ? matchup.team2_score : matchup.team1_score;
+          const wins = relevantMatchups.filter(m => 
+            (m.home_team_id === team.id && m.home_score > m.away_score) ||
+            (m.away_team_id === team.id && m.away_score > m.home_score)
+          ).length;
 
-          if (teamScore > opponentScore) wins++;
-          else losses++;
-        });
+          const losses = relevantMatchups.filter(m => 
+            (m.home_team_id === team.id && m.home_score < m.away_score) ||
+            (m.away_team_id === team.id && m.away_score < m.home_score)
+          ).length;
 
-        return `${wins}-${losses}`;
+          return `${wins}-${losses}`;
+        }
+
+        // After week 14, include playoff record if it exists
+        const totalWins = teamRecord.regular_season_wins + teamRecord.playoff_wins;
+        const totalLosses = teamRecord.regular_season_losses + teamRecord.playoff_losses;
+        return `${totalWins}-${totalLosses}`;
       }),
       scores: Array.from({ length: weekCount }, (_, weekIndex) => {
         const weekNumber = weekIndex + 1;
-        const matchup = matchups?.find(m => 
-          (m.team1_id === team.id || m.team2_id === team.id) && 
+        const matchup = matchupScores?.find(m => 
+          (m.home_team_id === team.id || m.away_team_id === team.id) && 
           m.week_number === weekNumber
         );
 
         if (!matchup) return "-";
-        return matchup.team1_id === team.id ? 
-          matchup.team1_score.toFixed(2) : 
-          matchup.team2_score.toFixed(2);
+        return matchup.home_team_id === team.id ? 
+          matchup.home_score?.toFixed(2) || "-" : 
+          matchup.away_score?.toFixed(2) || "-";
       }),
     };
     return acc;
@@ -172,7 +177,7 @@ const WeeklyScores = () => {
         </Card>
 
         <Card className="overflow-x-auto">
-          <h2 className="text-lg font-semibold p-4 border-b">Season Records (Regular Season Only)</h2>
+          <h2 className="text-lg font-semibold p-4 border-b">Season Records</h2>
           <Table>
             <TableHeader>
               <TableRow>
@@ -214,38 +219,46 @@ const WeeklyScores = () => {
                 <TableHead>Week</TableHead>
                 <TableHead>Home Team</TableHead>
                 <TableHead>Away Team</TableHead>
+                <TableHead>Score</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Type</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {schedules?.map((schedule) => (
-                <TableRow key={schedule.id}>
-                  <TableCell>Week {schedule.week_number}</TableCell>
+              {matchupScores?.map((matchup) => (
+                <TableRow key={`${matchup.week_number}-${matchup.home_team_id}-${matchup.away_team_id}`}>
+                  <TableCell>Week {matchup.week_number}</TableCell>
                   <TableCell>
                     <Link 
-                      to={`/team/${schedule.home_team?.id}?season=${selectedSeason}`}
+                      to={`/team/${matchup.home_team_id}?season=${selectedSeason}`}
                       className="text-primary hover:underline"
                     >
-                      {schedule.home_team?.name}
+                      {matchup.home_team_name}
                     </Link>
                   </TableCell>
                   <TableCell>
                     <Link 
-                      to={`/team/${schedule.away_team?.id}?season=${selectedSeason}`}
+                      to={`/team/${matchup.away_team_id}?season=${selectedSeason}`}
                       className="text-primary hover:underline"
                     >
-                      {schedule.away_team?.name}
+                      {matchup.away_team_name}
                     </Link>
                   </TableCell>
                   <TableCell>
-                    {schedule.scheduled_time ? 
-                      new Date(schedule.scheduled_time).toLocaleDateString() : 
+                    {matchup.home_score !== null && matchup.away_score !== null ? (
+                      `${matchup.home_score.toFixed(2)} - ${matchup.away_score.toFixed(2)}`
+                    ) : (
+                      'TBD'
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {matchup.scheduled_time ? 
+                      new Date(matchup.scheduled_time).toLocaleDateString() : 
                       'TBD'
                     }
                   </TableCell>
                   <TableCell>
-                    {schedule.week_number > regularSeasonWeeks ? 'Playoff' : 'Regular Season'}
+                    {matchup.is_playoff ? 'Playoff' : 'Regular Season'}
                   </TableCell>
                 </TableRow>
               ))}
