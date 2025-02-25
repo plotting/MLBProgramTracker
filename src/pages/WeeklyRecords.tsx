@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import {
   Table,
@@ -15,39 +16,74 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import type { MatchupScoresView } from "@/types/database";
 
 const WeeklyRecords = () => {
   const [selectedWeek, setSelectedWeek] = useState("1");
-
-  // Mock data - replace with real data later
-  const weeklyStats = {
-    records: [
-      { 
-        team: "Team 1",
-        wins: 8,
-        losses: 5,
-        ties: 0,
-        avgPoints: 145.6,
-        bestScore: 198.5,
-        worstScore: 89.2,
-        seasons: "1-13"
-      },
-      { 
-        team: "Team 2",
-        wins: 7,
-        losses: 6,
-        ties: 0,
-        avgPoints: 142.3,
-        bestScore: 185.2,
-        worstScore: 92.8,
-        seasons: "1-13"
-      },
-      // Add more teams as needed
-    ],
-  };
-
-  // Generate weeks 1-17
   const weeks = Array.from({ length: 17 }, (_, i) => (i + 1).toString());
+
+  const { data: weeklyStats, isLoading } = useQuery({
+    queryKey: ['weekly-stats', selectedWeek],
+    queryFn: async () => {
+      const { data: teams, error: teamsError } = await supabase
+        .from('teams')
+        .select('*')
+        .order('id');
+      
+      if (teamsError) throw teamsError;
+
+      const { data: matchups, error: matchupsError } = await supabase
+        .from('matchup_scores_view')
+        .select('*')
+        .eq('week_number', parseInt(selectedWeek))
+        .order('week_number');
+
+      if (matchupsError) throw matchupsError;
+
+      return teams.map(team => {
+        const teamMatchups = (matchups as MatchupScoresView[]).filter(
+          m => m.home_team_id === team.id || m.away_team_id === team.id
+        );
+
+        const scores = teamMatchups.map(m => 
+          m.home_team_id === team.id ? m.home_score : m.away_score
+        ).filter(score => score !== null) as number[];
+
+        const wins = teamMatchups.filter(m => 
+          (m.home_team_id === team.id && m.home_score > m.away_score) ||
+          (m.away_team_id === team.id && m.away_score > m.home_score)
+        ).length;
+
+        const losses = teamMatchups.filter(m => 
+          (m.home_team_id === team.id && m.home_score < m.away_score) ||
+          (m.away_team_id === team.id && m.away_score < m.home_score)
+        ).length;
+
+        const avgPoints = scores.length > 0 
+          ? scores.reduce((a, b) => a + b, 0) / scores.length 
+          : 0;
+
+        return {
+          team: team.name,
+          wins,
+          losses,
+          ties: 0,
+          avgPoints,
+          bestScore: Math.max(...(scores.length ? scores : [0])),
+          worstScore: Math.min(...(scores.length ? scores : [0])),
+          seasons: "1-13" // This could be dynamically calculated if needed
+        };
+      });
+    }
+  });
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="text-lg text-muted-foreground">Loading weekly records...</div>
+    </div>;
+  }
 
   return (
     <div className="min-h-screen">
@@ -86,7 +122,7 @@ const WeeklyRecords = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {weeklyStats.records.map((record, index) => (
+            {weeklyStats?.map((record, index) => (
               <TableRow key={index}>
                 <TableCell className="font-medium">{record.team}</TableCell>
                 <TableCell>{`${record.wins}-${record.losses}-${record.ties}`}</TableCell>
