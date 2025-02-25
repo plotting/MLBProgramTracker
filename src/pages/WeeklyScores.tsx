@@ -1,25 +1,12 @@
-import { Card } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { getAllSeasons } from "@/utils/seasonUtils";
 import type { MatchupScoresView, TeamRecordsView } from "@/types/database";
+import SeasonSelector from "@/components/weekly-scores/SeasonSelector";
+import WeeklyScoresTable from "@/components/weekly-scores/WeeklyScoresTable";
+import SeasonRecordsTable from "@/components/weekly-scores/SeasonRecordsTable";
+import ScheduleTable from "@/components/weekly-scores/ScheduleTable";
 
 const WeeklyScores = () => {
   const [selectedSeason, setSelectedSeason] = useState("13");
@@ -120,140 +107,33 @@ const WeeklyScores = () => {
             <h1 className="text-4xl font-bold text-white mb-2">Weekly Scores</h1>
             <p className="text-muted-foreground">Track team records and scores week by week</p>
           </div>
-          <Select value={selectedSeason} onValueChange={setSelectedSeason}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select Season" />
-            </SelectTrigger>
-            <SelectContent>
-              {getAllSeasons().reverse().map((season) => (
-                <SelectItem key={season.value} value={season.value}>
-                  {season.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SeasonSelector 
+            selectedSeason={selectedSeason}
+            onSeasonChange={setSelectedSeason}
+          />
         </div>
       </header>
 
       <div className="space-y-8">
-        <Card className="overflow-x-auto">
-          <h2 className="text-lg font-semibold p-4 border-b">Weekly Scores</h2>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="bg-card sticky left-0 z-10">Team</TableHead>
-                {Array.from({ length: weekCount }, (_, i) => (
-                  <TableHead key={i} className="text-center">
-                    Week {i + 1}
-                    {i >= regularSeasonWeeks && <span className="text-xs ml-1">(Playoffs)</span>}
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {teams?.map((team) => (
-                <TableRow key={team.id}>
-                  <TableCell className="font-medium sticky left-0 bg-background z-10">
-                    <Link 
-                      to={`/team/${team.id}?season=${selectedSeason}`} 
-                      className="text-primary hover:underline"
-                    >
-                      {team.name}
-                    </Link>
-                  </TableCell>
-                  {Array.from({ length: weekCount }, (_, weekIndex) => (
-                    <TableCell key={weekIndex} className="text-center">
-                      {teamData[team.id]?.scores[weekIndex] || "-"}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
+        <WeeklyScoresTable 
+          teams={teams}
+          teamData={teamData}
+          weekCount={weekCount}
+          regularSeasonWeeks={regularSeasonWeeks}
+          selectedSeason={selectedSeason}
+        />
 
-        <Card className="overflow-x-auto">
-          <h2 className="text-lg font-semibold p-4 border-b">Season Records</h2>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="bg-card sticky left-0 z-10">Team</TableHead>
-                {Array.from({ length: regularSeasonWeeks }, (_, i) => (
-                  <TableHead key={i} className="text-center">
-                    Week {i + 1}
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {teams?.map((team) => (
-                <TableRow key={team.id}>
-                  <TableCell className="font-medium sticky left-0 bg-background z-10">
-                    <Link 
-                      to={`/team/${team.id}?season=${selectedSeason}`} 
-                      className="text-primary hover:underline"
-                    >
-                      {team.name}
-                    </Link>
-                  </TableCell>
-                  {Array.from({ length: regularSeasonWeeks }, (_, weekIndex) => (
-                    <TableCell key={weekIndex} className="text-center">
-                      {teamData[team.id]?.records[weekIndex] || "-"}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
+        <SeasonRecordsTable 
+          teams={teams}
+          teamData={teamData}
+          regularSeasonWeeks={regularSeasonWeeks}
+          selectedSeason={selectedSeason}
+        />
 
-        <Card className="overflow-x-auto">
-          <h2 className="text-lg font-semibold p-4 border-b">Schedule</h2>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Week</TableHead>
-                <TableHead>Home Team</TableHead>
-                <TableHead>Away Team</TableHead>
-                <TableHead>Score</TableHead>
-                <TableHead>Type</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {matchupScores?.map((matchup) => (
-                <TableRow key={`${matchup.week_number}-${matchup.home_team_id}-${matchup.away_team_id}`}>
-                  <TableCell>Week {matchup.week_number}</TableCell>
-                  <TableCell>
-                    <Link 
-                      to={`/team/${matchup.home_team_id}?season=${selectedSeason}`}
-                      className="text-primary hover:underline"
-                    >
-                      {matchup.home_team_name}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <Link 
-                      to={`/team/${matchup.away_team_id}?season=${selectedSeason}`}
-                      className="text-primary hover:underline"
-                    >
-                      {matchup.away_team_name}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    {matchup.home_score !== null && matchup.away_score !== null ? (
-                      `${matchup.home_score.toFixed(2)} - ${matchup.away_score.toFixed(2)}`
-                    ) : (
-                      'TBD'
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {matchup.is_playoff ? 'Playoff' : 'Regular Season'}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
+        <ScheduleTable 
+          matchupScores={matchupScores}
+          selectedSeason={selectedSeason}
+        />
       </div>
     </div>
   );
