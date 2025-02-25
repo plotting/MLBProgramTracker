@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import {
   Select,
@@ -65,7 +64,6 @@ const WeeklyScores = () => {
     },
   });
 
-  // Process matchup scores into team data structure
   const teamData = teams?.reduce((acc, team) => {
     acc[team.id] = {
       records: Array.from({ length: weekCount }, (_, weekIndex) => {
@@ -74,7 +72,6 @@ const WeeklyScores = () => {
         
         if (!teamRecord) return "-";
 
-        // Only show regular season record until week 14
         if (weekNumber <= regularSeasonWeeks) {
           const relevantMatchups = matchupScores?.filter(m => 
             (m.home_team_id === team.id || m.away_team_id === team.id) && 
@@ -95,7 +92,6 @@ const WeeklyScores = () => {
           return `${wins}-${losses}`;
         }
 
-        // After week 14, include playoff record if it exists
         const totalWins = teamRecord.regular_season_wins + teamRecord.playoff_wins;
         const totalLosses = teamRecord.regular_season_losses + teamRecord.playoff_losses;
         return `${totalWins}-${totalLosses}`;
@@ -220,7 +216,6 @@ const WeeklyScores = () => {
                 <TableHead>Home Team</TableHead>
                 <TableHead>Away Team</TableHead>
                 <TableHead>Score</TableHead>
-                <TableHead>Date</TableHead>
                 <TableHead>Type</TableHead>
               </TableRow>
             </TableHeader>
@@ -250,12 +245,6 @@ const WeeklyScores = () => {
                     ) : (
                       'TBD'
                     )}
-                  </TableCell>
-                  <TableCell>
-                    {matchup.scheduled_time ? 
-                      new Date(matchup.scheduled_time).toLocaleDateString() : 
-                      'TBD'
-                    }
                   </TableCell>
                   <TableCell>
                     {matchup.is_playoff ? 'Playoff' : 'Regular Season'}
