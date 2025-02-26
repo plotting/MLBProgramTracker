@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import {
   Table,
@@ -11,9 +10,21 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { MatchupScoresView, Score } from "@/types/database";
+import type { MatchupScoresView } from "@/types/database";
 
 const Records = () => {
+  // Fetch teams for mapping IDs to names
+  const { data: teams } = useQuery({
+    queryKey: ['teams'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('teams')
+        .select('*');
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const { data: matchups, isLoading: matchupsLoading } = useQuery({
     queryKey: ['matchups-records'],
     queryFn: async () => {
@@ -27,17 +38,93 @@ const Records = () => {
     },
   });
 
-  const { data: scores } = useQuery({
-    queryKey: ['scores-records'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('scores')
-        .select('*')
-        .order('score', { ascending: false });
-      if (error) throw error;
-      return data as Score[];
-    },
-  });
+  // Calculate all scoring records
+  const calculateScoringRecords = () => {
+    if (!matchups) return {
+      regularSeasonHigh: [],
+      regularSeasonLow: [],
+      playoffHigh: [],
+      playoffLow: [],
+      largestMargins: [],
+      highestCombined: []
+    };
+
+    // Split games by type
+    const regularGames = matchups.filter(m => !m.is_playoff && m.home_score !== null && m.away_score !== null);
+    const playoffGames = matchups.filter(m => m.is_playoff && m.home_score !== null && m.away_score !== null);
+
+    // Function to get all scores from games
+    const getAllScores = (games: typeof matchups) => {
+      const scores: Array<{
+        score: number,
+        team: string,
+        season: number,
+        week: number,
+        opponent: string,
+        gameScore: string
+      }> = [];
+
+      games.forEach(game => {
+        scores.push({
+          score: game.home_score!,
+          team: game.home_team_name!,
+          opponent: game.away_team_name!,
+          season: game.season_id,
+          week: game.week_number!,
+          gameScore: `${game.home_score!.toFixed(1)}-${game.away_score!.toFixed(1)}`
+        });
+        scores.push({
+          score: game.away_score!,
+          team: game.away_team_name!,
+          opponent: game.home_team_name!,
+          season: game.season_id,
+          week: game.week_number!,
+          gameScore: `${game.away_score!.toFixed(1)}-${game.home_score!.toFixed(1)}`
+        });
+      });
+
+      return scores;
+    };
+
+    // Calculate margins and combined scores
+    const margins = matchups
+      .filter(m => m.home_score !== null && m.away_score !== null)
+      .map(m => ({
+        margin: Math.abs(m.home_score - m.away_score),
+        winner: m.home_score > m.away_score ? m.home_team_name : m.away_team_name,
+        loser: m.home_score > m.away_score ? m.away_team_name : m.home_team_name,
+        season: m.season_id,
+        week: m.week_number,
+        score: `${Math.max(m.home_score, m.away_score).toFixed(1)}-${Math.min(m.home_score, m.away_score).toFixed(1)}`,
+        isPlayoff: m.is_playoff
+      }))
+      .sort((a, b) => b.margin - a.margin);
+
+    const combined = matchups
+      .filter(m => m.home_score !== null && m.away_score !== null)
+      .map(m => ({
+        total: m.home_score + m.away_score,
+        teams: `${m.home_team_name} vs ${m.away_team_name}`,
+        season: m.season_id,
+        week: m.week_number,
+        score: `${m.home_score.toFixed(1)}-${m.away_score.toFixed(1)}`,
+        isPlayoff: m.is_playoff
+      }))
+      .sort((a, b) => b.total - a.total);
+
+    // Get top/bottom scores
+    const regularScores = getAllScores(regularGames);
+    const playoffScores = getAllScores(playoffGames);
+
+    return {
+      regularSeasonHigh: regularScores.sort((a, b) => b.score - a.score).slice(0, 10),
+      regularSeasonLow: regularScores.sort((a, b) => a.score - b.score).slice(0, 10),
+      playoffHigh: playoffScores.sort((a, b) => b.score - a.score).slice(0, 10),
+      playoffLow: playoffScores.sort((a, b) => a.score - b.score).slice(0, 10),
+      largestMargins: margins.slice(0, 10),
+      highestCombined: combined.slice(0, 10)
+    };
+  };
 
   // Calculate hypothetical records against all teams
   const calculateHypotheticalRecords = () => {
@@ -99,41 +186,8 @@ const Records = () => {
     return { best, worst };
   };
 
-  // Calculate largest margin of victory and highest combined score
-  const calculateScoreRecords = () => {
-    if (!matchups) return { largestMargin: null, highestCombined: null };
-
-    const margins = matchups
-      .filter(m => m.home_score !== null && m.away_score !== null)
-      .map(m => ({
-        margin: Math.abs(m.home_score - m.away_score),
-        winner: m.home_score > m.away_score ? m.home_team_name : m.away_team_name,
-        loser: m.home_score > m.away_score ? m.away_team_name : m.home_team_name,
-        season: m.season_id,
-        week: m.week_number,
-        score: `${Math.max(m.home_score, m.away_score).toFixed(1)}-${Math.min(m.home_score, m.away_score).toFixed(1)}`
-      }))
-      .sort((a, b) => b.margin - a.margin);
-
-    const combined = matchups
-      .filter(m => m.home_score !== null && m.away_score !== null)
-      .map(m => ({
-        total: m.home_score + m.away_score,
-        teams: `${m.home_team_name} vs ${m.away_team_name}`,
-        season: m.season_id,
-        week: m.week_number,
-        score: `${m.home_score.toFixed(1)}-${m.away_score.toFixed(1)}`
-      }))
-      .sort((a, b) => b.total - a.total);
-
-    return {
-      largestMargin: margins[0],
-      highestCombined: combined[0]
-    };
-  };
-
+  const scoringRecords = calculateScoringRecords();
   const hypotheticalRecords = calculateHypotheticalRecords();
-  const scoreRecords = calculateScoreRecords();
 
   if (matchupsLoading) {
     return <div>Loading records...</div>;
@@ -156,23 +210,45 @@ const Records = () => {
         <TabsContent value="scoring">
           <div className="grid gap-6 md:grid-cols-2">
             <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Highest Weekly Scores</h2>
+              <h2 className="text-xl font-semibold mb-4">Highest Regular Season Scores</h2>
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Score</TableHead>
-                    <TableHead>Owner</TableHead>
-                    <TableHead>Season</TableHead>
-                    <TableHead>Week</TableHead>
+                    <TableHead>Team</TableHead>
+                    <TableHead>Opponent</TableHead>
+                    <TableHead>Season/Week</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {scores?.slice(0, 5).map((record, index) => (
+                  {scoringRecords.regularSeasonHigh.map((record, index) => (
                     <TableRow key={index}>
                       <TableCell className="font-medium">{record.score.toFixed(1)}</TableCell>
-                      <TableCell>{record.team_id}</TableCell>
-                      <TableCell>{record.season_id}</TableCell>
-                      <TableCell>{record.week_number}</TableCell>
+                      <TableCell>{record.team}</TableCell>
+                      <TableCell>{record.opponent}</TableCell>
+                      <TableCell>{`S${record.season}/W${record.week}`}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              <h2 className="text-xl font-semibold mb-4 mt-6">Lowest Regular Season Scores</h2>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Score</TableHead>
+                    <TableHead>Team</TableHead>
+                    <TableHead>Opponent</TableHead>
+                    <TableHead>Season/Week</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {scoringRecords.regularSeasonLow.map((record, index) => (
+                    <TableRow key={index}>
+                      <TableCell className="font-medium">{record.score.toFixed(1)}</TableCell>
+                      <TableCell>{record.team}</TableCell>
+                      <TableCell>{record.opponent}</TableCell>
+                      <TableCell>{`S${record.season}/W${record.week}`}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -180,7 +256,53 @@ const Records = () => {
             </Card>
 
             <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Largest Margin of Victory</h2>
+              <h2 className="text-xl font-semibold mb-4">Highest Playoff Scores</h2>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Score</TableHead>
+                    <TableHead>Team</TableHead>
+                    <TableHead>Opponent</TableHead>
+                    <TableHead>Season/Week</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {scoringRecords.playoffHigh.map((record, index) => (
+                    <TableRow key={index}>
+                      <TableCell className="font-medium">{record.score.toFixed(1)}</TableCell>
+                      <TableCell>{record.team}</TableCell>
+                      <TableCell>{record.opponent}</TableCell>
+                      <TableCell>{`S${record.season}/W${record.week}`}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              <h2 className="text-xl font-semibold mb-4 mt-6">Lowest Playoff Scores</h2>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Score</TableHead>
+                    <TableHead>Team</TableHead>
+                    <TableHead>Opponent</TableHead>
+                    <TableHead>Season/Week</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {scoringRecords.playoffLow.map((record, index) => (
+                    <TableRow key={index}>
+                      <TableCell className="font-medium">{record.score.toFixed(1)}</TableCell>
+                      <TableCell>{record.team}</TableCell>
+                      <TableCell>{record.opponent}</TableCell>
+                      <TableCell>{`S${record.season}/W${record.week}`}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+
+            <Card className="p-6">
+              <h2 className="text-xl font-semibold mb-4">Largest Margins of Victory</h2>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -191,18 +313,20 @@ const Records = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {scoreRecords.largestMargin && (
-                    <TableRow>
-                      <TableCell className="font-medium">{scoreRecords.largestMargin.winner}</TableCell>
-                      <TableCell>{scoreRecords.largestMargin.loser}</TableCell>
-                      <TableCell>{scoreRecords.largestMargin.score}</TableCell>
-                      <TableCell>{`S${scoreRecords.largestMargin.season}/W${scoreRecords.largestMargin.week}`}</TableCell>
+                  {scoringRecords.largestMargins.map((record, index) => (
+                    <TableRow key={index}>
+                      <TableCell className="font-medium">{record.winner}</TableCell>
+                      <TableCell>{record.loser}</TableCell>
+                      <TableCell>{record.score}</TableCell>
+                      <TableCell>{`S${record.season}/W${record.week}`}</TableCell>
                     </TableRow>
-                  )}
+                  ))}
                 </TableBody>
               </Table>
+            </Card>
 
-              <h2 className="text-xl font-semibold mb-4 mt-6">Highest Combined Score</h2>
+            <Card className="p-6">
+              <h2 className="text-xl font-semibold mb-4">Highest Combined Scores</h2>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -213,14 +337,14 @@ const Records = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {scoreRecords.highestCombined && (
-                    <TableRow>
-                      <TableCell className="font-medium">{scoreRecords.highestCombined.teams}</TableCell>
-                      <TableCell>{scoreRecords.highestCombined.score}</TableCell>
-                      <TableCell>{scoreRecords.highestCombined.total.toFixed(1)}</TableCell>
-                      <TableCell>{`S${scoreRecords.highestCombined.season}/W${scoreRecords.highestCombined.week}`}</TableCell>
+                  {scoringRecords.highestCombined.map((record, index) => (
+                    <TableRow key={index}>
+                      <TableCell className="font-medium">{record.teams}</TableCell>
+                      <TableCell>{record.score}</TableCell>
+                      <TableCell>{record.total.toFixed(1)}</TableCell>
+                      <TableCell>{`S${record.season}/W${record.week}`}</TableCell>
                     </TableRow>
-                  )}
+                  ))}
                 </TableBody>
               </Table>
             </Card>
