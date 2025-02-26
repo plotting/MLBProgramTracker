@@ -1,30 +1,11 @@
-import { Card } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { MatchupScoresView } from "@/types/database";
+import { ScoringRecordsSection } from "@/components/records/ScoringRecordsSection";
+import { MiscRecordsSection } from "@/components/records/MiscRecordsSection";
 
 const Records = () => {
-  // Fetch teams for mapping IDs to names
-  const { data: teams } = useQuery({
-    queryKey: ['teams'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('teams')
-        .select('*');
-      if (error) throw error;
-      return data;
-    },
-  });
-
   const { data: matchups, isLoading: matchupsLoading } = useQuery({
     queryKey: ['matchups-records'],
     queryFn: async () => {
@@ -128,62 +109,77 @@ const Records = () => {
 
   // Calculate hypothetical records against all teams
   const calculateHypotheticalRecords = () => {
-    if (!matchups) return { best: null, worst: null };
+    if (!matchups) return { best: [], worst: [] };
 
-    const seasonWeekRecords = new Map<string, { wins: number, total: number }>();
+    const seasonTeamRecords = new Map<string, {
+      team: string,
+      season: string,
+      weeklyRecords: string[],
+      wins: number,
+      games: number
+    }>();
 
+    // Group matchups by season and week
+    const seasonWeeks = new Map<string, MatchupScoresView[]>();
     matchups.forEach(matchup => {
-      if (!matchup.home_score || !matchup.away_score) return;
+      if (!matchup.home_score || !matchup.away_score || matchup.is_playoff) return;
       
-      const weekScores = matchups.filter(m => 
-        m.season_id === matchup.season_id && 
-        m.week_number === matchup.week_number &&
-        m.home_score !== null &&
-        m.away_score !== null
-      );
-
-      // Calculate for home team
-      const homeKey = `${matchup.season_id}-${matchup.home_team_name}`;
-      const homeWins = weekScores.filter(m => 
-        matchup.home_score > (m.home_score || 0) && 
-        matchup.home_score > (m.away_score || 0)
-      ).length;
-
-      if (!seasonWeekRecords.has(homeKey)) {
-        seasonWeekRecords.set(homeKey, { wins: 0, total: 0 });
+      const key = `${matchup.season_id}-${matchup.week_number}`;
+      if (!seasonWeeks.has(key)) {
+        seasonWeeks.set(key, []);
       }
-      const homeRecord = seasonWeekRecords.get(homeKey)!;
-      homeRecord.wins += homeWins;
-      homeRecord.total += (weekScores.length * 2) - 2; // Subtract 2 to exclude self-comparison
-
-      // Calculate for away team
-      const awayKey = `${matchup.season_id}-${matchup.away_team_name}`;
-      const awayWins = weekScores.filter(m => 
-        matchup.away_score > (m.home_score || 0) && 
-        matchup.away_score > (m.away_score || 0)
-      ).length;
-
-      if (!seasonWeekRecords.has(awayKey)) {
-        seasonWeekRecords.set(awayKey, { wins: 0, total: 0 });
-      }
-      const awayRecord = seasonWeekRecords.get(awayKey)!;
-      awayRecord.wins += awayWins;
-      awayRecord.total += (weekScores.length * 2) - 2;
+      seasonWeeks.get(key)!.push(matchup);
     });
 
-    // Convert to array and sort
-    const records = Array.from(seasonWeekRecords.entries())
-      .map(([key, record]) => ({
-        season: key.split('-')[0],
-        team: key.split('-')[1],
-        percentage: (record.wins / record.total) * 100,
-        record: `${record.wins}-${record.total - record.wins}`
-      }));
+    // Calculate weekly records for each team
+    seasonWeeks.forEach((weekMatchups, weekKey) => {
+      const [season, week] = weekKey.split('-');
+      
+      // Get all scores for the week
+      const weekScores = weekMatchups.flatMap(m => [
+        { team: m.home_team_name!, score: m.home_score! },
+        { team: m.away_team_name!, score: m.away_score! }
+      ]);
 
-    const best = records.sort((a, b) => b.percentage - a.percentage)[0];
-    const worst = records.sort((a, b) => a.percentage - b.percentage)[0];
+      // Calculate record for each team against all other teams
+      weekScores.forEach(teamScore => {
+        const wins = weekScores.filter(s => 
+          s.team !== teamScore.team && teamScore.score > s.score
+        ).length;
 
-    return { best, worst };
+        const key = `${season}-${teamScore.team}`;
+        if (!seasonTeamRecords.has(key)) {
+          seasonTeamRecords.set(key, {
+            team: teamScore.team,
+            season,
+            weeklyRecords: [],
+            wins: 0,
+            games: 0
+          });
+        }
+
+        const record = seasonTeamRecords.get(key)!;
+        record.wins += wins;
+        record.games += weekScores.length - 1; // Exclude self
+        record.weeklyRecords.push(`${wins}-${weekScores.length - 1 - wins}`);
+      });
+    });
+
+    // Convert to array and calculate percentages
+    const records = Array.from(seasonTeamRecords.values())
+      .map(record => ({
+        team: record.team,
+        season: record.season,
+        record: `${record.wins}-${record.games - record.wins}`,
+        percentage: (record.wins / record.games) * 100,
+        weeklyRecords: record.weeklyRecords
+      }))
+      .sort((a, b) => b.percentage - a.percentage);
+
+    return {
+      best: records.slice(0, 10),
+      worst: records.slice(-10).reverse()
+    };
   };
 
   const scoringRecords = calculateScoringRecords();
@@ -208,193 +204,18 @@ const Records = () => {
         </TabsList>
 
         <TabsContent value="scoring">
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Highest Regular Season Scores</h2>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Score</TableHead>
-                    <TableHead>Team</TableHead>
-                    <TableHead>Opponent</TableHead>
-                    <TableHead>Season/Week</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {scoringRecords.regularSeasonHigh.map((record, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="font-medium">{record.score.toFixed(1)}</TableCell>
-                      <TableCell>{record.team}</TableCell>
-                      <TableCell>{record.opponent}</TableCell>
-                      <TableCell>{`S${record.season}/W${record.week}`}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-
-              <h2 className="text-xl font-semibold mb-4 mt-6">Lowest Regular Season Scores</h2>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Score</TableHead>
-                    <TableHead>Team</TableHead>
-                    <TableHead>Opponent</TableHead>
-                    <TableHead>Season/Week</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {scoringRecords.regularSeasonLow.map((record, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="font-medium">{record.score.toFixed(1)}</TableCell>
-                      <TableCell>{record.team}</TableCell>
-                      <TableCell>{record.opponent}</TableCell>
-                      <TableCell>{`S${record.season}/W${record.week}`}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Card>
-
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Highest Playoff Scores</h2>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Score</TableHead>
-                    <TableHead>Team</TableHead>
-                    <TableHead>Opponent</TableHead>
-                    <TableHead>Season/Week</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {scoringRecords.playoffHigh.map((record, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="font-medium">{record.score.toFixed(1)}</TableCell>
-                      <TableCell>{record.team}</TableCell>
-                      <TableCell>{record.opponent}</TableCell>
-                      <TableCell>{`S${record.season}/W${record.week}`}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-
-              <h2 className="text-xl font-semibold mb-4 mt-6">Lowest Playoff Scores</h2>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Score</TableHead>
-                    <TableHead>Team</TableHead>
-                    <TableHead>Opponent</TableHead>
-                    <TableHead>Season/Week</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {scoringRecords.playoffLow.map((record, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="font-medium">{record.score.toFixed(1)}</TableCell>
-                      <TableCell>{record.team}</TableCell>
-                      <TableCell>{record.opponent}</TableCell>
-                      <TableCell>{`S${record.season}/W${record.week}`}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Card>
-
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Largest Margins of Victory</h2>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Winner</TableHead>
-                    <TableHead>Loser</TableHead>
-                    <TableHead>Score</TableHead>
-                    <TableHead>Season/Week</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {scoringRecords.largestMargins.map((record, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="font-medium">{record.winner}</TableCell>
-                      <TableCell>{record.loser}</TableCell>
-                      <TableCell>{record.score}</TableCell>
-                      <TableCell>{`S${record.season}/W${record.week}`}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Card>
-
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Highest Combined Scores</h2>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Teams</TableHead>
-                    <TableHead>Score</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Season/Week</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {scoringRecords.highestCombined.map((record, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="font-medium">{record.teams}</TableCell>
-                      <TableCell>{record.score}</TableCell>
-                      <TableCell>{record.total.toFixed(1)}</TableCell>
-                      <TableCell>{`S${record.season}/W${record.week}`}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Card>
-          </div>
+          <ScoringRecordsSection {...scoringRecords} />
         </TabsContent>
 
         <TabsContent value="career">
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Career Points</h2>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Points</TableHead>
-                    <TableHead>Owner</TableHead>
-                    <TableHead>Seasons</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {/* Add career points calculation here */}
-                </TableBody>
-              </Table>
-            </Card>
-          </div>
+          {/* Career records section to be implemented */}
         </TabsContent>
 
         <TabsContent value="misc">
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Best Season vs All</h2>
-              {hypotheticalRecords.best && (
-                <div className="space-y-2">
-                  <p><span className="font-semibold">Team:</span> {hypotheticalRecords.best.team}</p>
-                  <p><span className="font-semibold">Season:</span> {hypotheticalRecords.best.season}</p>
-                  <p><span className="font-semibold">Record vs All:</span> {hypotheticalRecords.best.record}</p>
-                  <p><span className="font-semibold">Win %:</span> {hypotheticalRecords.best.percentage.toFixed(1)}%</p>
-                </div>
-              )}
-
-              <h2 className="text-xl font-semibold mb-4 mt-6">Worst Season vs All</h2>
-              {hypotheticalRecords.worst && (
-                <div className="space-y-2">
-                  <p><span className="font-semibold">Team:</span> {hypotheticalRecords.worst.team}</p>
-                  <p><span className="font-semibold">Season:</span> {hypotheticalRecords.worst.season}</p>
-                  <p><span className="font-semibold">Record vs All:</span> {hypotheticalRecords.worst.record}</p>
-                  <p><span className="font-semibold">Win %:</span> {hypotheticalRecords.worst.percentage.toFixed(1)}%</p>
-                </div>
-              )}
-            </Card>
-          </div>
+          <MiscRecordsSection 
+            bestRecords={hypotheticalRecords.best}
+            worstRecords={hypotheticalRecords.worst}
+          />
         </TabsContent>
       </Tabs>
     </div>
