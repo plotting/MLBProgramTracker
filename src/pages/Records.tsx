@@ -19,7 +19,6 @@ const Records = () => {
     },
   });
 
-  // Calculate all scoring records
   const calculateScoringRecords = () => {
     if (!matchups) return {
       regularSeasonHigh: [],
@@ -30,11 +29,9 @@ const Records = () => {
       highestCombined: []
     };
 
-    // Split games by type
     const regularGames = matchups.filter(m => !m.is_playoff && m.home_score !== null && m.away_score !== null);
     const playoffGames = matchups.filter(m => m.is_playoff && m.home_score !== null && m.away_score !== null);
 
-    // Function to get all scores from games
     const getAllScores = (games: typeof matchups) => {
       const scores: Array<{
         score: number,
@@ -67,7 +64,6 @@ const Records = () => {
       return scores;
     };
 
-    // Calculate margins and combined scores
     const margins = matchups
       .filter(m => m.home_score !== null && m.away_score !== null)
       .map(m => ({
@@ -93,7 +89,6 @@ const Records = () => {
       }))
       .sort((a, b) => b.total - a.total);
 
-    // Get top/bottom scores
     const regularScores = getAllScores(regularGames);
     const playoffScores = getAllScores(playoffGames);
 
@@ -107,19 +102,17 @@ const Records = () => {
     };
   };
 
-  // Calculate hypothetical records against all teams
   const calculateHypotheticalRecords = () => {
     if (!matchups) return { best: [], worst: [] };
 
     const seasonTeamRecords = new Map<string, {
       team: string,
       season: string,
-      weeklyRecords: string[],
       wins: number,
+      ties: number,
       games: number
     }>();
 
-    // Group matchups by season and week
     const seasonWeeks = new Map<string, MatchupScoresView[]>();
     matchups.forEach(matchup => {
       if (!matchup.home_score || !matchup.away_score || matchup.is_playoff) return;
@@ -131,20 +124,20 @@ const Records = () => {
       seasonWeeks.get(key)!.push(matchup);
     });
 
-    // Calculate weekly records for each team
     seasonWeeks.forEach((weekMatchups, weekKey) => {
-      const [season, week] = weekKey.split('-');
+      const [season] = weekKey.split('-');
       
-      // Get all scores for the week
       const weekScores = weekMatchups.flatMap(m => [
         { team: m.home_team_name!, score: m.home_score! },
         { team: m.away_team_name!, score: m.away_score! }
       ]);
 
-      // Calculate record for each team against all other teams
       weekScores.forEach(teamScore => {
         const wins = weekScores.filter(s => 
           s.team !== teamScore.team && teamScore.score > s.score
+        ).length;
+        const ties = weekScores.filter(s => 
+          s.team !== teamScore.team && teamScore.score === s.score
         ).length;
 
         const key = `${season}-${teamScore.team}`;
@@ -152,27 +145,25 @@ const Records = () => {
           seasonTeamRecords.set(key, {
             team: teamScore.team,
             season,
-            weeklyRecords: [],
             wins: 0,
+            ties: 0,
             games: 0
           });
         }
 
         const record = seasonTeamRecords.get(key)!;
         record.wins += wins;
-        record.games += weekScores.length - 1; // Exclude self
-        record.weeklyRecords.push(`${wins}-${weekScores.length - 1 - wins}`);
+        record.ties += ties;
+        record.games += weekScores.length - 1;
       });
     });
 
-    // Convert to array and calculate percentages
     const records = Array.from(seasonTeamRecords.values())
       .map(record => ({
         team: record.team,
         season: record.season,
-        record: `${record.wins}-${record.games - record.wins}`,
-        percentage: (record.wins / record.games) * 100,
-        weeklyRecords: record.weeklyRecords
+        record: `${record.wins}-${record.games - record.wins - record.ties}-${record.ties}`,
+        percentage: ((record.wins + record.ties * 0.5) / record.games) * 100
       }))
       .sort((a, b) => b.percentage - a.percentage);
 

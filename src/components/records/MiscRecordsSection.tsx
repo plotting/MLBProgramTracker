@@ -14,7 +14,6 @@ interface SeasonRecord {
   season: string;
   record: string;
   percentage: number;
-  weeklyRecords: string[];
 }
 
 interface MiscRecordsSectionProps {
@@ -36,7 +35,7 @@ export const MiscRecordsSection = ({
               <TableHead>Team</TableHead>
               <TableHead>Season</TableHead>
               <TableHead>Record</TableHead>
-              <TableHead>Weekly Records</TableHead>
+              <TableHead>Win %</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -45,7 +44,7 @@ export const MiscRecordsSection = ({
                 <TableCell className="font-medium">{record.team}</TableCell>
                 <TableCell>{record.season}</TableCell>
                 <TableCell>{record.record}</TableCell>
-                <TableCell className="text-sm">{record.weeklyRecords.join(", ")}</TableCell>
+                <TableCell>{record.percentage.toFixed(1)}%</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -60,7 +59,7 @@ export const MiscRecordsSection = ({
               <TableHead>Team</TableHead>
               <TableHead>Season</TableHead>
               <TableHead>Record</TableHead>
-              <TableHead>Weekly Records</TableHead>
+              <TableHead>Win %</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -69,7 +68,7 @@ export const MiscRecordsSection = ({
                 <TableCell className="font-medium">{record.team}</TableCell>
                 <TableCell>{record.season}</TableCell>
                 <TableCell>{record.record}</TableCell>
-                <TableCell className="text-sm">{record.weeklyRecords.join(", ")}</TableCell>
+                <TableCell>{record.percentage.toFixed(1)}%</TableCell>
               </TableRow>
             ))}
           </TableBody>
