@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { MatchupScoresView } from "@/types/database";
 import { ScoringRecordsSection } from "@/components/records/ScoringRecordsSection";
 import { MiscRecordsSection } from "@/components/records/MiscRecordsSection";
+import { CareerRecordsSection } from "@/components/records/CareerRecordsSection";
 
 const Records = () => {
   const { data: matchups, isLoading: matchupsLoading } = useQuery({
@@ -18,6 +19,138 @@ const Records = () => {
       return data as MatchupScoresView[];
     },
   });
+
+  const calculateCareerStats = () => {
+    if (!matchups) return [];
+
+    const stats = new Map<string, {
+      team: string;
+      regularSeason: { wins: number; losses: number; ties: number; };
+      playoffs: { wins: number; losses: number; ties: number; };
+      consolation: { wins: number; losses: number; ties: number; };
+      hypothetical: { wins: number; losses: number; ties: number; };
+      scoring: {
+        hundredPlus: number;
+        highestScore: number;
+        lowestScore: number;
+        timesHighest: number;
+        timesLowest: number;
+        vsHighest: number;
+        vsLowest: number;
+      };
+    }>();
+
+    matchups.forEach(match => {
+      if (!match.home_score || !match.away_score) return;
+
+      const processTeam = (
+        team: string,
+        score: number,
+        otherScore: number,
+        isPlayoff: boolean,
+        weekScores: { team: string; score: number; }[]
+      ) => {
+        if (!stats.has(team)) {
+          stats.set(team, {
+            team,
+            regularSeason: { wins: 0, losses: 0, ties: 0 },
+            playoffs: { wins: 0, losses: 0, ties: 0 },
+            consolation: { wins: 0, losses: 0, ties: 0 },
+            hypothetical: { wins: 0, losses: 0, ties: 0 },
+            scoring: {
+              hundredPlus: 0,
+              highestScore: 0,
+              lowestScore: Infinity,
+              timesHighest: 0,
+              timesLowest: 0,
+              vsHighest: 0,
+              vsLowest: 0,
+            }
+          });
+        }
+
+        const stat = stats.get(team)!;
+
+        const target = isPlayoff ? stat.playoffs : stat.regularSeason;
+        if (score > otherScore) target.wins++;
+        else if (score < otherScore) target.losses++;
+        else target.ties++;
+
+        if (score >= 100) stat.scoring.hundredPlus++;
+        stat.scoring.highestScore = Math.max(stat.scoring.highestScore, score);
+        stat.scoring.lowestScore = Math.min(stat.scoring.lowestScore, score);
+
+        const weekHigh = Math.max(...weekScores.map(s => s.score));
+        const weekLow = Math.min(...weekScores.map(s => s.score));
+        
+        if (score === weekHigh) stat.scoring.timesHighest++;
+        if (score === weekLow) stat.scoring.timesLowest++;
+        if (otherScore === weekHigh) stat.scoring.vsHighest++;
+        if (otherScore === weekLow) stat.scoring.vsLowest++;
+
+        weekScores.forEach(ws => {
+          if (ws.team !== team) {
+            if (score > ws.score) stat.hypothetical.wins++;
+            else if (score < ws.score) stat.hypothetical.losses++;
+            else stat.hypothetical.ties++;
+          }
+        });
+      };
+
+      const weekScores = matchups
+        .filter(m => 
+          m.season_id === match.season_id && 
+          m.week_number === match.week_number &&
+          m.home_score !== null &&
+          m.away_score !== null
+        )
+        .flatMap(m => [
+          { team: m.home_team_name!, score: m.home_score! },
+          { team: m.away_team_name!, score: m.away_score! }
+        ]);
+
+      processTeam(
+        match.home_team_name!,
+        match.home_score,
+        match.away_score,
+        match.is_playoff || false,
+        weekScores
+      );
+      processTeam(
+        match.away_team_name!,
+        match.away_score,
+        match.home_score,
+        match.is_playoff || false,
+        weekScores
+      );
+    });
+
+    return Array.from(stats.values()).map(stat => ({
+      ...stat,
+      regularSeason: {
+        ...stat.regularSeason,
+        percentage: calculatePercentage(stat.regularSeason)
+      },
+      playoffs: {
+        ...stat.playoffs,
+        percentage: calculatePercentage(stat.playoffs)
+      },
+      consolation: {
+        ...stat.consolation,
+        percentage: calculatePercentage(stat.consolation)
+      },
+      hypothetical: {
+        ...stat.hypothetical,
+        percentage: calculatePercentage(stat.hypothetical)
+      }
+    }));
+  };
+
+  const calculatePercentage = (record: { wins: number; losses: number; ties: number; }) => {
+    const total = record.wins + record.losses + record.ties;
+    if (total === 0) return 0;
+    return ((record.wins + record.ties * 0.5) / total) * 100;
+  };
 
   const calculateScoringRecords = () => {
     if (!matchups) return {
@@ -173,6 +306,7 @@ const Records = () => {
     };
   };
 
+  const careerStats = calculateCareerStats();
   const scoringRecords = calculateScoringRecords();
   const hypotheticalRecords = calculateHypotheticalRecords();
 
@@ -199,7 +333,7 @@ const Records = () => {
         </TabsContent>
 
         <TabsContent value="career">
-          {/* Career records section to be implemented */}
+          <CareerRecordsSection careerStats={careerStats} />
         </TabsContent>
 
         <TabsContent value="misc">
