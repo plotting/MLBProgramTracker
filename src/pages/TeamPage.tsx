@@ -62,7 +62,17 @@ const TeamPage = () => {
         .order('week_number');
 
       if (error) throw error;
-      return data as MatchupScoresView[];
+      
+      // Remove duplicates based on week_number
+      const uniqueMatchups = data.reduce((acc: MatchupScoresView[], current) => {
+        const exists = acc.find(item => item.week_number === current.week_number);
+        if (!exists) {
+          acc.push(current);
+        }
+        return acc;
+      }, []);
+
+      return uniqueMatchups;
     },
     enabled: !!id,
   });
@@ -208,7 +218,13 @@ const TeamPage = () => {
                 const opponentName = isHomeTeam ? matchup.away_team_name : matchup.home_team_name;
                 const teamScore = isHomeTeam ? matchup.home_score : matchup.away_score;
                 const opponentScore = isHomeTeam ? matchup.away_score : matchup.home_score;
-                const result = teamScore && opponentScore && teamScore > opponentScore ? 'W' : 'L';
+                const result = teamScore && opponentScore 
+                  ? teamScore > opponentScore 
+                    ? 'W' 
+                    : teamScore < opponentScore 
+                      ? 'L'
+                      : 'T'
+                  : null;
 
                 return (
                   <TableRow key={matchup.week_number}>
@@ -223,7 +239,13 @@ const TeamPage = () => {
                     </TableCell>
                     <TableCell>
                       {teamScore !== null && opponentScore !== null ? (
-                        <span className={result === 'W' ? 'text-green-500' : 'text-red-500'}>
+                        <span className={
+                          result === 'W' 
+                            ? 'text-green-500' 
+                            : result === 'L' 
+                              ? 'text-red-500'
+                              : 'text-yellow-500'
+                        }>
                           {teamScore.toFixed(2)} - {opponentScore.toFixed(2)}
                         </span>
                       ) : (
@@ -232,13 +254,23 @@ const TeamPage = () => {
                     </TableCell>
                     <TableCell>
                       {teamScore !== null && opponentScore !== null && (
-                        <span className={`font-bold ${result === 'W' ? 'text-green-500' : 'text-red-500'}`}>
+                        <span className={`font-bold ${
+                          result === 'W' 
+                            ? 'text-green-500' 
+                            : result === 'L'
+                              ? 'text-red-500'
+                              : 'text-yellow-500'
+                        }`}>
                           {result}
                         </span>
                       )}
                     </TableCell>
                     <TableCell>
-                      {matchup.is_playoff ? 'Playoff' : 'Regular Season'}
+                      {matchup.is_playoff ? (
+                        matchup.is_playoff_bracket ? 'Playoff' : 'Consolation'
+                      ) : (
+                        'Regular Season'
+                      )}
                     </TableCell>
                   </TableRow>
                 );
