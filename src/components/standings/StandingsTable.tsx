@@ -57,11 +57,15 @@ const StandingsTable = ({ standings, selectedSeason }: StandingsProps) => {
       </TableHeader>
       <TableBody>
         {standings?.map((team, index) => {
-          const totalGames = team.regular_season_wins + team.regular_season_losses;
+          const totalGames = team.regular_season_wins + team.regular_season_losses + team.regular_season_ties;
           const avgPoints = totalGames > 0 
             ? (team.regular_season_points_for / totalGames).toFixed(1) 
             : "0.0";
             
+          const record = team.regular_season_ties > 0
+            ? `${team.regular_season_wins}-${team.regular_season_losses}-${team.regular_season_ties}`
+            : `${team.regular_season_wins}-${team.regular_season_losses}`;
+
           return (
             <TableRow key={team.team_id}>
               <TableCell className="font-medium">
@@ -72,7 +76,7 @@ const StandingsTable = ({ standings, selectedSeason }: StandingsProps) => {
                   {team.team_name}
                 </Link>
               </TableCell>
-              <TableCell>{`${team.regular_season_wins}-${team.regular_season_losses}`}</TableCell>
+              <TableCell>{record}</TableCell>
               <TableCell>{team.regular_season_points_for.toFixed(1)}</TableCell>
               <TableCell>{team.regular_season_points_against.toFixed(1)}</TableCell>
               <TableCell>{avgPoints}</TableCell>

@@ -35,6 +35,8 @@ export interface MatchupScoresView {
   away_score: number | null;
   scheduled_time: string | null;
   is_playoff: boolean;
+  is_playoff_bracket: boolean;
+  is_consolation: boolean;
 }
 
 export interface TeamRecordsView {
@@ -43,11 +45,12 @@ export interface TeamRecordsView {
   team_name: string;
   regular_season_wins: number;
   regular_season_losses: number;
+  regular_season_ties: number;
   playoff_wins: number;
   playoff_losses: number;
+  playoff_ties: number;
   regular_season_points_for: number;
   regular_season_points_against: number;
   playoff_points_for: number;
   playoff_points_against: number;
 }
-

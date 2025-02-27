@@ -49,13 +49,6 @@ export type Database = {
             foreignKeyName: "draft_picks_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
-            referencedRelation: "team_records_view"
-            referencedColumns: ["team_id"]
-          },
-          {
-            foreignKeyName: "draft_picks_team_id_fkey"
-            columns: ["team_id"]
-            isOneToOne: false
             referencedRelation: "teams"
             referencedColumns: ["id"]
           },
@@ -67,6 +60,7 @@ export type Database = {
           created_at: string | null
           home_team_id: number | null
           id: number
+          is_playoff: boolean | null
           scheduled_time: string | null
           season_id: number | null
           week_number: number
@@ -76,6 +70,7 @@ export type Database = {
           created_at?: string | null
           home_team_id?: number | null
           id?: number
+          is_playoff?: boolean | null
           scheduled_time?: string | null
           season_id?: number | null
           week_number: number
@@ -85,6 +80,7 @@ export type Database = {
           created_at?: string | null
           home_team_id?: number | null
           id?: number
+          is_playoff?: boolean | null
           scheduled_time?: string | null
           season_id?: number | null
           week_number?: number
@@ -94,22 +90,8 @@ export type Database = {
             foreignKeyName: "schedules_away_team_id_fkey"
             columns: ["away_team_id"]
             isOneToOne: false
-            referencedRelation: "team_records_view"
-            referencedColumns: ["team_id"]
-          },
-          {
-            foreignKeyName: "schedules_away_team_id_fkey"
-            columns: ["away_team_id"]
-            isOneToOne: false
             referencedRelation: "teams"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "schedules_home_team_id_fkey"
-            columns: ["home_team_id"]
-            isOneToOne: false
-            referencedRelation: "team_records_view"
-            referencedColumns: ["team_id"]
           },
           {
             foreignKeyName: "schedules_home_team_id_fkey"
@@ -159,13 +141,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "seasons"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "scores_team_id_fkey"
-            columns: ["team_id"]
-            isOneToOne: false
-            referencedRelation: "team_records_view"
-            referencedColumns: ["team_id"]
           },
           {
             foreignKeyName: "scores_team_id_fkey"
@@ -257,22 +232,8 @@ export type Database = {
             foreignKeyName: "trade_items_from_team_id_fkey"
             columns: ["from_team_id"]
             isOneToOne: false
-            referencedRelation: "team_records_view"
-            referencedColumns: ["team_id"]
-          },
-          {
-            foreignKeyName: "trade_items_from_team_id_fkey"
-            columns: ["from_team_id"]
-            isOneToOne: false
             referencedRelation: "teams"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "trade_items_to_team_id_fkey"
-            columns: ["to_team_id"]
-            isOneToOne: false
-            referencedRelation: "team_records_view"
-            referencedColumns: ["team_id"]
           },
           {
             foreignKeyName: "trade_items_to_team_id_fkey"
@@ -327,22 +288,8 @@ export type Database = {
             foreignKeyName: "trades_team1_id_fkey"
             columns: ["team1_id"]
             isOneToOne: false
-            referencedRelation: "team_records_view"
-            referencedColumns: ["team_id"]
-          },
-          {
-            foreignKeyName: "trades_team1_id_fkey"
-            columns: ["team1_id"]
-            isOneToOne: false
             referencedRelation: "teams"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "trades_team2_id_fkey"
-            columns: ["team2_id"]
-            isOneToOne: false
-            referencedRelation: "team_records_view"
-            referencedColumns: ["team_id"]
           },
           {
             foreignKeyName: "trades_team2_id_fkey"
@@ -363,7 +310,9 @@ export type Database = {
           home_score: number | null
           home_team_id: number | null
           home_team_name: string | null
+          is_consolation: boolean | null
           is_playoff: boolean | null
+          is_playoff_bracket: boolean | null
           scheduled_time: string | null
           season_id: number | null
           week_number: number | null
@@ -373,22 +322,8 @@ export type Database = {
             foreignKeyName: "schedules_away_team_id_fkey"
             columns: ["away_team_id"]
             isOneToOne: false
-            referencedRelation: "team_records_view"
-            referencedColumns: ["team_id"]
-          },
-          {
-            foreignKeyName: "schedules_away_team_id_fkey"
-            columns: ["away_team_id"]
-            isOneToOne: false
             referencedRelation: "teams"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "schedules_home_team_id_fkey"
-            columns: ["home_team_id"]
-            isOneToOne: false
-            referencedRelation: "team_records_view"
-            referencedColumns: ["team_id"]
           },
           {
             foreignKeyName: "schedules_home_team_id_fkey"
@@ -411,10 +346,12 @@ export type Database = {
           playoff_losses: number | null
           playoff_points_against: number | null
           playoff_points_for: number | null
+          playoff_ties: number | null
           playoff_wins: number | null
           regular_season_losses: number | null
           regular_season_points_against: number | null
           regular_season_points_for: number | null
+          regular_season_ties: number | null
           regular_season_wins: number | null
           season_id: number | null
           team_id: number | null
