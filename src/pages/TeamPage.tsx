@@ -1,4 +1,3 @@
-
 import { useParams, useSearchParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import {
@@ -62,17 +61,7 @@ const TeamPage = () => {
         .order('week_number');
 
       if (error) throw error;
-      
-      // Remove duplicates based on week_number
-      const uniqueMatchups = data.reduce((acc: MatchupScoresView[], current) => {
-        const exists = acc.find(item => item.week_number === current.week_number);
-        if (!exists) {
-          acc.push(current);
-        }
-        return acc;
-      }, []);
-
-      return uniqueMatchups;
+      return data;
     },
     enabled: !!id,
   });
