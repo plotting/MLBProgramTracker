@@ -62,7 +62,7 @@ export const CareerRecordsSection = ({ careerStats }: CareerRecordsSectionProps)
               <TableHead>Regular Season</TableHead>
               <TableHead>Playoffs</TableHead>
               <TableHead>Consolation</TableHead>
-              <TableHead>Hypothetical</TableHead>
+              <TableHead>Vs All</TableHead>
               <TableHead>100+ Games</TableHead>
               <TableHead>High/Low</TableHead>
             </TableRow>

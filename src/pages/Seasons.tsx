@@ -1,7 +1,6 @@
 
 import { Card } from "@/components/ui/card";
 import { useState } from "react";
-import WeeklyMatchup from "@/components/WeeklyMatchup";
 import PlayoffBracket from "@/components/PlayoffBracket";
 import { supabase } from "@/integrations/supabase/client";
 import { TeamRecordsView } from "@/types/database";
@@ -48,11 +47,6 @@ const Seasons = () => {
       </Card>
 
       <PlayoffBracket season={selectedSeason} />
-
-      <div className="grid gap-6">
-        <h2 className="text-2xl font-bold">Weekly Matchups</h2>
-        <WeeklyMatchup season={selectedSeason} />
-      </div>
     </div>
   );
 };

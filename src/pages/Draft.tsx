@@ -18,10 +18,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
+import { Link } from "react-router-dom";
 import { getAllSeasons, getSeasonLabel } from "@/utils/seasonUtils";
 
 const Draft = () => {
-  const [selectedSeason, setSelectedSeason] = useState("1"); // Default to season 1
+  const [selectedSeason, setSelectedSeason] = useState("1");
 
   const { data: draftPicks, isLoading } = useQuery({
     queryKey: ['draft', selectedSeason],
@@ -41,6 +42,21 @@ const Draft = () => {
       return data;
     },
   });
+
+  // Group picks by round and organize by team
+  const organizedPicks = draftPicks?.reduce((acc, pick) => {
+    if (!acc[pick.round]) {
+      acc[pick.round] = {};
+    }
+    acc[pick.round][pick.team?.name || 'Unknown'] = {
+      player: pick.player_name,
+      pick: `${pick.round}.${String(pick.pick_number).padStart(2, '0')}`
+    };
+    return acc;
+  }, {} as Record<number, Record<string, { player: string; pick: string }>>);
+
+  // Get unique team names
+  const teams = Array.from(new Set(draftPicks?.map(pick => pick.team?.name || 'Unknown')));
 
   return (
     <div className="min-h-screen">
@@ -75,18 +91,30 @@ const Draft = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Round</TableHead>
-                <TableHead>Pick</TableHead>
-                <TableHead>Team</TableHead>
-                <TableHead>Player</TableHead>
+                {teams.map((team) => (
+                  <TableHead key={team}>
+                    <Link 
+                      to={`/team/${draftPicks.find(p => p.team?.name === team)?.team_id}?season=${selectedSeason}`}
+                      className="text-primary hover:underline"
+                    >
+                      {team}
+                    </Link>
+                  </TableHead>
+                ))}
               </TableRow>
             </TableHeader>
             <TableBody>
-              {draftPicks.map((pick) => (
-                <TableRow key={pick.id}>
-                  <TableCell>{pick.round}</TableCell>
-                  <TableCell>{pick.pick_number}</TableCell>
-                  <TableCell>{pick.team?.name || 'Unknown Team'}</TableCell>
-                  <TableCell>{pick.player_name}</TableCell>
+              {Object.entries(organizedPicks || {}).map(([round, roundPicks]) => (
+                <TableRow key={round}>
+                  <TableCell className="font-medium">Round {round}</TableCell>
+                  {teams.map((team) => (
+                    <TableCell key={team} className="text-center">
+                      <div>{roundPicks[team]?.player || '-'}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {roundPicks[team]?.pick || '-'}
+                      </div>
+                    </TableCell>
+                  ))}
                 </TableRow>
               ))}
             </TableBody>
