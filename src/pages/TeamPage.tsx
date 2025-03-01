@@ -182,51 +182,95 @@ const TeamPage = () => {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
         <Card className="p-6">
           <h3 className="text-sm font-medium text-muted-foreground mb-2">Record</h3>
-          <p className="text-2xl font-bold">
-            {totalWins}-{totalLosses}{totalTies > 0 ? `-${totalTies}` : ''}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Regular Season: {regularSeasonWins}-{regularSeasonLosses}{regularSeasonTies > 0 ? `-${regularSeasonTies}` : ''}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Playoffs: {playoffWins}-{playoffLosses}{playoffTies > 0 ? `-${playoffTies}` : ''}
-          </p>
+          <div>
+            <div className="flex justify-between items-center">
+              <p className="text-sm font-medium">Regular Season:</p>
+              <p className="text-xl font-bold">
+                {regularSeasonWins}-{regularSeasonLosses}{regularSeasonTies > 0 ? `-${regularSeasonTies}` : ''}
+              </p>
+            </div>
+            <div className="flex justify-between items-center mt-2">
+              <p className="text-sm font-medium">Playoffs:</p>
+              <p className="text-xl font-bold">
+                {playoffWins}-{playoffLosses}{playoffTies > 0 ? `-${playoffTies}` : ''}
+              </p>
+            </div>
+            <div className="flex justify-between items-center mt-2 pt-2 border-t border-border">
+              <p className="text-sm font-medium">Total:</p>
+              <p className="text-xl font-bold">
+                {totalWins}-{totalLosses}{totalTies > 0 ? `-${totalTies}` : ''}
+              </p>
+            </div>
+          </div>
         </Card>
         <Card className="p-6">
           <h3 className="text-sm font-medium text-muted-foreground mb-2">Points For</h3>
-          <p className="text-2xl font-bold">
-            {totalPointsFor.toFixed(1)}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Regular Season: {regularSeasonPointsFor.toFixed(1)}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Playoffs: {playoffPointsFor.toFixed(1)}
-          </p>
+          <div>
+            <div className="flex justify-between items-center">
+              <p className="text-sm font-medium">Regular Season:</p>
+              <p className="text-xl font-bold">
+                {regularSeasonPointsFor.toFixed(1)}
+              </p>
+            </div>
+            <div className="flex justify-between items-center mt-2">
+              <p className="text-sm font-medium">Playoffs:</p>
+              <p className="text-xl font-bold">
+                {playoffPointsFor.toFixed(1)}
+              </p>
+            </div>
+            <div className="flex justify-between items-center mt-2 pt-2 border-t border-border">
+              <p className="text-sm font-medium">Total:</p>
+              <p className="text-xl font-bold">
+                {totalPointsFor.toFixed(1)}
+              </p>
+            </div>
+          </div>
         </Card>
         <Card className="p-6">
           <h3 className="text-sm font-medium text-muted-foreground mb-2">Points Against</h3>
-          <p className="text-2xl font-bold">
-            {totalPointsAgainst.toFixed(1)}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Regular Season: {regularSeasonPointsAgainst.toFixed(1)}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Playoffs: {playoffPointsAgainst.toFixed(1)}
-          </p>
+          <div>
+            <div className="flex justify-between items-center">
+              <p className="text-sm font-medium">Regular Season:</p>
+              <p className="text-xl font-bold">
+                {regularSeasonPointsAgainst.toFixed(1)}
+              </p>
+            </div>
+            <div className="flex justify-between items-center mt-2">
+              <p className="text-sm font-medium">Playoffs:</p>
+              <p className="text-xl font-bold">
+                {playoffPointsAgainst.toFixed(1)}
+              </p>
+            </div>
+            <div className="flex justify-between items-center mt-2 pt-2 border-t border-border">
+              <p className="text-sm font-medium">Total:</p>
+              <p className="text-xl font-bold">
+                {totalPointsAgainst.toFixed(1)}
+              </p>
+            </div>
+          </div>
         </Card>
         <Card className="p-6">
           <h3 className="text-sm font-medium text-muted-foreground mb-2">Average Points</h3>
-          <p className="text-2xl font-bold">
-            {avgPoints.toFixed(1)}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Regular Season: {regularSeasonAvgPoints.toFixed(1)}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Playoffs: {playoffAvgPoints.toFixed(1)}
-          </p>
+          <div>
+            <div className="flex justify-between items-center">
+              <p className="text-sm font-medium">Regular Season:</p>
+              <p className="text-xl font-bold">
+                {regularSeasonAvgPoints.toFixed(1)}
+              </p>
+            </div>
+            <div className="flex justify-between items-center mt-2">
+              <p className="text-sm font-medium">Playoffs:</p>
+              <p className="text-xl font-bold">
+                {playoffAvgPoints.toFixed(1)}
+              </p>
+            </div>
+            <div className="flex justify-between items-center mt-2 pt-2 border-t border-border">
+              <p className="text-sm font-medium">Total:</p>
+              <p className="text-xl font-bold">
+                {avgPoints.toFixed(1)}
+              </p>
+            </div>
+          </div>
         </Card>
       </div>
 
