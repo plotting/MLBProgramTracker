@@ -79,7 +79,7 @@ const TeamPage = () => {
         .maybeSingle();
 
       if (error) throw error;
-      return data as TeamRecordsView;
+      return data;
     },
     enabled: !!id,
   });
@@ -129,7 +129,7 @@ const TeamPage = () => {
     );
   }
 
-  // Calculate total and regular season records
+  // Calculate records based on teamRecords data
   const regularSeasonWins = teamRecords?.regular_season_wins || 0;
   const regularSeasonLosses = teamRecords?.regular_season_losses || 0;
   const regularSeasonTies = teamRecords?.regular_season_ties || 0;

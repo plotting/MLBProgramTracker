@@ -1,92 +1,72 @@
 
 import { Link } from "react-router-dom";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { TeamRecordsView } from "@/types/database";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
-type StandingsProps = {
-  standings: TeamRecordsView[];
-  selectedSeason: string;
-};
+interface StandingsTableProps {
+  seasonId: number;
+}
 
-const getPlacementEmoji = (index: number): string => {
-  switch (index + 1) {
-    case 1:
-      return "🥇 1st Place";
-    case 2:
-      return "🥈 2nd Place";
-    case 3:
-      return "🥉 3rd Place";
-    case 4:
-      return "🏆 4th Place";
-    case 5:
-      return "🌟 5th Place";
-    case 6:
-      return "🛡️ 6th Place";
-    case 7:
-      return "🚽 7th Place";
-    case 8:
-      return "🤡 8th Place";
-    case 9:
-      return "🤮 9th Place";
-    case 10:
-      return "💩 10th Place";
-    default:
-      return `${index + 1}th Place`;
+const StandingsTable = ({ seasonId }: StandingsTableProps) => {
+  const { data: standings, isLoading } = useQuery({
+    queryKey: ['standings', seasonId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('team_records_view')
+        .select('*')
+        .eq('season_id', seasonId);
+        
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  if (isLoading) {
+    return <p className="text-center py-4">Loading standings...</p>;
   }
-};
 
-const StandingsTable = ({ standings, selectedSeason }: StandingsProps) => {
+  // Sort standings by wins (highest first), then points for (highest first)
+  const sortedStandings = standings ? [...standings].sort((a, b) => {
+    if (a.regular_season_wins !== b.regular_season_wins) {
+      return b.regular_season_wins - a.regular_season_wins;
+    }
+    return b.regular_season_points_for - a.regular_season_points_for;
+  }) : [];
+
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Team</TableHead>
-          <TableHead>Record</TableHead>
-          <TableHead>Points For</TableHead>
-          <TableHead>Points Against</TableHead>
-          <TableHead>Avg Points</TableHead>
-          <TableHead>Final Standing</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {standings?.map((team, index) => {
-          // Only use regular season stats for this view
-          const totalGames = team.regular_season_wins + team.regular_season_losses + team.regular_season_ties;
-          const avgPoints = totalGames > 0 
-            ? (team.regular_season_points_for / totalGames).toFixed(1) 
-            : "0.0";
-            
-          const record = team.regular_season_ties > 0
-            ? `${team.regular_season_wins}-${team.regular_season_losses}-${team.regular_season_ties}`
-            : `${team.regular_season_wins}-${team.regular_season_losses}`;
-
-          return (
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-[180px]">Team</TableHead>
+            <TableHead className="text-center">Record</TableHead>
+            <TableHead className="text-center">PF</TableHead>
+            <TableHead className="text-center">PA</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {sortedStandings.map((team) => (
             <TableRow key={team.team_id}>
               <TableCell className="font-medium">
                 <Link 
-                  to={`/team/${team.team_id}?season=${selectedSeason}`} 
+                  to={`/team/${team.team_id}?season=${seasonId}`} 
                   className="text-primary hover:underline"
                 >
                   {team.team_name}
                 </Link>
               </TableCell>
-              <TableCell>{record}</TableCell>
-              <TableCell>{team.regular_season_points_for.toFixed(1)}</TableCell>
-              <TableCell>{team.regular_season_points_against.toFixed(1)}</TableCell>
-              <TableCell>{avgPoints}</TableCell>
-              <TableCell>{getPlacementEmoji(index)}</TableCell>
+              <TableCell className="text-center">
+                {team.regular_season_wins}-{team.regular_season_losses}
+                {team.regular_season_ties > 0 ? `-${team.regular_season_ties}` : ''}
+              </TableCell>
+              <TableCell className="text-center">{team.regular_season_points_for.toFixed(1)}</TableCell>
+              <TableCell className="text-center">{team.regular_season_points_against.toFixed(1)}</TableCell>
             </TableRow>
-          );
-        })}
-      </TableBody>
-    </Table>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 };
 
