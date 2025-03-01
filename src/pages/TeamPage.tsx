@@ -1,3 +1,4 @@
+
 import { useParams, useSearchParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import {
@@ -128,6 +129,31 @@ const TeamPage = () => {
     );
   }
 
+  // Calculate total and regular season records
+  const regularSeasonWins = teamRecords?.regular_season_wins || 0;
+  const regularSeasonLosses = teamRecords?.regular_season_losses || 0;
+  const regularSeasonTies = teamRecords?.regular_season_ties || 0;
+  const regularSeasonPointsFor = teamRecords?.regular_season_points_for || 0;
+  const regularSeasonPointsAgainst = teamRecords?.regular_season_points_against || 0;
+  
+  const playoffWins = teamRecords?.playoff_wins || 0;
+  const playoffLosses = teamRecords?.playoff_losses || 0;
+  const playoffTies = teamRecords?.playoff_ties || 0;
+  const playoffPointsFor = teamRecords?.playoff_points_for || 0;
+  const playoffPointsAgainst = teamRecords?.playoff_points_against || 0;
+  
+  const totalWins = regularSeasonWins + playoffWins;
+  const totalLosses = regularSeasonLosses + playoffLosses;
+  const totalTies = regularSeasonTies + playoffTies;
+  const totalPointsFor = regularSeasonPointsFor + playoffPointsFor;
+  const totalPointsAgainst = regularSeasonPointsAgainst + playoffPointsAgainst;
+  
+  const totalGames = totalWins + totalLosses + totalTies;
+  const regularSeasonGames = regularSeasonWins + regularSeasonLosses + regularSeasonTies;
+  
+  const avgPoints = totalGames > 0 ? totalPointsFor / totalGames : 0;
+  const regularSeasonAvgPoints = regularSeasonGames > 0 ? regularSeasonPointsFor / regularSeasonGames : 0;
+
   return (
     <div className="min-h-screen">
       <header className="mb-8">
@@ -155,34 +181,49 @@ const TeamPage = () => {
         <Card className="p-6">
           <h3 className="text-sm font-medium text-muted-foreground mb-2">Record</h3>
           <p className="text-2xl font-bold">
-            {teamRecords ? 
-              `${teamRecords.regular_season_wins + teamRecords.playoff_wins}-${teamRecords.regular_season_losses + teamRecords.playoff_losses}` 
-              : '0-0'}
+            {totalWins}-{totalLosses}{totalTies > 0 ? `-${totalTies}` : ''}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Regular Season: {regularSeasonWins}-{regularSeasonLosses}{regularSeasonTies > 0 ? `-${regularSeasonTies}` : ''}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Playoffs: {playoffWins}-{playoffLosses}{playoffTies > 0 ? `-${playoffTies}` : ''}
           </p>
         </Card>
         <Card className="p-6">
           <h3 className="text-sm font-medium text-muted-foreground mb-2">Points For</h3>
           <p className="text-2xl font-bold">
-            {teamRecords ? 
-              (teamRecords.regular_season_points_for + teamRecords.playoff_points_for).toFixed(1) 
-              : '0.0'}
+            {totalPointsFor.toFixed(1)}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Regular Season: {regularSeasonPointsFor.toFixed(1)}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Playoffs: {playoffPointsFor.toFixed(1)}
           </p>
         </Card>
         <Card className="p-6">
           <h3 className="text-sm font-medium text-muted-foreground mb-2">Points Against</h3>
           <p className="text-2xl font-bold">
-            {teamRecords ? 
-              (teamRecords.regular_season_points_against + teamRecords.playoff_points_against).toFixed(1) 
-              : '0.0'}
+            {totalPointsAgainst.toFixed(1)}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Regular Season: {regularSeasonPointsAgainst.toFixed(1)}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Playoffs: {playoffPointsAgainst.toFixed(1)}
           </p>
         </Card>
         <Card className="p-6">
           <h3 className="text-sm font-medium text-muted-foreground mb-2">Average Points</h3>
           <p className="text-2xl font-bold">
-            {teamRecords && (teamRecords.regular_season_wins + teamRecords.regular_season_losses + teamRecords.playoff_wins + teamRecords.playoff_losses > 0)
-              ? ((teamRecords.regular_season_points_for + teamRecords.playoff_points_for) / 
-                 (teamRecords.regular_season_wins + teamRecords.regular_season_losses + teamRecords.playoff_wins + teamRecords.playoff_losses)).toFixed(1)
-              : '0.0'}
+            {avgPoints.toFixed(1)}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Regular Season: {regularSeasonAvgPoints.toFixed(1)}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Playoffs: {totalGames > regularSeasonGames ? (playoffPointsFor / (totalGames - regularSeasonGames)).toFixed(1) : '0.0'}
           </p>
         </Card>
       </div>

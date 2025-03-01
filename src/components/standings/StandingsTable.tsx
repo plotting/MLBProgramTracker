@@ -57,6 +57,7 @@ const StandingsTable = ({ standings, selectedSeason }: StandingsProps) => {
       </TableHeader>
       <TableBody>
         {standings?.map((team, index) => {
+          // Only use regular season stats for this view
           const totalGames = team.regular_season_wins + team.regular_season_losses + team.regular_season_ties;
           const avgPoints = totalGames > 0 
             ? (team.regular_season_points_for / totalGames).toFixed(1) 
