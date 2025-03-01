@@ -150,9 +150,11 @@ const TeamPage = () => {
   
   const totalGames = totalWins + totalLosses + totalTies;
   const regularSeasonGames = regularSeasonWins + regularSeasonLosses + regularSeasonTies;
+  const playoffGames = playoffWins + playoffLosses + playoffTies;
   
   const avgPoints = totalGames > 0 ? totalPointsFor / totalGames : 0;
   const regularSeasonAvgPoints = regularSeasonGames > 0 ? regularSeasonPointsFor / regularSeasonGames : 0;
+  const playoffAvgPoints = playoffGames > 0 ? playoffPointsFor / playoffGames : 0;
 
   return (
     <div className="min-h-screen">
@@ -223,7 +225,7 @@ const TeamPage = () => {
             Regular Season: {regularSeasonAvgPoints.toFixed(1)}
           </p>
           <p className="text-xs text-muted-foreground">
-            Playoffs: {totalGames > regularSeasonGames ? (playoffPointsFor / (totalGames - regularSeasonGames)).toFixed(1) : '0.0'}
+            Playoffs: {playoffAvgPoints.toFixed(1)}
           </p>
         </Card>
       </div>
