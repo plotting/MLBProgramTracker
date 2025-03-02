@@ -3,8 +3,22 @@ import React from "react";
 import { Card } from "../ui/card";
 import Matchup from "./Matchup";
 import WeekLabels from "./WeekLabels";
+import { MatchupScoresView } from "@/types/database";
 
-const FiveTeamPlayoffs = () => {
+interface FiveTeamPlayoffsProps {
+  matchups: MatchupScoresView[];
+}
+
+const FiveTeamPlayoffs = ({ matchups }: FiveTeamPlayoffsProps) => {
+  // Function to find a specific matchup
+  const findMatchup = (week: number, team1Id?: number, team2Id?: number) => {
+    return matchups.find(m => 
+      m.week_number === week && 
+      ((m.home_team_id === team1Id && m.away_team_id === team2Id) || 
+      (m.home_team_id === team2Id && m.away_team_id === team1Id))
+    );
+  };
+
   return (
     <div className="space-y-16">
       {/* Championship Bracket */}

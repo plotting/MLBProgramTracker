@@ -1,9 +1,24 @@
+
 import React from "react";
 import { Card } from "../ui/card";
 import Matchup from "./Matchup";
 import WeekLabels from "./WeekLabels";
+import { MatchupScoresView } from "@/types/database";
 
-const FourTeamPlayoffs = () => {
+interface FourTeamPlayoffsProps {
+  matchups: MatchupScoresView[];
+}
+
+const FourTeamPlayoffs = ({ matchups }: FourTeamPlayoffsProps) => {
+  // Function to find a specific matchup
+  const findMatchup = (week: number, team1Id?: number, team2Id?: number) => {
+    return matchups.find(m => 
+      m.week_number === week && 
+      ((m.home_team_id === team1Id && m.away_team_id === team2Id) || 
+      (m.home_team_id === team2Id && m.away_team_id === team1Id))
+    );
+  };
+
   return (
     <Card className="p-8">
       <h3 className="text-2xl font-bold mb-8">Playoff Bracket</h3>

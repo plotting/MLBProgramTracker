@@ -26,20 +26,35 @@ const StandingsTable = ({ seasonId }: StandingsTableProps) => {
     return <p className="text-center py-4">Loading standings...</p>;
   }
 
-  // Sort standings by wins (highest first), then points for (highest first)
+  // Sort standings by wins (highest first), then ties (highest first), then points for (highest first)
   const sortedStandings = standings ? [...standings].sort((a, b) => {
-    if (a.regular_season_wins !== b.regular_season_wins) {
-      return b.regular_season_wins - a.regular_season_wins;
+    // Calculate win percentage: (wins + 0.5*ties) / (wins + losses + ties)
+    const aTotal = a.regular_season_wins + a.regular_season_losses + a.regular_season_ties;
+    const bTotal = b.regular_season_wins + b.regular_season_losses + b.regular_season_ties;
+    
+    const aPercentage = aTotal === 0 ? 0 : (a.regular_season_wins + 0.5 * a.regular_season_ties) / aTotal;
+    const bPercentage = bTotal === 0 ? 0 : (b.regular_season_wins + 0.5 * b.regular_season_ties) / bTotal;
+    
+    if (aPercentage !== bPercentage) {
+      return bPercentage - aPercentage;
     }
+    // If win percentage is the same, sort by points for
     return b.regular_season_points_for - a.regular_season_points_for;
   }) : [];
 
-  // Medal emoji based on position
-  const getMedalEmoji = (position: number): string => {
+  // Custom emoji based on position
+  const getPlacementEmoji = (position: number): string => {
     switch (position) {
-      case 0: return "🥇";
-      case 1: return "🥈";
-      case 2: return "🥉";
+      case 0: return "🥇"; // 1st Place
+      case 1: return "🥈"; // 2nd Place
+      case 2: return "🥉"; // 3rd Place
+      case 3: return "🏆"; // 4th Place
+      case 4: return "🌟"; // 5th Place
+      case 5: return "🛡️"; // 6th Place
+      case 6: return "🚽"; // 7th Place
+      case 7: return "🤡"; // 8th Place
+      case 8: return "🤮"; // 9th Place
+      case 9: return "💩"; // 10th Place
       default: return `${position + 1}`;
     }
   };
@@ -55,13 +70,14 @@ const StandingsTable = ({ seasonId }: StandingsTableProps) => {
             <TableHead className="text-center">Playoffs</TableHead>
             <TableHead className="text-center">PF</TableHead>
             <TableHead className="text-center">PA</TableHead>
+            <TableHead className="text-center">Placement</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {sortedStandings.map((team, index) => (
             <TableRow key={team.team_id}>
               <TableCell className="font-medium">
-                {getMedalEmoji(index)}
+                {index + 1}
               </TableCell>
               <TableCell className="font-medium">
                 <Link 
@@ -81,6 +97,7 @@ const StandingsTable = ({ seasonId }: StandingsTableProps) => {
               </TableCell>
               <TableCell className="text-center">{team.regular_season_points_for.toFixed(1)}</TableCell>
               <TableCell className="text-center">{team.regular_season_points_against.toFixed(1)}</TableCell>
+              <TableCell className="text-center text-xl">{getPlacementEmoji(index)}</TableCell>
             </TableRow>
           ))}
         </TableBody>
