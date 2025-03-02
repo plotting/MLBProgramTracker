@@ -51,9 +51,31 @@ interface CareerRecordsSectionProps {
 }
 
 export const CareerRecordsSection = ({ careerStats }: CareerRecordsSectionProps) => {
-  // Sort stats by regular season percentage in descending order
-  const sortedStats = [...careerStats].sort(
-    (a, b) => b.regularSeason.percentage - a.regularSeason.percentage
+  // Calculate total career record percentages
+  const statsWithCareerPercentage = careerStats.map(stat => {
+    const totalWins = stat.regularSeason.wins + stat.playoffs.wins + stat.consolation.wins;
+    const totalLosses = stat.regularSeason.losses + stat.playoffs.losses + stat.consolation.losses;
+    const totalTies = stat.regularSeason.ties + stat.playoffs.ties + stat.consolation.ties;
+    const totalGames = totalWins + totalLosses + totalTies;
+    
+    const careerPercentage = totalGames > 0 
+      ? ((totalWins + (totalTies * 0.5)) / totalGames) * 100 
+      : 0;
+    
+    return {
+      ...stat,
+      careerRecord: {
+        wins: totalWins,
+        losses: totalLosses,
+        ties: totalTies,
+        percentage: careerPercentage
+      }
+    };
+  });
+  
+  // Sort stats by career percentage in descending order
+  const sortedStats = [...statsWithCareerPercentage].sort(
+    (a, b) => b.careerRecord.percentage - a.careerRecord.percentage
   );
   
   // Team placement emojis by final position
@@ -78,18 +100,27 @@ export const CareerRecordsSection = ({ careerStats }: CareerRecordsSectionProps)
           <TableHeader>
             <TableRow>
               <TableHead>Team</TableHead>
+              <TableHead>Career Record</TableHead>
               <TableHead>Regular Season</TableHead>
               <TableHead>Playoffs</TableHead>
               <TableHead>Consolation</TableHead>
               <TableHead>Vs All</TableHead>
               <TableHead>100+ Games</TableHead>
               <TableHead>High/Low</TableHead>
+              <TableHead>Finish</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {sortedStats.map((stat, index) => (
               <TableRow key={index}>
                 <TableCell className="font-medium whitespace-nowrap">{stat.team}</TableCell>
+                <TableCell>
+                  {`${stat.careerRecord.wins}-${stat.careerRecord.losses}-${stat.careerRecord.ties}`}
+                  <br />
+                  <span className="text-sm text-muted-foreground">
+                    {stat.careerRecord.percentage.toFixed(1)}%
+                  </span>
+                </TableCell>
                 <TableCell>
                   {`${stat.regularSeason.wins}-${stat.regularSeason.losses}-${stat.regularSeason.ties}`}
                   <br />
@@ -126,6 +157,9 @@ export const CareerRecordsSection = ({ careerStats }: CareerRecordsSectionProps)
                     vs High: {stat.scoring.vsHighest}<br />
                     vs Low: {stat.scoring.vsLowest}
                   </div>
+                </TableCell>
+                <TableCell className="whitespace-nowrap">
+                  {positionEmojis[index + 1]}
                 </TableCell>
               </TableRow>
             ))}
