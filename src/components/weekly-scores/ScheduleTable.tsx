@@ -58,7 +58,11 @@ const ScheduleTable = ({ matchupScores, selectedSeason }: ScheduleTableProps) =>
                 )}
               </TableCell>
               <TableCell>
-                {matchup.is_playoff ? 'Playoff' : 'Regular Season'}
+                {matchup.is_consolation 
+                  ? 'Consolation' 
+                  : matchup.is_playoff 
+                    ? 'Playoff' 
+                    : 'Regular Season'}
               </TableCell>
             </TableRow>
           ))}

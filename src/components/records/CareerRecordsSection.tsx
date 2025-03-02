@@ -77,20 +77,6 @@ export const CareerRecordsSection = ({ careerStats }: CareerRecordsSectionProps)
   const sortedStats = [...statsWithCareerPercentage].sort(
     (a, b) => b.careerRecord.percentage - a.careerRecord.percentage
   );
-  
-  // Team placement emojis by final position
-  const positionEmojis: Record<number, string> = {
-    1: "🥇 1st Place",
-    2: "🥈 2nd Place",
-    3: "🥉 3rd Place",
-    4: "🏆 4th Place",
-    5: "🌟 5th Place",
-    6: "🛡️ 6th Place",
-    7: "🚽 7th Place",
-    8: "🤡 8th Place",
-    9: "🤮 9th Place",
-    10: "💩 10th Place"
-  };
 
   return (
     <div className="space-y-6">
@@ -107,7 +93,6 @@ export const CareerRecordsSection = ({ careerStats }: CareerRecordsSectionProps)
               <TableHead>Vs All</TableHead>
               <TableHead>100+ Games</TableHead>
               <TableHead>High/Low</TableHead>
-              <TableHead>Finish</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -157,9 +142,6 @@ export const CareerRecordsSection = ({ careerStats }: CareerRecordsSectionProps)
                     vs High: {stat.scoring.vsHighest}<br />
                     vs Low: {stat.scoring.vsLowest}
                   </div>
-                </TableCell>
-                <TableCell className="whitespace-nowrap">
-                  {positionEmojis[index + 1]}
                 </TableCell>
               </TableRow>
             ))}

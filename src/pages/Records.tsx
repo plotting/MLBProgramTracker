@@ -1,3 +1,4 @@
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +17,10 @@ const Records = () => {
         .order('season_id')
         .order('week_number');
       if (error) throw error;
+      
+      // Debugging to check if is_consolation is properly set in the data
+      console.log("Sample matchups:", data?.slice(0, 5));
+      
       return data as MatchupScoresView[];
     },
   });
@@ -117,6 +122,12 @@ const Records = () => {
           { team: m.home_team_name!, score: m.home_score! },
           { team: m.away_team_name!, score: m.away_score! }
         ]);
+
+      // Log to debug consolation matches
+      if (match.is_consolation) {
+        console.log("Consolation match:", match.home_team_name, "vs", match.away_team_name, 
+                    "- Week:", match.week_number, "- Season:", match.season_id);
+      }
 
       processTeam(
         match.home_team_name!,
