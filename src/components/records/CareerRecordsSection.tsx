@@ -44,6 +44,12 @@ interface CareerStats {
     vsHighest: number;
     vsLowest: number;
   };
+  careerRecord?: {
+    wins: number;
+    losses: number;
+    ties: number;
+    percentage: number;
+  };
 }
 
 interface CareerRecordsSectionProps {

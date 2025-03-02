@@ -60,6 +60,7 @@ export type Database = {
           created_at: string | null
           home_team_id: number | null
           id: number
+          is_consolation: boolean | null
           is_playoff: boolean | null
           scheduled_time: string | null
           season_id: number | null
@@ -70,6 +71,7 @@ export type Database = {
           created_at?: string | null
           home_team_id?: number | null
           id?: number
+          is_consolation?: boolean | null
           is_playoff?: boolean | null
           scheduled_time?: string | null
           season_id?: number | null
@@ -80,6 +82,7 @@ export type Database = {
           created_at?: string | null
           home_team_id?: number | null
           id?: number
+          is_consolation?: boolean | null
           is_playoff?: boolean | null
           scheduled_time?: string | null
           season_id?: number | null

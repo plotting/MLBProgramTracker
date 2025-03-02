@@ -18,8 +18,8 @@ const Records = () => {
         .order('week_number');
       if (error) throw error;
       
-      // Debugging to check if is_consolation is properly set in the data
-      console.log("Sample matchups:", data?.slice(0, 5));
+      // Log a sample of matchups to confirm is_consolation is working
+      console.log("Sample matchups with is_consolation:", data?.slice(0, 5));
       
       return data as MatchupScoresView[];
     },
@@ -77,6 +77,7 @@ const Records = () => {
 
         const stat = stats.get(team)!;
         
+        // Determine which record to update based on match type
         let target;
         if (isConsolation) {
           target = stat.consolation;
@@ -86,10 +87,12 @@ const Records = () => {
           target = stat.regularSeason;
         }
         
+        // Update wins/losses/ties
         if (score > otherScore) target.wins++;
         else if (score < otherScore) target.losses++;
         else target.ties++;
 
+        // Update scoring stats
         if (score >= 100) stat.scoring.hundredPlus++;
         stat.scoring.highestScore = Math.max(stat.scoring.highestScore, score);
         stat.scoring.lowestScore = Math.min(stat.scoring.lowestScore, score);
@@ -102,6 +105,7 @@ const Records = () => {
         if (otherScore === weekHigh) stat.scoring.vsHighest++;
         if (otherScore === weekLow) stat.scoring.vsLowest++;
 
+        // Calculate hypothetical record
         weekScores.forEach(ws => {
           if (ws.team !== team) {
             if (score > ws.score) stat.hypothetical.wins++;
@@ -111,6 +115,7 @@ const Records = () => {
         });
       };
 
+      // Get all scores for the week
       const weekScores = matchups
         .filter(m => 
           m.season_id === match.season_id && 
@@ -123,12 +128,7 @@ const Records = () => {
           { team: m.away_team_name!, score: m.away_score! }
         ]);
 
-      // Log to debug consolation matches
-      if (match.is_consolation) {
-        console.log("Consolation match:", match.home_team_name, "vs", match.away_team_name, 
-                    "- Week:", match.week_number, "- Season:", match.season_id);
-      }
-
+      // Process home team
       processTeam(
         match.home_team_name!,
         match.home_score,
@@ -137,6 +137,8 @@ const Records = () => {
         match.is_consolation || false,
         weekScores
       );
+      
+      // Process away team
       processTeam(
         match.away_team_name!,
         match.away_score,
