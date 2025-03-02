@@ -48,6 +48,7 @@ const Records = () => {
         score: number,
         otherScore: number,
         isPlayoff: boolean,
+        isConsolation: boolean,
         weekScores: { team: string; score: number; }[]
       ) => {
         if (!stats.has(team)) {
@@ -70,8 +71,16 @@ const Records = () => {
         }
 
         const stat = stats.get(team)!;
-
-        const target = isPlayoff ? stat.playoffs : stat.regularSeason;
+        
+        let target;
+        if (isConsolation) {
+          target = stat.consolation;
+        } else if (isPlayoff) {
+          target = stat.playoffs;
+        } else {
+          target = stat.regularSeason;
+        }
+        
         if (score > otherScore) target.wins++;
         else if (score < otherScore) target.losses++;
         else target.ties++;
@@ -114,6 +123,7 @@ const Records = () => {
         match.home_score,
         match.away_score,
         match.is_playoff || false,
+        match.is_consolation || false,
         weekScores
       );
       processTeam(
@@ -121,6 +131,7 @@ const Records = () => {
         match.away_score,
         match.home_score,
         match.is_playoff || false,
+        match.is_consolation || false,
         weekScores
       );
     });

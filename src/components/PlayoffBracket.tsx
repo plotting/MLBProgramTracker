@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 const PlayoffBracket = ({ season }: { season: string }) => {
   const seasonNum = Number(season);
   
-  // Fetch playoff matchups data based on season
+  // Fetch playoff and consolation matchups data based on season
   const { data: matchups, isLoading } = useQuery({
     queryKey: ['playoff-matchups', seasonNum],
     queryFn: async () => {
@@ -18,7 +18,7 @@ const PlayoffBracket = ({ season }: { season: string }) => {
         .from('matchup_scores_view')
         .select('*')
         .eq('season_id', seasonNum)
-        .eq('is_playoff', true)
+        .or('is_playoff.eq.true,is_consolation.eq.true')
         .order('week_number');
         
       if (error) throw error;

@@ -51,9 +51,28 @@ interface CareerRecordsSectionProps {
 }
 
 export const CareerRecordsSection = ({ careerStats }: CareerRecordsSectionProps) => {
+  // Sort stats by regular season percentage in descending order
+  const sortedStats = [...careerStats].sort(
+    (a, b) => b.regularSeason.percentage - a.regularSeason.percentage
+  );
+  
+  // Team placement emojis by final position
+  const positionEmojis: Record<number, string> = {
+    1: "🥇 1st Place",
+    2: "🥈 2nd Place",
+    3: "🥉 3rd Place",
+    4: "🏆 4th Place",
+    5: "🌟 5th Place",
+    6: "🛡️ 6th Place",
+    7: "🚽 7th Place",
+    8: "🤡 8th Place",
+    9: "🤮 9th Place",
+    10: "💩 10th Place"
+  };
+
   return (
     <div className="space-y-6">
-      <Card className="p-6">
+      <Card className="p-6 overflow-x-auto">
         <h2 className="text-xl font-semibold mb-4">Career Records</h2>
         <Table>
           <TableHeader>
@@ -68,9 +87,9 @@ export const CareerRecordsSection = ({ careerStats }: CareerRecordsSectionProps)
             </TableRow>
           </TableHeader>
           <TableBody>
-            {careerStats.map((stat, index) => (
+            {sortedStats.map((stat, index) => (
               <TableRow key={index}>
-                <TableCell className="font-medium">{stat.team}</TableCell>
+                <TableCell className="font-medium whitespace-nowrap">{stat.team}</TableCell>
                 <TableCell>
                   {`${stat.regularSeason.wins}-${stat.regularSeason.losses}-${stat.regularSeason.ties}`}
                   <br />
@@ -115,4 +134,4 @@ export const CareerRecordsSection = ({ careerStats }: CareerRecordsSectionProps)
       </Card>
     </div>
   );
-};
+});
