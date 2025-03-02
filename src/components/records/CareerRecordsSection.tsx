@@ -134,4 +134,4 @@ export const CareerRecordsSection = ({ careerStats }: CareerRecordsSectionProps)
       </Card>
     </div>
   );
-});
+};
