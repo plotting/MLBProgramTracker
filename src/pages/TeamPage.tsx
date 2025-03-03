@@ -33,6 +33,7 @@ const TeamPage = () => {
     setSearchParams({ season: selectedSeason });
   }, [selectedSeason, setSearchParams]);
 
+  // Fetch team data
   const { data: team, isLoading, error } = useQuery({
     queryKey: ['team', id],
     queryFn: async () => {
@@ -50,7 +51,8 @@ const TeamPage = () => {
     enabled: !!id,
   });
 
-  const { data: matchups } = useQuery({
+  // Fetch matchups with better error handling
+  const { data: matchups, isLoading: matchupsLoading } = useQuery({
     queryKey: ['team-matchups', id, selectedSeason],
     queryFn: async () => {
       if (!id) throw new Error('No team ID provided');
@@ -62,12 +64,14 @@ const TeamPage = () => {
         .order('week_number');
 
       if (error) throw error;
-      return data;
+      return data || [];
     },
-    enabled: !!id,
+    enabled: !!id && !!team,
+    retry: 1,
   });
 
-  const { data: teamRecords } = useQuery({
+  // Fetch team records with better error handling
+  const { data: teamRecords, isLoading: recordsLoading } = useQuery({
     queryKey: ['team-records', id, selectedSeason],
     queryFn: async () => {
       if (!id) throw new Error('No team ID provided');
@@ -81,10 +85,12 @@ const TeamPage = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!id,
+    enabled: !!id && !!team,
+    retry: 1,
   });
 
-  const { data: trades } = useQuery({
+  // Fetch trades with better error handling
+  const { data: trades, isLoading: tradesLoading } = useQuery({
     queryKey: ['team-trades', id, selectedSeason],
     queryFn: async () => {
       if (!id) throw new Error('No team ID provided');
@@ -108,12 +114,16 @@ const TeamPage = () => {
         .order('trade_date', { ascending: true });
 
       if (error) throw error;
-      return data;
+      return data || [];
     },
-    enabled: !!id,
+    enabled: !!id && !!team,
+    retry: 1,
   });
 
-  if (isLoading) {
+  // Show loading state when any query is loading
+  const isPageLoading = isLoading || matchupsLoading || recordsLoading || tradesLoading;
+  
+  if (isPageLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-lg text-muted-foreground">Loading team data...</p>
@@ -124,12 +134,12 @@ const TeamPage = () => {
   if (error || !team) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-lg text-muted-foreground">Team not found</p>
+        <p className="text-lg text-muted-foreground">Team not found or error loading data</p>
       </div>
     );
   }
 
-  // Calculate records based on teamRecords data
+  // Calculate records based on teamRecords data (with null checks)
   const regularSeasonWins = teamRecords?.regular_season_wins || 0;
   const regularSeasonLosses = teamRecords?.regular_season_losses || 0;
   const regularSeasonTies = teamRecords?.regular_season_ties || 0;
@@ -288,69 +298,77 @@ const TeamPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {matchups?.map((matchup) => {
-                const isHomeTeam = matchup.home_team_id === parseInt(id);
-                const opponentId = isHomeTeam ? matchup.away_team_id : matchup.home_team_id;
-                const opponentName = isHomeTeam ? matchup.away_team_name : matchup.home_team_name;
-                const teamScore = isHomeTeam ? matchup.home_score : matchup.away_score;
-                const opponentScore = isHomeTeam ? matchup.away_score : matchup.home_score;
-                const result = teamScore && opponentScore 
-                  ? teamScore > opponentScore 
-                    ? 'W' 
-                    : teamScore < opponentScore 
-                      ? 'L'
-                      : 'T'
-                  : null;
+              {matchups && matchups.length > 0 ? (
+                matchups.map((matchup) => {
+                  const isHomeTeam = matchup.home_team_id === parseInt(id);
+                  const opponentId = isHomeTeam ? matchup.away_team_id : matchup.home_team_id;
+                  const opponentName = isHomeTeam ? matchup.away_team_name : matchup.home_team_name;
+                  const teamScore = isHomeTeam ? matchup.home_score : matchup.away_score;
+                  const opponentScore = isHomeTeam ? matchup.away_score : matchup.home_score;
+                  const result = teamScore !== null && opponentScore !== null
+                    ? teamScore > opponentScore 
+                      ? 'W' 
+                      : teamScore < opponentScore 
+                        ? 'L'
+                        : 'T'
+                    : null;
 
-                return (
-                  <TableRow key={matchup.week_number}>
-                    <TableCell>Week {matchup.week_number}</TableCell>
-                    <TableCell>
-                      <Link 
-                        to={`/team/${opponentId}?season=${selectedSeason}`}
-                        className="text-primary hover:underline"
-                      >
-                        {opponentName}
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      {teamScore !== null && opponentScore !== null ? (
-                        <span className={
-                          result === 'W' 
-                            ? 'text-green-500' 
-                            : result === 'L' 
-                              ? 'text-red-500'
-                              : 'text-yellow-500'
-                        }>
-                          {teamScore.toFixed(2)} - {opponentScore.toFixed(2)}
-                        </span>
-                      ) : (
-                        'TBD'
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {teamScore !== null && opponentScore !== null && (
-                        <span className={`font-bold ${
-                          result === 'W' 
-                            ? 'text-green-500' 
-                            : result === 'L'
-                              ? 'text-red-500'
-                              : 'text-yellow-500'
-                        }`}>
-                          {result}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {matchup.is_playoff ? (
-                        matchup.is_playoff_bracket ? 'Playoff' : 'Consolation'
-                      ) : (
-                        'Regular Season'
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+                  return (
+                    <TableRow key={matchup.week_number}>
+                      <TableCell>Week {matchup.week_number}</TableCell>
+                      <TableCell>
+                        <Link 
+                          to={`/team/${opponentId}?season=${selectedSeason}`}
+                          className="text-primary hover:underline"
+                        >
+                          {opponentName}
+                        </Link>
+                      </TableCell>
+                      <TableCell>
+                        {teamScore !== null && opponentScore !== null ? (
+                          <span className={
+                            result === 'W' 
+                              ? 'text-green-500' 
+                              : result === 'L' 
+                                ? 'text-red-500'
+                                : 'text-yellow-500'
+                          }>
+                            {teamScore.toFixed(2)} - {opponentScore.toFixed(2)}
+                          </span>
+                        ) : (
+                          'TBD'
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {teamScore !== null && opponentScore !== null && (
+                          <span className={`font-bold ${
+                            result === 'W' 
+                              ? 'text-green-500' 
+                              : result === 'L'
+                                ? 'text-red-500'
+                                : 'text-yellow-500'
+                          }`}>
+                            {result}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {matchup.is_playoff ? (
+                          matchup.is_playoff_bracket ? 'Playoff' : 'Consolation'
+                        ) : (
+                          'Regular Season'
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-4">
+                    No matchups found for this season
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </Card>
@@ -382,23 +400,31 @@ const TeamPage = () => {
                     <div className="grid md:grid-cols-2 gap-4">
                       <div>
                         <p className="text-sm font-medium mb-1">Received:</p>
-                        <ul className="list-disc list-inside text-sm space-y-1">
-                          {receivedItems.map((item, index) => (
-                            <li key={index} className="text-muted-foreground">
-                              {item.item_description}
-                            </li>
-                          ))}
-                        </ul>
+                        {receivedItems.length > 0 ? (
+                          <ul className="list-disc list-inside text-sm space-y-1">
+                            {receivedItems.map((item, index) => (
+                              <li key={index} className="text-muted-foreground">
+                                {item.item_description}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No items received</p>
+                        )}
                       </div>
                       <div>
                         <p className="text-sm font-medium mb-1">Sent:</p>
-                        <ul className="list-disc list-inside text-sm space-y-1">
-                          {sentItems.map((item, index) => (
-                            <li key={index} className="text-muted-foreground">
-                              {item.item_description}
-                            </li>
-                          ))}
-                        </ul>
+                        {sentItems.length > 0 ? (
+                          <ul className="list-disc list-inside text-sm space-y-1">
+                            {sentItems.map((item, index) => (
+                              <li key={index} className="text-muted-foreground">
+                                {item.item_description}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No items sent</p>
+                        )}
                       </div>
                     </div>
                   </div>
