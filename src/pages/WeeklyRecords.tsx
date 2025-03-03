@@ -52,13 +52,19 @@ const WeeklyRecords = () => {
         ).filter(score => score !== null) as number[];
 
         const wins = teamMatchups.filter(m => 
-          (m.home_team_id === team.id && m.home_score > m.away_score) ||
-          (m.away_team_id === team.id && m.away_score > m.home_score)
+          (m.home_team_id === team.id && m.home_score !== null && m.away_score !== null && m.home_score > m.away_score) ||
+          (m.away_team_id === team.id && m.away_score !== null && m.home_score !== null && m.away_score > m.home_score)
         ).length;
 
         const losses = teamMatchups.filter(m => 
-          (m.home_team_id === team.id && m.home_score < m.away_score) ||
-          (m.away_team_id === team.id && m.away_score < m.home_score)
+          (m.home_team_id === team.id && m.home_score !== null && m.away_score !== null && m.home_score < m.away_score) ||
+          (m.away_team_id === team.id && m.away_score !== null && m.home_score !== null && m.away_score < m.home_score)
+        ).length;
+        
+        // Add proper tie detection
+        const ties = teamMatchups.filter(m => 
+          (m.home_team_id === team.id && m.home_score !== null && m.away_score !== null && m.home_score === m.away_score) ||
+          (m.away_team_id === team.id && m.away_score !== null && m.home_score !== null && m.away_score === m.home_score)
         ).length;
 
         const avgPoints = scores.length > 0 
@@ -69,7 +75,7 @@ const WeeklyRecords = () => {
           team: team.name,
           wins,
           losses,
-          ties: 0,
+          ties,
           avgPoints,
           bestScore: Math.max(...(scores.length ? scores : [0])),
           worstScore: Math.min(...(scores.length ? scores : [0])),

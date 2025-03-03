@@ -67,21 +67,31 @@ const WeeklyScores = () => {
           ) || [];
 
           const wins = relevantMatchups.filter(m => 
-            (m.home_team_id === team.id && m.home_score > m.away_score) ||
-            (m.away_team_id === team.id && m.away_score > m.home_score)
+            (m.home_team_id === team.id && m.home_score !== null && m.away_score !== null && m.home_score > m.away_score) ||
+            (m.away_team_id === team.id && m.away_score !== null && m.home_score !== null && m.away_score > m.home_score)
           ).length;
 
           const losses = relevantMatchups.filter(m => 
-            (m.home_team_id === team.id && m.home_score < m.away_score) ||
-            (m.away_team_id === team.id && m.away_score < m.home_score)
+            (m.home_team_id === team.id && m.home_score !== null && m.away_score !== null && m.home_score < m.away_score) ||
+            (m.away_team_id === team.id && m.away_score !== null && m.home_score !== null && m.away_score < m.home_score)
+          ).length;
+          
+          // Add proper tie detection
+          const ties = relevantMatchups.filter(m => 
+            (m.home_team_id === team.id && m.home_score !== null && m.away_score !== null && m.home_score === m.away_score) ||
+            (m.away_team_id === team.id && m.away_score !== null && m.home_score !== null && m.away_score === m.home_score)
           ).length;
 
-          return `${wins}-${losses}`;
+          const tieDisplay = ties > 0 ? `-${ties}` : '';
+          return `${wins}-${losses}${tieDisplay}`;
         }
 
         const totalWins = teamRecord.regular_season_wins + teamRecord.playoff_wins;
         const totalLosses = teamRecord.regular_season_losses + teamRecord.playoff_losses;
-        return `${totalWins}-${totalLosses}`;
+        const totalTies = teamRecord.regular_season_ties + teamRecord.playoff_ties;
+        const tieDisplay = totalTies > 0 ? `-${totalTies}` : '';
+        
+        return `${totalWins}-${totalLosses}${tieDisplay}`;
       }),
       scores: Array.from({ length: weekCount }, (_, weekIndex) => {
         const weekNumber = weekIndex + 1;

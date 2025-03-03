@@ -144,6 +144,14 @@ const HeadToHead = () => {
     };
   });
 
+  // Fixed win percentage calculation to properly account for ties
+  const calculateWinPercentage = (record: { wins: number, losses: number, ties: number }) => {
+    const totalGames = record.wins + record.losses + record.ties;
+    if (totalGames === 0) return 0;
+    // Correct formula: (wins + ties*0.5) / totalGames
+    return ((record.wins + record.ties * 0.5) / totalGames) * 100;
+  };
+
   if (teamsLoading || (selectedTeam && matchupsLoading)) {
     return <div className="flex items-center justify-center min-h-screen">
       <div className="text-lg text-muted-foreground">Loading head to head records...</div>
@@ -204,7 +212,7 @@ const HeadToHead = () => {
                       </TableCell>
                       <TableCell>{`${record.wins}-${record.losses}-${record.ties}`}</TableCell>
                       <TableCell>
-                        {((record.wins / (record.wins + record.losses + record.ties)) * 100).toFixed(1)}%
+                        {calculateWinPercentage(record).toFixed(1)}%
                       </TableCell>
                       <TableCell>{(record.pointsFor / record.gamesPlayed).toFixed(1)}</TableCell>
                       <TableCell>{(record.pointsAgainst / record.gamesPlayed).toFixed(1)}</TableCell>
@@ -238,7 +246,7 @@ const HeadToHead = () => {
                       </TableCell>
                       <TableCell>{`${record.wins}-${record.losses}-${record.ties}`}</TableCell>
                       <TableCell>
-                        {((record.wins / (record.wins + record.losses + record.ties)) * 100).toFixed(1)}%
+                        {calculateWinPercentage(record).toFixed(1)}%
                       </TableCell>
                       <TableCell>{(record.pointsFor / record.gamesPlayed).toFixed(1)}</TableCell>
                       <TableCell>{(record.pointsAgainst / record.gamesPlayed).toFixed(1)}</TableCell>
@@ -272,7 +280,7 @@ const HeadToHead = () => {
                       </TableCell>
                       <TableCell>{`${record.wins}-${record.losses}-${record.ties}`}</TableCell>
                       <TableCell>
-                        {((record.wins / (record.wins + record.losses + record.ties)) * 100).toFixed(1)}%
+                        {calculateWinPercentage(record).toFixed(1)}%
                       </TableCell>
                       <TableCell>{(record.pointsFor / record.gamesPlayed).toFixed(1)}</TableCell>
                       <TableCell>{(record.pointsAgainst / record.gamesPlayed).toFixed(1)}</TableCell>

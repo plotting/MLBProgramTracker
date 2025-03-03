@@ -42,20 +42,20 @@ const StandingsTable = ({ seasonId }: StandingsTableProps) => {
     return b.regular_season_points_for - a.regular_season_points_for;
   }) : [];
 
-  // Custom emoji based on position
-  const getPlacementEmoji = (position: number): string => {
+  // Custom final placement text based on position
+  const getFinalPlacement = (position: number): string => {
     switch (position) {
-      case 0: return "🥇"; // 1st Place
-      case 1: return "🥈"; // 2nd Place
-      case 2: return "🥉"; // 3rd Place
-      case 3: return "🏆"; // 4th Place
-      case 4: return "🌟"; // 5th Place
-      case 5: return "🛡️"; // 6th Place
-      case 6: return "🚽"; // 7th Place
-      case 7: return "🤡"; // 8th Place
-      case 8: return "🤮"; // 9th Place
-      case 9: return "💩"; // 10th Place
-      default: return `${position + 1}`;
+      case 0: return "Champion";
+      case 1: return "Runner-up";
+      case 2: return "3rd Place";
+      case 3: return "4th Place";
+      case 4: return "5th Place";
+      case 5: return "6th Place";
+      case 6: return "7th Place";
+      case 7: return "8th Place";
+      case 8: return "9th Place";
+      case 9: return "10th Place";
+      default: return `${position + 1}th Place`;
     }
   };
 
@@ -70,7 +70,7 @@ const StandingsTable = ({ seasonId }: StandingsTableProps) => {
             <TableHead className="text-center">Playoffs</TableHead>
             <TableHead className="text-center">PF</TableHead>
             <TableHead className="text-center">PA</TableHead>
-            <TableHead className="text-center">Placement</TableHead>
+            <TableHead className="text-center">Final Standing</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -97,7 +97,7 @@ const StandingsTable = ({ seasonId }: StandingsTableProps) => {
               </TableCell>
               <TableCell className="text-center">{team.regular_season_points_for.toFixed(1)}</TableCell>
               <TableCell className="text-center">{team.regular_season_points_against.toFixed(1)}</TableCell>
-              <TableCell className="text-center text-xl">{getPlacementEmoji(index)}</TableCell>
+              <TableCell className="text-center font-medium">{getFinalPlacement(index)}</TableCell>
             </TableRow>
           ))}
         </TableBody>
