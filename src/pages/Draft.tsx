@@ -31,32 +31,16 @@ const Draft = () => {
         .from('draft_picks')
         .select(`
           *,
-          team:teams(*)
+          team:teams(id, name)
         `)
         .eq('season_id', parseInt(selectedSeason))
         .order('round')
         .order('pick_number');
 
       if (error) throw error;
-      console.log('Draft picks:', data);
       return data;
     },
   });
-
-  // Group picks by round and organize by team
-  const organizedPicks = draftPicks?.reduce((acc, pick) => {
-    if (!acc[pick.round]) {
-      acc[pick.round] = {};
-    }
-    acc[pick.round][pick.team?.name || 'Unknown'] = {
-      player: pick.player_name,
-      pick: `${pick.round}.${String(pick.pick_number).padStart(2, '0')}`
-    };
-    return acc;
-  }, {} as Record<number, Record<string, { player: string; pick: string }>>);
-
-  // Get unique team names
-  const teams = Array.from(new Set(draftPicks?.map(pick => pick.team?.name || 'Unknown')));
 
   return (
     <div className="min-h-screen">
@@ -91,30 +75,27 @@ const Draft = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Round</TableHead>
-                {teams.map((team) => (
-                  <TableHead key={team}>
-                    <Link 
-                      to={`/team/${draftPicks.find(p => p.team?.name === team)?.team_id}?season=${selectedSeason}`}
-                      className="text-primary hover:underline"
-                    >
-                      {team}
-                    </Link>
-                  </TableHead>
-                ))}
+                <TableHead>Pick #</TableHead>
+                <TableHead>Team</TableHead>
+                <TableHead>Player</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {Object.entries(organizedPicks || {}).map(([round, roundPicks]) => (
-                <TableRow key={round}>
-                  <TableCell className="font-medium">Round {round}</TableCell>
-                  {teams.map((team) => (
-                    <TableCell key={team} className="text-center">
-                      <div>{roundPicks[team]?.player || '-'}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {roundPicks[team]?.pick || '-'}
-                      </div>
-                    </TableCell>
-                  ))}
+              {draftPicks.map((pick) => (
+                <TableRow key={`${pick.round}-${pick.pick_number}`}>
+                  <TableCell>{pick.round}</TableCell>
+                  <TableCell>{pick.pick_number}</TableCell>
+                  <TableCell>
+                    {pick.team && (
+                      <Link 
+                        to={`/team/${pick.team.id}?season=${selectedSeason}`}
+                        className="text-primary hover:underline"
+                      >
+                        {pick.team.name}
+                      </Link>
+                    )}
+                  </TableCell>
+                  <TableCell>{pick.player_name}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
