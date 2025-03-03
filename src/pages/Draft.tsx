@@ -42,6 +42,21 @@ const Draft = () => {
     },
   });
 
+  // For Season 1, organize picks by team (old format)
+  const organizedPicks = selectedSeason === "1" && draftPicks ? draftPicks.reduce((acc, pick) => {
+    if (!acc[pick.round]) {
+      acc[pick.round] = {};
+    }
+    acc[pick.round][pick.team?.name || 'Unknown'] = {
+      player: pick.player_name,
+      pick: `${pick.round}.${String(pick.pick_number).padStart(2, '0')}`
+    };
+    return acc;
+  }, {} as Record<number, Record<string, { player: string; pick: string }>>) : null;
+
+  // Get unique team names for Season 1
+  const teams = selectedSeason === "1" ? Array.from(new Set(draftPicks?.map(pick => pick.team?.name || 'Unknown'))) : [];
+
   return (
     <div className="min-h-screen">
       <header className="mb-8">
@@ -71,35 +86,72 @@ const Draft = () => {
         {isLoading ? (
           <div className="text-center py-4">Loading draft picks...</div>
         ) : draftPicks && draftPicks.length > 0 ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Round</TableHead>
-                <TableHead>Pick #</TableHead>
-                <TableHead>Team</TableHead>
-                <TableHead>Player</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {draftPicks.map((pick) => (
-                <TableRow key={`${pick.round}-${pick.pick_number}`}>
-                  <TableCell>{pick.round}</TableCell>
-                  <TableCell>{pick.pick_number}</TableCell>
-                  <TableCell>
-                    {pick.team && (
+          selectedSeason === "1" ? (
+            // Season 1 format - organize by team columns
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Round</TableHead>
+                  {teams.map((team) => (
+                    <TableHead key={team}>
                       <Link 
-                        to={`/team/${pick.team.id}?season=${selectedSeason}`}
+                        to={`/team/${draftPicks.find(p => p.team?.name === team)?.team?.id}?season=${selectedSeason}`}
                         className="text-primary hover:underline"
                       >
-                        {pick.team.name}
+                        {team}
                       </Link>
-                    )}
-                  </TableCell>
-                  <TableCell>{pick.player_name}</TableCell>
+                    </TableHead>
+                  ))}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {Object.entries(organizedPicks || {}).map(([round, roundPicks]) => (
+                  <TableRow key={round}>
+                    <TableCell className="font-medium">Round {round}</TableCell>
+                    {teams.map((team) => (
+                      <TableCell key={team} className="text-center">
+                        <div>{roundPicks[team]?.player || '-'}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {roundPicks[team]?.pick || '-'}
+                        </div>
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            // Season 2+ format - show in rows with Round, Pick #, Team, Player
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Round</TableHead>
+                  <TableHead>Pick #</TableHead>
+                  <TableHead>Team</TableHead>
+                  <TableHead>Player</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {draftPicks.map((pick) => (
+                  <TableRow key={`${pick.round}-${pick.pick_number}`}>
+                    <TableCell>{pick.round}</TableCell>
+                    <TableCell>{pick.pick_number}</TableCell>
+                    <TableCell>
+                      {pick.team && (
+                        <Link 
+                          to={`/team/${pick.team.id}?season=${selectedSeason}`}
+                          className="text-primary hover:underline"
+                        >
+                          {pick.team.name}
+                        </Link>
+                      )}
+                    </TableCell>
+                    <TableCell>{pick.player_name}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )
         ) : (
           <div className="text-center py-4 text-muted-foreground">
             No draft picks found for this season
