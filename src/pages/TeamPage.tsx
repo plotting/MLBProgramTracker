@@ -1,4 +1,3 @@
-
 import { useParams, useSearchParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import {
@@ -23,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
 import type { MatchupScoresView, TeamRecordsView } from "@/types/database";
+import TeamDraftHistory from "@/components/TeamDraftHistory";
 
 const TeamPage = () => {
   const { id } = useParams();
@@ -33,7 +33,6 @@ const TeamPage = () => {
     setSearchParams({ season: selectedSeason });
   }, [selectedSeason, setSearchParams]);
 
-  // Fetch team data
   const { data: team, isLoading, error } = useQuery({
     queryKey: ['team', id],
     queryFn: async () => {
@@ -51,7 +50,6 @@ const TeamPage = () => {
     enabled: !!id,
   });
 
-  // Fetch matchups with better error handling
   const { data: matchups, isLoading: matchupsLoading } = useQuery({
     queryKey: ['team-matchups', id, selectedSeason],
     queryFn: async () => {
@@ -70,7 +68,6 @@ const TeamPage = () => {
     retry: 1,
   });
 
-  // Fetch team records with better error handling
   const { data: teamRecords, isLoading: recordsLoading } = useQuery({
     queryKey: ['team-records', id, selectedSeason],
     queryFn: async () => {
@@ -89,7 +86,6 @@ const TeamPage = () => {
     retry: 1,
   });
 
-  // Fetch trades with better error handling
   const { data: trades, isLoading: tradesLoading } = useQuery({
     queryKey: ['team-trades', id, selectedSeason],
     queryFn: async () => {
@@ -120,7 +116,6 @@ const TeamPage = () => {
     retry: 1,
   });
 
-  // Show loading state when any query is loading
   const isPageLoading = isLoading || matchupsLoading || recordsLoading || tradesLoading;
   
   if (isPageLoading) {
@@ -139,7 +134,6 @@ const TeamPage = () => {
     );
   }
 
-  // Calculate records based on teamRecords data (with null checks)
   const regularSeasonWins = teamRecords?.regular_season_wins || 0;
   const regularSeasonLosses = teamRecords?.regular_season_losses || 0;
   const regularSeasonTies = teamRecords?.regular_season_ties || 0;
@@ -372,6 +366,10 @@ const TeamPage = () => {
             </TableBody>
           </Table>
         </Card>
+
+        {id && (
+          <TeamDraftHistory teamId={parseInt(id)} />
+        )}
 
         <Card className="p-6">
           <h2 className="text-xl font-bold mb-4">Trades History</h2>
