@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
 
 interface StandingsTableProps {
   seasonId: number;
@@ -80,12 +81,17 @@ const StandingsTable = ({ seasonId }: StandingsTableProps) => {
                 {index + 1}
               </TableCell>
               <TableCell className="font-medium">
-                <Link 
-                  to={`/team/${team.team_id}?season=${seasonId}`} 
-                  className="text-primary hover:underline"
-                >
-                  {team.team_name}
-                </Link>
+                <div className="flex items-center gap-2">
+                  <Link 
+                    to={`/team/${team.team_id}?season=${seasonId}`} 
+                    className="text-primary hover:underline"
+                  >
+                    {team.team_name}
+                  </Link>
+                  {index === 0 && (
+                    <Badge className="bg-yellow-500 hover:bg-yellow-600">Champion</Badge>
+                  )}
+                </div>
               </TableCell>
               <TableCell className="text-center">
                 {team.regular_season_wins}-{team.regular_season_losses}

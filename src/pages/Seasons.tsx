@@ -4,7 +4,7 @@ import { useState } from "react";
 import PlayoffBracket from "@/components/PlayoffBracket";
 import StandingsTable from "@/components/standings/StandingsTable";
 import SeasonHeader from "@/components/seasons/SeasonHeader";
-import DraftPicksTable from "@/components/seasons/DraftPicksTable";
+import ScheduleSwapTable from "@/components/schedule/ScheduleSwapTable";
 
 const Seasons = () => {
   const [selectedSeason, setSelectedSeason] = useState("1");
@@ -24,10 +24,12 @@ const Seasons = () => {
         </div>
       </Card>
 
-      {/* Show draft picks table for season 2 and beyond */}
-      {seasonNumber >= 2 && (
-        <DraftPicksTable seasonId={seasonNumber} />
-      )}
+      <Card className="mb-8">
+        <div className="p-6">
+          <h2 className="text-2xl font-bold mb-4">Schedule Analysis</h2>
+          <ScheduleSwapTable seasonId={seasonNumber} />
+        </div>
+      </Card>
 
       <PlayoffBracket season={selectedSeason} />
     </div>
