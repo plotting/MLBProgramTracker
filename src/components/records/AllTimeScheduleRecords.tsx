@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import {
   Table,
@@ -25,12 +26,15 @@ export const AllTimeScheduleRecords = ({ matchups }: AllTimeScheduleRecordsProps
   const calculateScheduleRecords = () => {
     if (!matchups) return { hardest: [], easiest: [] };
 
+    // Filter out playoff games to only include regular season
+    const regularSeasonMatchups = matchups.filter(m => !m.is_playoff && !m.is_consolation);
+    
     const scheduleRecords = new Map<string, ScheduleRecord>();
 
     // Process each season's schedules
-    const seasons = new Set(matchups.map(m => m.season_id));
+    const seasons = new Set(regularSeasonMatchups.map(m => m.season_id));
     seasons.forEach(seasonId => {
-      const seasonMatches = matchups.filter(m => m.season_id === seasonId);
+      const seasonMatches = regularSeasonMatchups.filter(m => m.season_id === seasonId);
       const teams = new Set(seasonMatches.map(m => m.home_team_name));
 
       teams.forEach(teamName => {
