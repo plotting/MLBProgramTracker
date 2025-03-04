@@ -12,7 +12,7 @@ import { MatchupScoresView } from "@/types/database";
 
 interface StreakRecord {
   team: string;
-  season: number;
+  season: number | string;
   startWeek: number;
   endWeek: number;
   length: number;
@@ -20,7 +20,7 @@ interface StreakRecord {
 }
 
 interface StreaksByTeam {
-  [team: string]: StreakRecord;
+  [team: string]: StreakRecord[];
 }
 
 interface StreaksSectionProps {
@@ -41,7 +41,7 @@ export const StreaksSection = ({ matchups }: StreaksSectionProps) => {
     // Get all unique team names
     const allTeams = new Set(matchups.flatMap(m => [m.home_team_name, m.away_team_name]).filter(Boolean));
 
-    // Initialize structure to track best streak for each team
+    // Initialize structure to track all streaks for each team
     const streaks = {
       winningStreaks: {} as StreaksByTeam,
       losingStreaks: {} as StreaksByTeam,
@@ -51,130 +51,198 @@ export const StreaksSection = ({ matchups }: StreaksSectionProps) => {
       belowFiveHundredStreaks: {} as StreaksByTeam,
     };
 
+    // For each team, initialize an empty array to hold all their streaks
+    allTeams.forEach(team => {
+      if (!team) return;
+      streaks.winningStreaks[team] = [];
+      streaks.losingStreaks[team] = [];
+      streaks.hundredPlusStreaks[team] = [];
+      streaks.underHundredStreaks[team] = [];
+      streaks.aboveFiveHundredStreaks[team] = [];
+      streaks.belowFiveHundredStreaks[team] = [];
+    });
+
     // Helper to process streaks for each team
-    const processTeamStreaks = (teamMatches: MatchupScoresView[], teamName: string) => {
+    const processTeamStreaks = (teamName: string) => {
+      // Get all matches for this team sorted by season and week
+      const teamMatches = matchups
+        .filter(m => m.home_team_name === teamName || m.away_team_name === teamName)
+        .sort((a, b) => {
+          if (a.season_id !== b.season_id) return a.season_id - b.season_id;
+          return a.week_number! - b.week_number!;
+        });
+
       let currentWinStreak = 0;
       let currentLoseStreak = 0;
       let current100PlusStreak = 0;
       let currentUnder100Streak = 0;
-      let currentRecord = { wins: 0, losses: 0 };
-      let lastSeasonId: number | null = null;
+      let streakStartSeason: number | null = null;
       let streakStartWeek: number | null = null;
 
-      teamMatches.forEach((match, index) => {
+      for (let i = 0; i < teamMatches.length; i++) {
+        const match = teamMatches[i];
         const isHome = match.home_team_name === teamName;
         const teamScore = isHome ? match.home_score : match.away_score;
         const opponentScore = isHome ? match.away_score : match.home_score;
 
-        if (!teamScore || !opponentScore) return;
+        if (!teamScore || !opponentScore) continue;
 
-        // Process win/loss streaks
+        // Win/Loss tracking
         if (teamScore > opponentScore) {
-          if (currentWinStreak === 0) streakStartWeek = match.week_number;
+          // Win
+          if (currentWinStreak === 0) {
+            streakStartSeason = match.season_id;
+            streakStartWeek = match.week_number;
+          }
           currentWinStreak++;
+          
+          // End of a losing streak
+          if (currentLoseStreak >= 3) {
+            streaks.losingStreaks[teamName].push({
+              team: teamName,
+              season: streakStartSeason === match.season_id 
+                ? streakStartSeason 
+                : `${streakStartSeason}-${match.season_id}`,
+              startWeek: streakStartWeek!,
+              endWeek: teamMatches[i-1].week_number!,
+              length: currentLoseStreak,
+              details: `${currentLoseStreak} games`
+            });
+          }
           currentLoseStreak = 0;
         } else {
-          if (currentLoseStreak === 0) streakStartWeek = match.week_number;
+          // Loss or Tie (treated as loss for streak purposes)
+          if (currentLoseStreak === 0) {
+            streakStartSeason = match.season_id;
+            streakStartWeek = match.week_number;
+          }
           currentLoseStreak++;
+          
+          // End of a winning streak
+          if (currentWinStreak >= 3) {
+            streaks.winningStreaks[teamName].push({
+              team: teamName,
+              season: streakStartSeason === match.season_id 
+                ? streakStartSeason 
+                : `${streakStartSeason}-${match.season_id}`,
+              startWeek: streakStartWeek!,
+              endWeek: teamMatches[i-1].week_number!,
+              length: currentWinStreak,
+              details: `${currentWinStreak} games`
+            });
+          }
           currentWinStreak = 0;
         }
 
-        // Process scoring streaks
+        // Scoring streaks
         if (teamScore >= 100) {
-          if (current100PlusStreak === 0) streakStartWeek = match.week_number;
+          if (current100PlusStreak === 0) {
+            streakStartSeason = match.season_id;
+            streakStartWeek = match.week_number;
+          }
           current100PlusStreak++;
+          
+          // End of an under 100 streak
+          if (currentUnder100Streak >= 3) {
+            streaks.underHundredStreaks[teamName].push({
+              team: teamName,
+              season: streakStartSeason === match.season_id 
+                ? streakStartSeason 
+                : `${streakStartSeason}-${match.season_id}`,
+              startWeek: streakStartWeek!,
+              endWeek: teamMatches[i-1].week_number!,
+              length: currentUnder100Streak,
+              details: `${currentUnder100Streak} games < 100 pts`
+            });
+          }
           currentUnder100Streak = 0;
         } else {
-          if (currentUnder100Streak === 0) streakStartWeek = match.week_number;
+          if (currentUnder100Streak === 0) {
+            streakStartSeason = match.season_id;
+            streakStartWeek = match.week_number;
+          }
           currentUnder100Streak++;
+          
+          // End of a 100+ streak
+          if (current100PlusStreak >= 3) {
+            streaks.hundredPlusStreaks[teamName].push({
+              team: teamName,
+              season: streakStartSeason === match.season_id 
+                ? streakStartSeason 
+                : `${streakStartSeason}-${match.season_id}`,
+              startWeek: streakStartWeek!,
+              endWeek: teamMatches[i-1].week_number!,
+              length: current100PlusStreak,
+              details: `${current100PlusStreak} games ≥ 100 pts`
+            });
+          }
           current100PlusStreak = 0;
         }
 
-        // Update record and process .500 streaks
-        if (match.season_id !== lastSeasonId) {
-          currentRecord = { wins: 0, losses: 0 };
-        }
-        if (teamScore > opponentScore) currentRecord.wins++;
-        else currentRecord.losses++;
-
-        const isLastMatch = index === teamMatches.length - 1;
-        const nextMatch = teamMatches[index + 1];
-        const isSeasonChange = nextMatch && nextMatch.season_id !== match.season_id;
-
-        // Record streaks when they end or at season boundaries
-        if (isLastMatch || isSeasonChange) {
-          // Only update if current streak is longer than existing streak for this team
+        // Check if we're at the end of all matches or if the next match is a new season
+        const isLastMatch = i === teamMatches.length - 1;
+        
+        // If we're at the last match and still have an active streak, record it
+        if (isLastMatch) {
           if (currentWinStreak >= 3) {
-            const existingStreak = streaks.winningStreaks[teamName];
-            if (!existingStreak || currentWinStreak > existingStreak.length) {
-              streaks.winningStreaks[teamName] = {
-                team: teamName,
-                season: match.season_id,
-                startWeek: streakStartWeek!,
-                endWeek: match.week_number!,
-                length: currentWinStreak,
-                details: `${currentWinStreak} games`
-              };
-            }
+            streaks.winningStreaks[teamName].push({
+              team: teamName,
+              season: streakStartSeason === match.season_id 
+                ? streakStartSeason 
+                : `${streakStartSeason}-${match.season_id}`,
+              startWeek: streakStartWeek!,
+              endWeek: match.week_number!,
+              length: currentWinStreak,
+              details: `${currentWinStreak} games`
+            });
           }
           
           if (currentLoseStreak >= 3) {
-            const existingStreak = streaks.losingStreaks[teamName];
-            if (!existingStreak || currentLoseStreak > existingStreak.length) {
-              streaks.losingStreaks[teamName] = {
-                team: teamName,
-                season: match.season_id,
-                startWeek: streakStartWeek!,
-                endWeek: match.week_number!,
-                length: currentLoseStreak,
-                details: `${currentLoseStreak} games`
-              };
-            }
+            streaks.losingStreaks[teamName].push({
+              team: teamName,
+              season: streakStartSeason === match.season_id 
+                ? streakStartSeason 
+                : `${streakStartSeason}-${match.season_id}`,
+              startWeek: streakStartWeek!,
+              endWeek: match.week_number!,
+              length: currentLoseStreak,
+              details: `${currentLoseStreak} games`
+            });
           }
           
           if (current100PlusStreak >= 3) {
-            const existingStreak = streaks.hundredPlusStreaks[teamName];
-            if (!existingStreak || current100PlusStreak > existingStreak.length) {
-              streaks.hundredPlusStreaks[teamName] = {
-                team: teamName,
-                season: match.season_id,
-                startWeek: streakStartWeek!,
-                endWeek: match.week_number!,
-                length: current100PlusStreak,
-                details: `${current100PlusStreak} games ≥ 100 pts`
-              };
-            }
+            streaks.hundredPlusStreaks[teamName].push({
+              team: teamName,
+              season: streakStartSeason === match.season_id 
+                ? streakStartSeason 
+                : `${streakStartSeason}-${match.season_id}`,
+              startWeek: streakStartWeek!,
+              endWeek: match.week_number!,
+              length: current100PlusStreak,
+              details: `${current100PlusStreak} games ≥ 100 pts`
+            });
           }
           
           if (currentUnder100Streak >= 3) {
-            const existingStreak = streaks.underHundredStreaks[teamName];
-            if (!existingStreak || currentUnder100Streak > existingStreak.length) {
-              streaks.underHundredStreaks[teamName] = {
-                team: teamName,
-                season: match.season_id,
-                startWeek: streakStartWeek!,
-                endWeek: match.week_number!,
-                length: currentUnder100Streak,
-                details: `${currentUnder100Streak} games < 100 pts`
-              };
-            }
+            streaks.underHundredStreaks[teamName].push({
+              team: teamName,
+              season: streakStartSeason === match.season_id 
+                ? streakStartSeason 
+                : `${streakStartSeason}-${match.season_id}`,
+              startWeek: streakStartWeek!,
+              endWeek: match.week_number!,
+              length: currentUnder100Streak,
+              details: `${currentUnder100Streak} games < 100 pts`
+            });
           }
         }
-
-        lastSeasonId = match.season_id;
-      });
+      }
     };
 
     // Process streaks for each team
     allTeams.forEach(team => {
       if (!team) return;
-      const teamMatches = matchups
-        .filter(m => m.home_team_name === team || m.away_team_name === team)
-        .sort((a, b) => {
-          if (a.season_id !== b.season_id) return a.season_id - b.season_id;
-          return a.week_number! - b.week_number!;
-        });
-      processTeamStreaks(teamMatches, team);
+      processTeamStreaks(team);
     });
 
     return streaks;
@@ -192,20 +260,33 @@ export const StreaksSection = ({ matchups }: StreaksSectionProps) => {
     };
     
     // Extract values from objects into arrays
-    Object.values(streaks.winningStreaks).forEach(streak => {
-      result.winningStreaks.push(streak);
+    Object.entries(streaks.winningStreaks).forEach(([team, teamStreaks]) => {
+      if (teamStreaks.length > 0) {
+        // Sort team's streaks by length (descending) and add the best one
+        teamStreaks.sort((a, b) => b.length - a.length);
+        result.winningStreaks.push(teamStreaks[0]);
+      }
     });
     
-    Object.values(streaks.losingStreaks).forEach(streak => {
-      result.losingStreaks.push(streak);
+    Object.entries(streaks.losingStreaks).forEach(([team, teamStreaks]) => {
+      if (teamStreaks.length > 0) {
+        teamStreaks.sort((a, b) => b.length - a.length);
+        result.losingStreaks.push(teamStreaks[0]);
+      }
     });
     
-    Object.values(streaks.hundredPlusStreaks).forEach(streak => {
-      result.hundredPlusStreaks.push(streak);
+    Object.entries(streaks.hundredPlusStreaks).forEach(([team, teamStreaks]) => {
+      if (teamStreaks.length > 0) {
+        teamStreaks.sort((a, b) => b.length - a.length);
+        result.hundredPlusStreaks.push(teamStreaks[0]);
+      }
     });
     
-    Object.values(streaks.underHundredStreaks).forEach(streak => {
-      result.underHundredStreaks.push(streak);
+    Object.entries(streaks.underHundredStreaks).forEach(([team, teamStreaks]) => {
+      if (teamStreaks.length > 0) {
+        teamStreaks.sort((a, b) => b.length - a.length);
+        result.underHundredStreaks.push(teamStreaks[0]);
+      }
     });
     
     // Sort all streak arrays by length (descending)
