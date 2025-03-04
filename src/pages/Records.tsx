@@ -6,6 +6,8 @@ import type { MatchupScoresView } from "@/types/database";
 import { ScoringRecordsSection } from "@/components/records/ScoringRecordsSection";
 import { MiscRecordsSection } from "@/components/records/MiscRecordsSection";
 import { CareerRecordsSection } from "@/components/records/CareerRecordsSection";
+import { StreaksSection } from "@/components/records/StreaksSection";
+import { AllTimeScheduleRecords } from "@/components/records/AllTimeScheduleRecords";
 
 const Records = () => {
   const { data: matchups, isLoading: matchupsLoading } = useQuery({
@@ -349,6 +351,8 @@ const Records = () => {
         <TabsList>
           <TabsTrigger value="scoring">Scoring Records</TabsTrigger>
           <TabsTrigger value="career">Career Records</TabsTrigger>
+          <TabsTrigger value="streaks">Streaks</TabsTrigger>
+          <TabsTrigger value="schedules">Schedules</TabsTrigger>
           <TabsTrigger value="misc">Miscellaneous</TabsTrigger>
         </TabsList>
 
@@ -358,6 +362,14 @@ const Records = () => {
 
         <TabsContent value="career">
           <CareerRecordsSection careerStats={careerStats} />
+        </TabsContent>
+
+        <TabsContent value="streaks">
+          <StreaksSection matchups={matchups || []} />
+        </TabsContent>
+
+        <TabsContent value="schedules">
+          <AllTimeScheduleRecords matchups={matchups || []} />
         </TabsContent>
 
         <TabsContent value="misc">
