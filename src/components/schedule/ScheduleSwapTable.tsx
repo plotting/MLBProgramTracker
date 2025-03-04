@@ -138,7 +138,7 @@ const ScheduleSwapTable = ({ seasonId }: ScheduleSwapTableProps) => {
     return swapRecords;
   };
   
-  // Calculate strength of schedule
+  // Calculate strength of schedule - updated to include all teams
   const calculateStrengthOfSchedule = () => {
     if (!teams || !matchups) return {};
     
@@ -154,17 +154,14 @@ const ScheduleSwapTable = ({ seasonId }: ScheduleSwapTableProps) => {
       let totalWins = 0;
       let totalLosses = 0;
       let totalTies = 0;
-      let matchCount = 0;
       
       // Get all matchups for this team
       const teamMatches = matchups.filter(m => 
         m.home_team_id === scheduleTeam.id || m.away_team_id === scheduleTeam.id
       );
       
-      // For each other team playing against this team's schedule
+      // For ALL teams (including the schedule owner) playing against this team's schedule
       teams.forEach(playingTeam => {
-        if (playingTeam.id === scheduleTeam.id) return; // Skip self
-        
         const playingTeamResults = { wins: 0, losses: 0, ties: 0 };
         
         // Check each of scheduleTeam's matches
@@ -208,13 +205,10 @@ const ScheduleSwapTable = ({ seasonId }: ScheduleSwapTableProps) => {
           // Compare playingTeam's score with opponent
           if (playingTeamScore > opponentScore) {
             playingTeamResults.wins++;
-            matchCount++;
           } else if (playingTeamScore < opponentScore) {
             playingTeamResults.losses++;
-            matchCount++;
-          } else {
+          } else if (playingTeamScore === opponentScore) { // Explicit equality check for ties
             playingTeamResults.ties++;
-            matchCount++;
           }
         });
         
@@ -249,10 +243,6 @@ const ScheduleSwapTable = ({ seasonId }: ScheduleSwapTableProps) => {
           <CardTitle>Schedule Swap Analysis</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="mb-4 text-muted-foreground">
-            This table shows what each team's record would be if they played another team's schedule.
-            (When teams played head-to-head, those results are preserved.)
-          </p>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -318,10 +308,6 @@ const ScheduleSwapTable = ({ seasonId }: ScheduleSwapTableProps) => {
           <CardTitle>Strength of Schedule</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="mb-4 text-muted-foreground">
-            This table shows how difficult each team's schedule was. It displays the combined record of all 
-            other teams if they had played this team's schedule.
-          </p>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
