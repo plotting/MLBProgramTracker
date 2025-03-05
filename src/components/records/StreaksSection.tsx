@@ -9,6 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { MatchupScoresView } from "@/types/database";
+import { getSeasonLabel } from "@/utils/seasonUtils";
 
 interface StreakRecord {
   team: string;
@@ -349,6 +350,22 @@ export const StreaksSection = ({ matchups }: StreaksSectionProps) => {
     return otherTeams.sort((a, b) => b.length - a.length);
   };
 
+  // Helper to format season display
+  const formatSeason = (season: number | string): string => {
+    if (typeof season === 'number') {
+      return `S${season}`;
+    } else if (typeof season === 'string' && season.includes('-')) {
+      const [start, end] = season.split('-');
+      return `S${start}-S${end}`;
+    }
+    return `S${season}`;
+  };
+
+  // Helper to format week range display
+  const formatWeekRange = (start: number, end: number): string => {
+    return `W${start}-W${end}`;
+  };
+
   const renderStreakTable = (title: string, allRecords: StreakRecord[]) => {
     const top10Records = getTop10UniqueTeams(allRecords);
     const top10Teams = new Set(top10Records.map(r => r.team));
@@ -370,8 +387,8 @@ export const StreaksSection = ({ matchups }: StreaksSectionProps) => {
             {top10Records.map((record, index) => (
               <TableRow key={`top-${index}`}>
                 <TableCell className="font-medium">{record.team}</TableCell>
-                <TableCell>{record.season || "-"}</TableCell>
-                <TableCell>{record.length > 0 ? `${record.startWeek}-${record.endWeek}` : "-"}</TableCell>
+                <TableCell>{record.length > 0 ? formatSeason(record.season) : "-"}</TableCell>
+                <TableCell>{record.length > 0 ? formatWeekRange(record.startWeek, record.endWeek) : "-"}</TableCell>
                 <TableCell>{record.details}</TableCell>
               </TableRow>
             ))}
@@ -386,8 +403,8 @@ export const StreaksSection = ({ matchups }: StreaksSectionProps) => {
                 {otherRecords.map((record, index) => (
                   <TableRow key={`other-${index}`}>
                     <TableCell className="font-medium">{record.team}</TableCell>
-                    <TableCell>{record.season || "-"}</TableCell>
-                    <TableCell>{record.length > 0 ? `${record.startWeek}-${record.endWeek}` : "-"}</TableCell>
+                    <TableCell>{record.length > 0 ? formatSeason(record.season) : "-"}</TableCell>
+                    <TableCell>{record.length > 0 ? formatWeekRange(record.startWeek, record.endWeek) : "-"}</TableCell>
                     <TableCell>{record.details}</TableCell>
                   </TableRow>
                 ))}
