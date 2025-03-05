@@ -1,88 +1,165 @@
 
 import React from "react";
-import { Card } from "../ui/card";
+import { MatchupScoresView } from "@/types/database";
 import Matchup from "./Matchup";
 import WeekLabels from "./WeekLabels";
-import { MatchupScoresView } from "@/types/database";
+import type { Team } from "@/types/database";
 
 interface FourTeamPlayoffsProps {
   matchups: MatchupScoresView[];
+  editMode?: boolean;
+  onTeamSelect?: (matchupId: number, isHome: boolean, teamId: number) => void;
+  onScoreUpdate?: (matchupId: number, isHome: boolean, score: number) => void;
+  teams?: Team[];
 }
 
-const FourTeamPlayoffs = ({ matchups }: FourTeamPlayoffsProps) => {
-  // Function to find a specific matchup
-  const findMatchup = (week: number, team1Id?: number, team2Id?: number) => {
-    return matchups.find(m => 
-      m.week_number === week && 
-      ((m.home_team_id === team1Id && m.away_team_id === team2Id) || 
-      (m.home_team_id === team2Id && m.away_team_id === team1Id))
-    );
-  };
+const FourTeamPlayoffs: React.FC<FourTeamPlayoffsProps> = ({ 
+  matchups, 
+  editMode = false,
+  onTeamSelect,
+  onScoreUpdate,
+  teams = [] 
+}) => {
+  // Filter playoff matchups (non-consolation)
+  const playoffMatchups = matchups.filter(
+    (matchup) => matchup.is_playoff && !matchup.is_consolation
+  );
+
+  // Get semifinal matchups (week 15)
+  const semiFinals = playoffMatchups.filter(
+    (matchup) => matchup.week_number === 15
+  );
+
+  // Get championship matchup (week 16)
+  const championship = playoffMatchups.find(
+    (matchup) => matchup.week_number === 16
+  );
+
+  // Get consolation matchups
+  const consolationMatchups = matchups.filter(
+    (matchup) => matchup.is_consolation
+  );
+
+  // Get week 15 consolation matchups
+  const weekFifteenConsolation = consolationMatchups.filter(
+    (matchup) => matchup.week_number === 15
+  );
+
+  // Get week 16 consolation matchups (3rd place and 5th place games)
+  const weekSixteenConsolation = consolationMatchups.filter(
+    (matchup) => matchup.week_number === 16
+  );
 
   return (
-    <Card className="p-8">
-      <h3 className="text-2xl font-bold mb-8">Playoff Bracket</h3>
-      
-      {/* Championship Bracket */}
-      <div className="space-y-8 mb-16">
-        <div className="flex justify-between items-center mb-4">
-          <h4 className="text-xl font-semibold text-primary">Championship Bracket</h4>
-          <WeekLabels weeks={["Week 15", "Week 16"]} />
-        </div>
-        
-        <div className="flex gap-24">
-          <div className="flex flex-col gap-24">
-            <div className="relative">
-              <Matchup team1="#1 Seed" team2="#4 Seed" label="Semifinals" />
-              <div className="absolute top-1/2 right-0 w-24 h-[2px] bg-primary translate-x-full"></div>
-            </div>
-            <div className="relative">
-              <Matchup team1="#2 Seed" team2="#3 Seed" label="Semifinals" />
-              <div className="absolute top-1/2 right-0 w-24 h-[2px] bg-primary translate-x-full"></div>
-            </div>
+    <div className="overflow-auto">
+      <div className="flex min-w-[800px]">
+        <WeekLabels weeks={[15, 16]} />
+
+        <div className="flex-1 grid grid-cols-2 gap-4">
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold mb-2 text-center">Semifinals</h3>
+            {semiFinals.map((matchup, index) => (
+              <Matchup
+                key={`semifinal-${index}`}
+                matchupId={index}
+                homeTeam={matchup.home_team_name}
+                homeTeamId={matchup.home_team_id}
+                homeScore={matchup.home_score}
+                awayTeam={matchup.away_team_name}
+                awayTeamId={matchup.away_team_id}
+                awayScore={matchup.away_score}
+                editMode={editMode}
+                onTeamSelect={onTeamSelect}
+                onScoreUpdate={onScoreUpdate}
+                teams={teams}
+              />
+            ))}
+
+            <h3 className="text-lg font-semibold mt-8 mb-2 text-center">
+              Consolation
+            </h3>
+            {weekFifteenConsolation.map((matchup, index) => (
+              <Matchup
+                key={`consolation-semifinal-${index}`}
+                matchupId={semiFinals.length + index}
+                homeTeam={matchup.home_team_name}
+                homeTeamId={matchup.home_team_id}
+                homeScore={matchup.home_score}
+                awayTeam={matchup.away_team_name}
+                awayTeamId={matchup.away_team_id}
+                awayScore={matchup.away_score}
+                isConsolation
+                editMode={editMode}
+                onTeamSelect={onTeamSelect}
+                onScoreUpdate={onScoreUpdate}
+                teams={teams}
+              />
+            ))}
           </div>
 
-          <div className="relative">
-            <div className="absolute top-1/4 -left-24 w-24 h-[50%] border-r-2 border-t-2 border-b-2 border-primary"></div>
-            <Matchup team1="Winner 1v4" team2="Winner 2v3" label="Championship" className="mt-[25%]" />
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold mb-2 text-center">Championship</h3>
+            {championship && (
+              <Matchup
+                matchupId={semiFinals.length + weekFifteenConsolation.length}
+                homeTeam={championship.home_team_name}
+                homeTeamId={championship.home_team_id}
+                homeScore={championship.home_score}
+                awayTeam={championship.away_team_name}
+                awayTeamId={championship.away_team_id}
+                awayScore={championship.away_score}
+                editMode={editMode}
+                onTeamSelect={onTeamSelect}
+                onScoreUpdate={onScoreUpdate}
+                teams={teams}
+              />
+            )}
+
+            <h3 className="text-lg font-semibold mt-8 mb-2 text-center">
+              3rd Place Game
+            </h3>
+            {weekSixteenConsolation.length > 0 && (
+              <Matchup
+                matchupId={semiFinals.length + weekFifteenConsolation.length + 1}
+                homeTeam={weekSixteenConsolation[0]?.home_team_name}
+                homeTeamId={weekSixteenConsolation[0]?.home_team_id}
+                homeScore={weekSixteenConsolation[0]?.home_score}
+                awayTeam={weekSixteenConsolation[0]?.away_team_name}
+                awayTeamId={weekSixteenConsolation[0]?.away_team_id}
+                awayScore={weekSixteenConsolation[0]?.away_score}
+                isConsolation
+                editMode={editMode}
+                onTeamSelect={onTeamSelect}
+                onScoreUpdate={onScoreUpdate}
+                teams={teams}
+              />
+            )}
+
+            {weekSixteenConsolation.length > 1 && (
+              <>
+                <h3 className="text-lg font-semibold mt-8 mb-2 text-center">
+                  5th Place Game
+                </h3>
+                <Matchup
+                  matchupId={semiFinals.length + weekFifteenConsolation.length + 2}
+                  homeTeam={weekSixteenConsolation[1]?.home_team_name}
+                  homeTeamId={weekSixteenConsolation[1]?.home_team_id}
+                  homeScore={weekSixteenConsolation[1]?.home_score}
+                  awayTeam={weekSixteenConsolation[1]?.away_team_name}
+                  awayTeamId={weekSixteenConsolation[1]?.away_team_id}
+                  awayScore={weekSixteenConsolation[1]?.away_score}
+                  isConsolation
+                  editMode={editMode}
+                  onTeamSelect={onTeamSelect}
+                  onScoreUpdate={onScoreUpdate}
+                  teams={teams}
+                />
+              </>
+            )}
           </div>
         </div>
       </div>
-
-      {/* Consolation Bracket */}
-      <div className="space-y-8">
-        <div className="flex justify-between items-center mb-4">
-          <h4 className="text-xl font-semibold text-secondary">Consolation Bracket</h4>
-          <WeekLabels weeks={["Week 15", "Week 16"]} />
-        </div>
-        
-        <div className="flex gap-24">
-          <div className="flex flex-col gap-8">
-            <div className="relative">
-              <Matchup team1="#5 Seed" team2="#6 Seed" label="5th Place Semifinal" />
-              <div className="absolute top-1/2 right-0 w-24 h-[2px] bg-secondary translate-x-full"></div>
-            </div>
-            <div className="relative">
-              <Matchup team1="#7 Seed" team2="#8 Seed" label="7th Place Semifinal" />
-              <div className="absolute top-1/2 right-0 w-24 h-[2px] bg-secondary translate-x-full"></div>
-            </div>
-            <div className="relative">
-              <Matchup team1="#9 Seed" team2="#10 Seed" label="9th Place Semifinal" />
-              <div className="absolute top-1/2 right-0 w-24 h-[2px] bg-secondary translate-x-full"></div>
-            </div>
-          </div>
-
-          <div className="relative">
-            <div className="absolute top-[15%] -left-24 w-24 h-[25%] border-r-2 border-t-2 border-b-2 border-secondary"></div>
-            <div className="space-y-8">
-              <Matchup team1="Winner 5v6" team2="Winner 7v8" label="5th Place Game" className="mt-[10%]" />
-              <Matchup team1="Winner 9v10" team2="Loser 5v6" label="7th Place Game" />
-              <Matchup team1="Loser 9v10" team2="Loser 7v8" label="9th Place Game" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </Card>
+    </div>
   );
 };
 
