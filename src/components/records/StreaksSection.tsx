@@ -361,9 +361,12 @@ export const StreaksSection = ({ matchups }: StreaksSectionProps) => {
     return `S${season}`;
   };
 
-  // Helper to format week range display
+  // Helper to format week range display - ensuring correct order
   const formatWeekRange = (start: number, end: number): string => {
-    return `W${start}-W${end}`;
+    // Make sure start is always the smaller number and end is the larger number
+    const minWeek = Math.min(start, end);
+    const maxWeek = Math.max(start, end);
+    return `W${minWeek}-W${maxWeek}`;
   };
 
   const renderStreakTable = (title: string, allRecords: StreakRecord[]) => {
