@@ -1,7 +1,9 @@
+
 import { Link } from "react-router-dom";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Trophy, Award, Star, Shield } from "lucide-react";
 
 interface StandingsTableProps {
   seasonId: number;
@@ -38,18 +40,18 @@ const StandingsTable = ({ seasonId }: StandingsTableProps) => {
     return b.regular_season_points_for - a.regular_season_points_for;
   }) : [];
 
-  const getFinalPlacement = (position: number): string => {
+  const getFinalPlacement = (position: number): React.ReactNode => {
     switch (position) {
-      case 0: return "🏆";
-      case 1: return "🥈";
-      case 2: return "🥉";
-      case 3: return "4️⃣";
-      case 4: return "5️⃣";
-      case 5: return "6️⃣";
-      case 6: return "7️⃣";
-      case 7: return "8️⃣";
-      case 8: return "9️⃣";
-      case 9: return "🔟";
+      case 0: return <span title="1st Place">🥇</span>;
+      case 1: return <span title="2nd Place">🥈</span>;
+      case 2: return <span title="3rd Place">🥉</span>;
+      case 3: return <span title="4th Place">🏆</span>;
+      case 4: return <span title="5th Place">🌟</span>;
+      case 5: return <span title="6th Place">🛡️</span>;
+      case 6: return <span title="7th Place">🚽</span>;
+      case 7: return <span title="8th Place">🤡</span>;
+      case 8: return <span title="9th Place">🤮</span>;
+      case 9: return <span title="10th Place">💩</span>;
       default: return `${position + 1}`;
     }
   };
