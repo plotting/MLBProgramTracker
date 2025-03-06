@@ -62,15 +62,15 @@ const FiveTeamPlayoffs: React.FC<FiveTeamPlayoffsProps> = ({
       <div className="flex flex-col min-w-[800px]">
         <WeekLabels weeks={[15, 16]} />
         
-        <div className="grid grid-cols-2 gap-8 mt-4">
-          <div className="space-y-8">
+        <div className="grid grid-cols-2 gap-8">
+          <div className="space-y-12">
             <div>
-              <h3 className="text-lg font-semibold mb-4 text-center">Week 15</h3>
-              <div className="space-y-8">
+              <h3 className="text-lg font-semibold mb-6 text-center">Week 15</h3>
+              <div className="space-y-12">
                 {wildcardGames.map((matchup, index) => {
                   const id = matchupCounter++;
                   return (
-                    <div key={`wildcard-${index}`} className="mx-auto w-[220px]">
+                    <div key={`wildcard-${index}`} className="mx-auto w-[240px]">
                       <Matchup
                         matchupId={id}
                         homeTeam={matchup.home_team_name}
@@ -89,7 +89,7 @@ const FiveTeamPlayoffs: React.FC<FiveTeamPlayoffsProps> = ({
                 })}
 
                 {seedOneSemifinal && (
-                  <div className="mx-auto w-[220px]">
+                  <div className="mx-auto w-[240px]">
                     <Matchup
                       matchupId={matchupCounter++}
                       homeTeam={seedOneSemifinal.home_team_name}
@@ -109,12 +109,12 @@ const FiveTeamPlayoffs: React.FC<FiveTeamPlayoffsProps> = ({
             </div>
 
             <div>
-              <h3 className="text-lg font-semibold mb-4 text-center">Consolation Round</h3>
-              <div className="space-y-8">
+              <h3 className="text-lg font-semibold mb-6 text-center">Consolation Round</h3>
+              <div className="space-y-12">
                 {weekFifteenConsolation.map((matchup, index) => {
                   const id = matchupCounter++;
                   return (
-                    <div key={`consolation-semifinal-${index}`} className="mx-auto w-[220px]">
+                    <div key={`consolation-semifinal-${index}`} className="mx-auto w-[240px]">
                       <Matchup
                         matchupId={id}
                         homeTeam={matchup.home_team_name}
@@ -136,11 +136,11 @@ const FiveTeamPlayoffs: React.FC<FiveTeamPlayoffsProps> = ({
             </div>
           </div>
 
-          <div className="space-y-8">
+          <div className="space-y-12">
             <div>
-              <h3 className="text-lg font-semibold mb-4 text-center">Championship</h3>
+              <h3 className="text-lg font-semibold mb-6 text-center">Championship</h3>
               {championship && (
-                <div className="mx-auto w-[220px]">
+                <div className="mx-auto w-[240px]">
                   <Matchup
                     matchupId={matchupCounter++}
                     homeTeam={championship.home_team_name}
@@ -159,12 +159,12 @@ const FiveTeamPlayoffs: React.FC<FiveTeamPlayoffsProps> = ({
             </div>
 
             <div>
-              <h3 className="text-lg font-semibold mb-4 text-center">Final Placement Games</h3>
-              <div className="space-y-8">
+              <h3 className="text-lg font-semibold mb-6 text-center">Final Placement Games</h3>
+              <div className="space-y-12">
                 {weekSixteenConsolation.map((matchup, index) => {
                   const id = matchupCounter++;
                   return (
-                    <div key={`final-consolation-${index}`} className="mx-auto w-[220px]">
+                    <div key={`final-consolation-${index}`} className="mx-auto w-[240px]">
                       <Matchup
                         matchupId={id}
                         homeTeam={matchup.home_team_name}

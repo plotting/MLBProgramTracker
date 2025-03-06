@@ -76,7 +76,7 @@ const Matchup: React.FC<MatchupProps> = ({
       className={cn(
         "border rounded-lg p-3 shadow-sm", 
         isConsolation 
-          ? "border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20" 
+          ? "border-yellow-500 bg-yellow-50/80 dark:bg-yellow-900/30 dark:border-yellow-600" 
           : "border-primary/20 bg-card"
       )}
     >
@@ -97,7 +97,9 @@ const Matchup: React.FC<MatchupProps> = ({
             </Select>
           </div>
         ) : (
-          <div className="font-medium text-sm">{homeTeam || "TBD"}</div>
+          <div className={cn("font-medium text-sm", isConsolation ? "text-yellow-900 dark:text-yellow-200" : "")}>
+            {homeTeam || "TBD"}
+          </div>
         )}
         
         {editMode ? (
@@ -109,7 +111,9 @@ const Matchup: React.FC<MatchupProps> = ({
             placeholder="Score"
           />
         ) : (
-          <div className="text-sm font-semibold">{homeScore !== null ? homeScore.toFixed(2) : "-"}</div>
+          <div className={cn("text-sm font-semibold", isConsolation ? "text-yellow-900 dark:text-yellow-200" : "")}>
+            {homeScore !== null ? homeScore.toFixed(2) : "-"}
+          </div>
         )}
       </div>
       
@@ -130,7 +134,9 @@ const Matchup: React.FC<MatchupProps> = ({
             </Select>
           </div>
         ) : (
-          <div className="font-medium text-sm">{awayTeam || "TBD"}</div>
+          <div className={cn("font-medium text-sm", isConsolation ? "text-yellow-900 dark:text-yellow-200" : "")}>
+            {awayTeam || "TBD"}
+          </div>
         )}
         
         {editMode ? (
@@ -142,7 +148,9 @@ const Matchup: React.FC<MatchupProps> = ({
             placeholder="Score"
           />
         ) : (
-          <div className="text-sm font-semibold">{awayScore !== null ? awayScore.toFixed(2) : "-"}</div>
+          <div className={cn("text-sm font-semibold", isConsolation ? "text-yellow-900 dark:text-yellow-200" : "")}>
+            {awayScore !== null ? awayScore.toFixed(2) : "-"}
+          </div>
         )}
       </div>
     </div>

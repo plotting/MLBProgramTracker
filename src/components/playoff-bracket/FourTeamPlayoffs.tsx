@@ -55,13 +55,13 @@ const FourTeamPlayoffs: React.FC<FourTeamPlayoffsProps> = ({
       <div className="flex flex-col min-w-[800px]">
         <WeekLabels weeks={[15, 16]} />
         
-        <div className="grid grid-cols-2 gap-8 mt-4">
-          <div className="space-y-8">
+        <div className="grid grid-cols-2 gap-8">
+          <div className="space-y-12">
             <div>
-              <h3 className="text-lg font-semibold mb-4 text-center">Semifinals</h3>
-              <div className="space-y-8">
+              <h3 className="text-lg font-semibold mb-6 text-center">Semifinals</h3>
+              <div className="space-y-12">
                 {semiFinals.map((matchup, index) => (
-                  <div key={`semifinal-${index}`} className="mx-auto w-[220px]">
+                  <div key={`semifinal-${index}`} className="mx-auto w-[240px]">
                     <Matchup
                       matchupId={index}
                       homeTeam={matchup.home_team_name}
@@ -81,10 +81,10 @@ const FourTeamPlayoffs: React.FC<FourTeamPlayoffsProps> = ({
             </div>
 
             <div>
-              <h3 className="text-lg font-semibold mb-4 text-center">Consolation</h3>
-              <div className="space-y-8">
+              <h3 className="text-lg font-semibold mb-6 text-center">Consolation</h3>
+              <div className="space-y-12">
                 {weekFifteenConsolation.map((matchup, index) => (
-                  <div key={`consolation-semifinal-${index}`} className="mx-auto w-[220px]">
+                  <div key={`consolation-semifinal-${index}`} className="mx-auto w-[240px]">
                     <Matchup
                       matchupId={semiFinals.length + index}
                       homeTeam={matchup.home_team_name}
@@ -105,11 +105,11 @@ const FourTeamPlayoffs: React.FC<FourTeamPlayoffsProps> = ({
             </div>
           </div>
 
-          <div className="space-y-8">
+          <div className="space-y-12">
             <div>
-              <h3 className="text-lg font-semibold mb-4 text-center">Championship</h3>
+              <h3 className="text-lg font-semibold mb-6 text-center">Championship</h3>
               {championship && (
-                <div className="mx-auto w-[220px]">
+                <div className="mx-auto w-[240px]">
                   <Matchup
                     matchupId={semiFinals.length + weekFifteenConsolation.length}
                     homeTeam={championship.home_team_name}
@@ -128,9 +128,9 @@ const FourTeamPlayoffs: React.FC<FourTeamPlayoffsProps> = ({
             </div>
 
             <div>
-              <h3 className="text-lg font-semibold mb-4 text-center">3rd Place Game</h3>
+              <h3 className="text-lg font-semibold mb-6 text-center">3rd Place Game</h3>
               {weekSixteenConsolation.length > 0 && (
-                <div className="mx-auto w-[220px]">
+                <div className="mx-auto w-[240px]">
                   <Matchup
                     matchupId={semiFinals.length + weekFifteenConsolation.length + 1}
                     homeTeam={weekSixteenConsolation[0]?.home_team_name}
@@ -151,8 +151,8 @@ const FourTeamPlayoffs: React.FC<FourTeamPlayoffsProps> = ({
 
             {weekSixteenConsolation.length > 1 && (
               <div>
-                <h3 className="text-lg font-semibold mb-4 text-center">5th Place Game</h3>
-                <div className="mx-auto w-[220px]">
+                <h3 className="text-lg font-semibold mb-6 text-center">5th Place Game</h3>
+                <div className="mx-auto w-[240px]">
                   <Matchup
                     matchupId={semiFinals.length + weekFifteenConsolation.length + 2}
                     homeTeam={weekSixteenConsolation[1]?.home_team_name}
