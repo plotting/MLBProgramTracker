@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import type { Team } from "@/types/database";
+import { cn } from "@/lib/utils";
 
 interface MatchupProps {
   homeTeam?: string;
@@ -71,8 +72,15 @@ const Matchup: React.FC<MatchupProps> = ({
   };
 
   return (
-    <div className={`border rounded-md p-2 mb-2 ${isConsolation ? "border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20" : "border-primary/20"}`}>
-      <div className="flex justify-between items-center mb-1">
+    <div 
+      className={cn(
+        "border rounded-lg p-3 shadow-sm", 
+        isConsolation 
+          ? "border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20" 
+          : "border-primary/20 bg-card"
+      )}
+    >
+      <div className="flex justify-between items-center mb-2 gap-2">
         {editMode ? (
           <div className="flex-1">
             <Select value={homeTeamId?.toString() || ""} onValueChange={handleHomeTeamSelect}>
@@ -89,23 +97,23 @@ const Matchup: React.FC<MatchupProps> = ({
             </Select>
           </div>
         ) : (
-          <div className="font-medium">{homeTeam || "TBD"}</div>
+          <div className="font-medium text-sm">{homeTeam || "TBD"}</div>
         )}
         
         {editMode ? (
           <Input
             type="number"
-            className="w-16 h-8 ml-2 text-sm"
+            className="w-16 h-8 text-sm"
             value={tempHomeScore}
             onChange={handleHomeScoreChange}
             placeholder="Score"
           />
         ) : (
-          <div className="ml-2">{homeScore !== null ? homeScore.toFixed(2) : "-"}</div>
+          <div className="text-sm font-semibold">{homeScore !== null ? homeScore.toFixed(2) : "-"}</div>
         )}
       </div>
       
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center gap-2">
         {editMode ? (
           <div className="flex-1">
             <Select value={awayTeamId?.toString() || ""} onValueChange={handleAwayTeamSelect}>
@@ -122,19 +130,19 @@ const Matchup: React.FC<MatchupProps> = ({
             </Select>
           </div>
         ) : (
-          <div className="font-medium">{awayTeam || "TBD"}</div>
+          <div className="font-medium text-sm">{awayTeam || "TBD"}</div>
         )}
         
         {editMode ? (
           <Input
             type="number"
-            className="w-16 h-8 ml-2 text-sm"
+            className="w-16 h-8 text-sm"
             value={tempAwayScore}
             onChange={handleAwayScoreChange}
             placeholder="Score"
           />
         ) : (
-          <div className="ml-2">{awayScore !== null ? awayScore.toFixed(2) : "-"}</div>
+          <div className="text-sm font-semibold">{awayScore !== null ? awayScore.toFixed(2) : "-"}</div>
         )}
       </div>
     </div>

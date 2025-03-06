@@ -6,11 +6,16 @@ interface WeekLabelsProps {
 }
 
 const WeekLabels = ({ weeks }: WeekLabelsProps) => (
-  <div className="flex gap-24 pr-24">
+  <div className="flex items-start pt-10">
     {weeks.map((week, index) => (
-      <span key={index} className="text-sm text-muted-foreground w-[240px] text-center">
-        {week}
-      </span>
+      <div 
+        key={index} 
+        className="w-[240px] flex justify-center"
+      >
+        <span className="text-sm font-medium px-3 py-1 bg-muted rounded-md">
+          Week {week}
+        </span>
+      </div>
     ))}
   </div>
 );

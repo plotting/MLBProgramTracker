@@ -59,114 +59,131 @@ const FiveTeamPlayoffs: React.FC<FiveTeamPlayoffsProps> = ({
 
   return (
     <div className="overflow-auto">
-      <div className="flex min-w-[800px]">
+      <div className="flex flex-col min-w-[800px]">
         <WeekLabels weeks={[15, 16]} />
+        
+        <div className="grid grid-cols-2 gap-8 mt-4">
+          <div className="space-y-8">
+            <div>
+              <h3 className="text-lg font-semibold mb-4 text-center">Week 15</h3>
+              <div className="space-y-8">
+                {wildcardGames.map((matchup, index) => {
+                  const id = matchupCounter++;
+                  return (
+                    <div key={`wildcard-${index}`} className="mx-auto w-[220px]">
+                      <Matchup
+                        matchupId={id}
+                        homeTeam={matchup.home_team_name}
+                        homeTeamId={matchup.home_team_id}
+                        homeScore={matchup.home_score}
+                        awayTeam={matchup.away_team_name}
+                        awayTeamId={matchup.away_team_id}
+                        awayScore={matchup.away_score}
+                        editMode={editMode}
+                        onTeamSelect={onTeamSelect}
+                        onScoreUpdate={onScoreUpdate}
+                        teams={teams}
+                      />
+                    </div>
+                  );
+                })}
 
-        <div className="flex-1 grid grid-cols-2 gap-4">
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold mb-2 text-center">Week 15</h3>
-            {wildcardGames.map((matchup, index) => {
-              const id = matchupCounter++;
-              return (
-                <Matchup
-                  key={`wildcard-${index}`}
-                  matchupId={id}
-                  homeTeam={matchup.home_team_name}
-                  homeTeamId={matchup.home_team_id}
-                  homeScore={matchup.home_score}
-                  awayTeam={matchup.away_team_name}
-                  awayTeamId={matchup.away_team_id}
-                  awayScore={matchup.away_score}
-                  editMode={editMode}
-                  onTeamSelect={onTeamSelect}
-                  onScoreUpdate={onScoreUpdate}
-                  teams={teams}
-                />
-              );
-            })}
+                {seedOneSemifinal && (
+                  <div className="mx-auto w-[220px]">
+                    <Matchup
+                      matchupId={matchupCounter++}
+                      homeTeam={seedOneSemifinal.home_team_name}
+                      homeTeamId={seedOneSemifinal.home_team_id}
+                      homeScore={seedOneSemifinal.home_score}
+                      awayTeam={seedOneSemifinal.away_team_name}
+                      awayTeamId={seedOneSemifinal.away_team_id}
+                      awayScore={seedOneSemifinal.away_score}
+                      editMode={editMode}
+                      onTeamSelect={onTeamSelect}
+                      onScoreUpdate={onScoreUpdate}
+                      teams={teams}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
 
-            {seedOneSemifinal && (
-              <Matchup
-                matchupId={matchupCounter++}
-                homeTeam={seedOneSemifinal.home_team_name}
-                homeTeamId={seedOneSemifinal.home_team_id}
-                homeScore={seedOneSemifinal.home_score}
-                awayTeam={seedOneSemifinal.away_team_name}
-                awayTeamId={seedOneSemifinal.away_team_id}
-                awayScore={seedOneSemifinal.away_score}
-                editMode={editMode}
-                onTeamSelect={onTeamSelect}
-                onScoreUpdate={onScoreUpdate}
-                teams={teams}
-              />
-            )}
-
-            <h3 className="text-lg font-semibold mt-8 mb-2 text-center">
-              Consolation Round
-            </h3>
-            {weekFifteenConsolation.map((matchup, index) => {
-              const id = matchupCounter++;
-              return (
-                <Matchup
-                  key={`consolation-semifinal-${index}`}
-                  matchupId={id}
-                  homeTeam={matchup.home_team_name}
-                  homeTeamId={matchup.home_team_id}
-                  homeScore={matchup.home_score}
-                  awayTeam={matchup.away_team_name}
-                  awayTeamId={matchup.away_team_id}
-                  awayScore={matchup.away_score}
-                  isConsolation
-                  editMode={editMode}
-                  onTeamSelect={onTeamSelect}
-                  onScoreUpdate={onScoreUpdate}
-                  teams={teams}
-                />
-              );
-            })}
+            <div>
+              <h3 className="text-lg font-semibold mb-4 text-center">Consolation Round</h3>
+              <div className="space-y-8">
+                {weekFifteenConsolation.map((matchup, index) => {
+                  const id = matchupCounter++;
+                  return (
+                    <div key={`consolation-semifinal-${index}`} className="mx-auto w-[220px]">
+                      <Matchup
+                        matchupId={id}
+                        homeTeam={matchup.home_team_name}
+                        homeTeamId={matchup.home_team_id}
+                        homeScore={matchup.home_score}
+                        awayTeam={matchup.away_team_name}
+                        awayTeamId={matchup.away_team_id}
+                        awayScore={matchup.away_score}
+                        isConsolation
+                        editMode={editMode}
+                        onTeamSelect={onTeamSelect}
+                        onScoreUpdate={onScoreUpdate}
+                        teams={teams}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold mb-2 text-center">Championship</h3>
-            {championship && (
-              <Matchup
-                matchupId={matchupCounter++}
-                homeTeam={championship.home_team_name}
-                homeTeamId={championship.home_team_id}
-                homeScore={championship.home_score}
-                awayTeam={championship.away_team_name}
-                awayTeamId={championship.away_team_id}
-                awayScore={championship.away_score}
-                editMode={editMode}
-                onTeamSelect={onTeamSelect}
-                onScoreUpdate={onScoreUpdate}
-                teams={teams}
-              />
-            )}
+          <div className="space-y-8">
+            <div>
+              <h3 className="text-lg font-semibold mb-4 text-center">Championship</h3>
+              {championship && (
+                <div className="mx-auto w-[220px]">
+                  <Matchup
+                    matchupId={matchupCounter++}
+                    homeTeam={championship.home_team_name}
+                    homeTeamId={championship.home_team_id}
+                    homeScore={championship.home_score}
+                    awayTeam={championship.away_team_name}
+                    awayTeamId={championship.away_team_id}
+                    awayScore={championship.away_score}
+                    editMode={editMode}
+                    onTeamSelect={onTeamSelect}
+                    onScoreUpdate={onScoreUpdate}
+                    teams={teams}
+                  />
+                </div>
+              )}
+            </div>
 
-            <h3 className="text-lg font-semibold mt-8 mb-2 text-center">
-              Final Placement Games
-            </h3>
-            {weekSixteenConsolation.map((matchup, index) => {
-              const id = matchupCounter++;
-              return (
-                <Matchup
-                  key={`final-consolation-${index}`}
-                  matchupId={id}
-                  homeTeam={matchup.home_team_name}
-                  homeTeamId={matchup.home_team_id}
-                  homeScore={matchup.home_score}
-                  awayTeam={matchup.away_team_name}
-                  awayTeamId={matchup.away_team_id}
-                  awayScore={matchup.away_score}
-                  isConsolation
-                  editMode={editMode}
-                  onTeamSelect={onTeamSelect}
-                  onScoreUpdate={onScoreUpdate}
-                  teams={teams}
-                />
-              );
-            })}
+            <div>
+              <h3 className="text-lg font-semibold mb-4 text-center">Final Placement Games</h3>
+              <div className="space-y-8">
+                {weekSixteenConsolation.map((matchup, index) => {
+                  const id = matchupCounter++;
+                  return (
+                    <div key={`final-consolation-${index}`} className="mx-auto w-[220px]">
+                      <Matchup
+                        matchupId={id}
+                        homeTeam={matchup.home_team_name}
+                        homeTeamId={matchup.home_team_id}
+                        homeScore={matchup.home_score}
+                        awayTeam={matchup.away_team_name}
+                        awayTeamId={matchup.away_team_id}
+                        awayScore={matchup.away_score}
+                        isConsolation
+                        editMode={editMode}
+                        onTeamSelect={onTeamSelect}
+                        onScoreUpdate={onScoreUpdate}
+                        teams={teams}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
       </div>
