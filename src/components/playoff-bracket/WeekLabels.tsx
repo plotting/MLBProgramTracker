@@ -1,7 +1,8 @@
+
 import React from "react";
 
 interface WeekLabelsProps {
-  weeks: string[];
+  weeks: (string | number)[];
 }
 
 const WeekLabels = ({ weeks }: WeekLabelsProps) => (
