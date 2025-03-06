@@ -45,9 +45,31 @@ const FourTeamPlayoffs: React.FC<FourTeamPlayoffsProps> = ({
     (matchup) => matchup.week_number === 15
   );
 
-  // Get week 16 consolation matchups (3rd place and 5th place games)
+  // Get week 16 consolation matchups
   const weekSixteenConsolation = consolationMatchups.filter(
     (matchup) => matchup.week_number === 16
+  );
+
+  // Find the 3rd place game - matchup between semifinal losers in week 16
+  const getSemiFinalLosers = () => {
+    return semiFinals.map(match => {
+      return match.home_score > match.away_score 
+        ? match.away_team_id 
+        : match.home_team_id;
+    });
+  };
+
+  const semiFinalLosers = getSemiFinalLosers();
+  
+  const thirdPlaceGame = weekSixteenConsolation.find(
+    (matchup) => 
+      semiFinalLosers.includes(matchup.home_team_id) && 
+      semiFinalLosers.includes(matchup.away_team_id)
+  );
+
+  // Get other consolation games (5th place game, etc.)
+  const otherConsolationGames = weekSixteenConsolation.filter(
+    (matchup) => matchup !== thirdPlaceGame
   );
 
   return (
@@ -129,17 +151,16 @@ const FourTeamPlayoffs: React.FC<FourTeamPlayoffsProps> = ({
 
             <div>
               <h3 className="text-lg font-semibold mb-6 text-center">3rd Place Game</h3>
-              {weekSixteenConsolation.length > 0 && (
+              {thirdPlaceGame && (
                 <div className="mx-auto w-[240px]">
                   <Matchup
                     matchupId={semiFinals.length + weekFifteenConsolation.length + 1}
-                    homeTeam={weekSixteenConsolation[0]?.home_team_name}
-                    homeTeamId={weekSixteenConsolation[0]?.home_team_id}
-                    homeScore={weekSixteenConsolation[0]?.home_score}
-                    awayTeam={weekSixteenConsolation[0]?.away_team_name}
-                    awayTeamId={weekSixteenConsolation[0]?.away_team_id}
-                    awayScore={weekSixteenConsolation[0]?.away_score}
-                    isConsolation
+                    homeTeam={thirdPlaceGame.home_team_name}
+                    homeTeamId={thirdPlaceGame.home_team_id}
+                    homeScore={thirdPlaceGame.home_score}
+                    awayTeam={thirdPlaceGame.away_team_name}
+                    awayTeamId={thirdPlaceGame.away_team_id}
+                    awayScore={thirdPlaceGame.away_score}
                     editMode={editMode}
                     onTeamSelect={onTeamSelect}
                     onScoreUpdate={onScoreUpdate}
@@ -149,18 +170,40 @@ const FourTeamPlayoffs: React.FC<FourTeamPlayoffsProps> = ({
               )}
             </div>
 
-            {weekSixteenConsolation.length > 1 && (
+            {otherConsolationGames.length > 0 && (
               <div>
                 <h3 className="text-lg font-semibold mb-6 text-center">5th Place Game</h3>
                 <div className="mx-auto w-[240px]">
                   <Matchup
                     matchupId={semiFinals.length + weekFifteenConsolation.length + 2}
-                    homeTeam={weekSixteenConsolation[1]?.home_team_name}
-                    homeTeamId={weekSixteenConsolation[1]?.home_team_id}
-                    homeScore={weekSixteenConsolation[1]?.home_score}
-                    awayTeam={weekSixteenConsolation[1]?.away_team_name}
-                    awayTeamId={weekSixteenConsolation[1]?.away_team_id}
-                    awayScore={weekSixteenConsolation[1]?.away_score}
+                    homeTeam={otherConsolationGames[0]?.home_team_name}
+                    homeTeamId={otherConsolationGames[0]?.home_team_id}
+                    homeScore={otherConsolationGames[0]?.home_score}
+                    awayTeam={otherConsolationGames[0]?.away_team_name}
+                    awayTeamId={otherConsolationGames[0]?.away_team_id}
+                    awayScore={otherConsolationGames[0]?.away_score}
+                    isConsolation
+                    editMode={editMode}
+                    onTeamSelect={onTeamSelect}
+                    onScoreUpdate={onScoreUpdate}
+                    teams={teams}
+                  />
+                </div>
+              </div>
+            )}
+
+            {otherConsolationGames.length > 1 && (
+              <div>
+                <h3 className="text-lg font-semibold mb-6 text-center">7th Place Game</h3>
+                <div className="mx-auto w-[240px]">
+                  <Matchup
+                    matchupId={semiFinals.length + weekFifteenConsolation.length + 3}
+                    homeTeam={otherConsolationGames[1]?.home_team_name}
+                    homeTeamId={otherConsolationGames[1]?.home_team_id}
+                    homeScore={otherConsolationGames[1]?.home_score}
+                    awayTeam={otherConsolationGames[1]?.away_team_name}
+                    awayTeamId={otherConsolationGames[1]?.away_team_id}
+                    awayScore={otherConsolationGames[1]?.away_score}
                     isConsolation
                     editMode={editMode}
                     onTeamSelect={onTeamSelect}

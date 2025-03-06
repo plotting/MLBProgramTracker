@@ -45,9 +45,31 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
     (matchup) => matchup.week_number === 15
   );
 
-  // Get week 16 consolation matchups (3rd place game)
+  // Get week 16 consolation matchups (including 3rd place game)
   const weekSixteenConsolation = consolationMatchups.filter(
     (matchup) => matchup.week_number === 16
+  );
+
+  // Find the 3rd place game - matchup between semifinal losers in week 16
+  const getSemiFinalLosers = () => {
+    return semiFinals.map(match => {
+      return match.home_score > match.away_score 
+        ? match.away_team_id 
+        : match.home_team_id;
+    });
+  };
+
+  const semiFinalLosers = getSemiFinalLosers();
+  
+  const thirdPlaceGame = weekSixteenConsolation.find(
+    (matchup) => 
+      semiFinalLosers.includes(matchup.home_team_id) && 
+      semiFinalLosers.includes(matchup.away_team_id)
+  );
+
+  // Get other consolation games (not the 3rd place game)
+  const otherConsolationGames = weekSixteenConsolation.filter(
+    (matchup) => matchup !== thirdPlaceGame
   );
 
   // Allocate matchup IDs
@@ -137,9 +159,30 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
             </div>
 
             <div>
+              <h3 className="text-lg font-semibold mb-6 text-center">3rd Place Game</h3>
+              {thirdPlaceGame && (
+                <div className="mx-auto w-[240px]">
+                  <Matchup
+                    matchupId={matchupCounter++}
+                    homeTeam={thirdPlaceGame.home_team_name}
+                    homeTeamId={thirdPlaceGame.home_team_id}
+                    homeScore={thirdPlaceGame.home_score}
+                    awayTeam={thirdPlaceGame.away_team_name}
+                    awayTeamId={thirdPlaceGame.away_team_id}
+                    awayScore={thirdPlaceGame.away_score}
+                    editMode={editMode}
+                    onTeamSelect={onTeamSelect}
+                    onScoreUpdate={onScoreUpdate}
+                    teams={teams}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div>
               <h3 className="text-lg font-semibold mb-6 text-center">Final Placement Games</h3>
               <div className="space-y-12">
-                {weekSixteenConsolation.map((matchup, index) => {
+                {otherConsolationGames.map((matchup, index) => {
                   const id = matchupCounter++;
                   return (
                     <div key={`final-consolation-${index}`} className="mx-auto w-[240px]">

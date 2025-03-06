@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Trophy, Award, Star, Shield } from "lucide-react";
 
 interface StandingsTableProps {
   seasonId: number;
@@ -68,13 +67,16 @@ const StandingsTable = ({ seasonId }: StandingsTableProps) => {
     
     // Initialize all teams with their regular season positions (as a fallback)
     sortedByRegularSeason.forEach((team, index) => {
-      teamPlacements.set(team.team_id, index);
+      teamPlacements.set(team.team_id, { position: index + 1, confirmed: false });
     });
     
     // Define Championship game (highest week number playoff game, not consolation)
     const playoffGames = playoffMatchups.filter(m => m.is_playoff && !m.is_consolation);
     const championshipWeek = Math.max(...playoffGames.map(m => m.week_number));
-    const championshipGame = playoffGames.find(m => m.week_number === championshipWeek);
+    const championshipGame = playoffGames.find(m => 
+      m.week_number === championshipWeek && 
+      !m.is_consolation
+    );
     
     if (championshipGame && championshipGame.home_score !== null && championshipGame.away_score !== null) {
       // Championship winner (1st place)
@@ -87,12 +89,27 @@ const StandingsTable = ({ seasonId }: StandingsTableProps) => {
         ? championshipGame.away_team_id 
         : championshipGame.home_team_id;
       
-      teamPlacements.set(championTeamId, 0); // 1st place
-      teamPlacements.set(runnerUpTeamId, 1); // 2nd place
+      teamPlacements.set(championTeamId, { position: 1, confirmed: true });
+      teamPlacements.set(runnerUpTeamId, { position: 2, confirmed: true });
       
-      // Find 3rd place game (consolation in championship week)
-      const thirdPlaceGame = playoffMatchups.find(
-        m => m.week_number === championshipWeek && m.is_consolation
+      // Find semifinal losers
+      const semiFinals = playoffGames.filter(m => 
+        m.week_number === championshipWeek - 1 && 
+        !m.is_consolation
+      );
+      
+      // Find the third place game by identifying the matchup between semifinal losers
+      const semiFinalLosers = semiFinals.map(match => {
+        const loserTeamId = match.home_score > match.away_score 
+          ? match.away_team_id 
+          : match.home_team_id;
+        return loserTeamId;
+      });
+
+      // Now find the consolation game that has these semifinal losers
+      const thirdPlaceGame = playoffMatchups.find(m => 
+        m.week_number === championshipWeek && 
+        (semiFinalLosers.includes(m.home_team_id) && semiFinalLosers.includes(m.away_team_id))
       );
       
       if (thirdPlaceGame && thirdPlaceGame.home_score !== null && thirdPlaceGame.away_score !== null) {
@@ -106,39 +123,55 @@ const StandingsTable = ({ seasonId }: StandingsTableProps) => {
           ? thirdPlaceGame.away_team_id 
           : thirdPlaceGame.home_team_id;
         
-        teamPlacements.set(thirdPlaceTeamId, 2); // 3rd place
-        teamPlacements.set(fourthPlaceTeamId, 3); // 4th place
+        teamPlacements.set(thirdPlaceTeamId, { position: 3, confirmed: true });
+        teamPlacements.set(fourthPlaceTeamId, { position: 4, confirmed: true });
       }
       
       // Process other consolation games for 5th-10th place
-      const consolationGames = playoffMatchups
-        .filter(m => m.is_consolation && m.week_number === championshipWeek && 
-                m !== thirdPlaceGame && m.home_score !== null && m.away_score !== null);
+      // Group consolation games by their "tier" based on regular season standings
+      const consolationGames = playoffMatchups.filter(m => 
+        m.is_consolation && 
+        m.week_number === championshipWeek &&
+        m !== thirdPlaceGame && 
+        m.home_score !== null && 
+        m.away_score !== null
+      );
       
-      let placementCounter = 4; // Start from 5th place (index 4)
+      // Map teams to their initial regular season rankings
+      const regularSeasonRanking = new Map();
+      sortedByRegularSeason.forEach((team, idx) => {
+        regularSeasonRanking.set(team.team_id, idx + 1);
+      });
       
-      consolationGames.forEach(game => {
-        if (game.home_score !== null && game.away_score !== null) {
-          // Winner gets better placement
-          const winnerTeamId = game.home_score > game.away_score 
-            ? game.home_team_id 
-            : game.away_team_id;
-          
-          // Loser gets next placement
-          const loserTeamId = game.home_score > game.away_score 
-            ? game.away_team_id 
-            : game.home_team_id;
-          
-          teamPlacements.set(winnerTeamId, placementCounter++);
-          teamPlacements.set(loserTeamId, placementCounter++);
-        }
+      // Sort consolation games by the average regular season ranking of participating teams
+      const sortedConsolationGames = [...consolationGames].sort((a, b) => {
+        const aAvgRank = (regularSeasonRanking.get(a.home_team_id) + regularSeasonRanking.get(a.away_team_id)) / 2;
+        const bAvgRank = (regularSeasonRanking.get(b.home_team_id) + regularSeasonRanking.get(b.away_team_id)) / 2;
+        return aAvgRank - bAvgRank; // Lower ranks (better teams) first
+      });
+      
+      // Assign placements for consolation games
+      let placementCounter = 5; // Start from 5th place
+      sortedConsolationGames.forEach(game => {
+        // Winner gets better placement
+        const winnerTeamId = game.home_score > game.away_score 
+          ? game.home_team_id 
+          : game.away_team_id;
+        
+        // Loser gets next placement
+        const loserTeamId = game.home_score > game.away_score 
+          ? game.away_team_id 
+          : game.home_team_id;
+        
+        teamPlacements.set(winnerTeamId, { position: placementCounter++, confirmed: true });
+        teamPlacements.set(loserTeamId, { position: placementCounter++, confirmed: true });
       });
     }
     
     // Sort teams based on final placement
     return [...sortedByRegularSeason].sort((a, b) => {
-      const aPlacement = teamPlacements.get(a.team_id);
-      const bPlacement = teamPlacements.get(b.team_id);
+      const aPlacement = teamPlacements.get(a.team_id)?.position || Number.MAX_SAFE_INTEGER;
+      const bPlacement = teamPlacements.get(b.team_id)?.position || Number.MAX_SAFE_INTEGER;
       return aPlacement - bPlacement;
     });
   };
