@@ -44,7 +44,7 @@ const StandingsTable = ({ seasonId }: StandingsTableProps) => {
     return <p className="text-center py-4">Loading standings...</p>;
   }
 
-  // First sort by regular season record
+  // Sort by regular season record
   const sortedByRegularSeason = standings ? [...standings].sort((a, b) => {
     const aTotal = a.regular_season_wins + a.regular_season_losses + a.regular_season_ties;
     const bTotal = b.regular_season_wins + b.regular_season_losses + b.regular_season_ties;
@@ -59,16 +59,11 @@ const StandingsTable = ({ seasonId }: StandingsTableProps) => {
   }) : [];
 
   // Determine final standings based on playoff results
-  const getTeamFinalPlacement = () => {
-    if (!playoffMatchups || !sortedByRegularSeason) return [];
+  const getTeamFinalPlacements = () => {
+    if (!playoffMatchups || !sortedByRegularSeason) return new Map();
     
     // Map to track team placement
     const teamPlacements = new Map();
-    
-    // Initialize all teams with their regular season positions (as a fallback)
-    sortedByRegularSeason.forEach((team, index) => {
-      teamPlacements.set(team.team_id, { position: index + 1, confirmed: false });
-    });
     
     // Define Championship game (highest week number playoff game, not consolation)
     const playoffGames = playoffMatchups.filter(m => m.is_playoff && !m.is_consolation);
@@ -89,27 +84,31 @@ const StandingsTable = ({ seasonId }: StandingsTableProps) => {
         ? championshipGame.away_team_id 
         : championshipGame.home_team_id;
       
-      teamPlacements.set(championTeamId, { position: 1, confirmed: true });
-      teamPlacements.set(runnerUpTeamId, { position: 2, confirmed: true });
+      teamPlacements.set(championTeamId, 1); // 1st place
+      teamPlacements.set(runnerUpTeamId, 2); // 2nd place
       
-      // Find semifinal losers
+      // Find semifinal games
       const semiFinals = playoffGames.filter(m => 
-        m.week_number === championshipWeek - 1 && 
+        m.week_number === (championshipWeek - 1) && 
         !m.is_consolation
       );
       
-      // Find the third place game by identifying the matchup between semifinal losers
+      // Identify semifinal losers
       const semiFinalLosers = semiFinals.map(match => {
-        const loserTeamId = match.home_score > match.away_score 
+        if (match.home_score === null || match.away_score === null) return null;
+        return match.home_score > match.away_score 
           ? match.away_team_id 
           : match.home_team_id;
-        return loserTeamId;
-      });
-
-      // Now find the consolation game that has these semifinal losers
-      const thirdPlaceGame = playoffMatchups.find(m => 
-        m.week_number === championshipWeek && 
-        (semiFinalLosers.includes(m.home_team_id) && semiFinalLosers.includes(m.away_team_id))
+      }).filter(Boolean);
+      
+      // Find 3rd place game (between semifinal losers)
+      const consolationGames = playoffMatchups.filter(m => 
+        m.week_number === championshipWeek && m.is_consolation
+      );
+      
+      const thirdPlaceGame = consolationGames.find(match => 
+        semiFinalLosers.includes(match.home_team_id || 0) && 
+        semiFinalLosers.includes(match.away_team_id || 0)
       );
       
       if (thirdPlaceGame && thirdPlaceGame.home_score !== null && thirdPlaceGame.away_score !== null) {
@@ -123,74 +122,82 @@ const StandingsTable = ({ seasonId }: StandingsTableProps) => {
           ? thirdPlaceGame.away_team_id 
           : thirdPlaceGame.home_team_id;
         
-        teamPlacements.set(thirdPlaceTeamId, { position: 3, confirmed: true });
-        teamPlacements.set(fourthPlaceTeamId, { position: 4, confirmed: true });
+        teamPlacements.set(thirdPlaceTeamId, 3); // 3rd place
+        teamPlacements.set(fourthPlaceTeamId, 4); // 4th place
       }
       
-      // Process other consolation games for 5th-10th place
-      // Group consolation games by their "tier" based on regular season standings
-      const consolationGames = playoffMatchups.filter(m => 
-        m.is_consolation && 
-        m.week_number === championshipWeek &&
-        m !== thirdPlaceGame && 
-        m.home_score !== null && 
-        m.away_score !== null
-      );
+      // Identify other consolation games (5th-10th place games)
+      const otherConsolationGames = consolationGames.filter(m => m !== thirdPlaceGame);
       
-      // Map teams to their initial regular season rankings
-      const regularSeasonRanking = new Map();
-      sortedByRegularSeason.forEach((team, idx) => {
-        regularSeasonRanking.set(team.team_id, idx + 1);
-      });
-      
-      // Sort consolation games by the average regular season ranking of participating teams
-      const sortedConsolationGames = [...consolationGames].sort((a, b) => {
-        const aAvgRank = (regularSeasonRanking.get(a.home_team_id) + regularSeasonRanking.get(a.away_team_id)) / 2;
-        const bAvgRank = (regularSeasonRanking.get(b.home_team_id) + regularSeasonRanking.get(b.away_team_id)) / 2;
-        return aAvgRank - bAvgRank; // Lower ranks (better teams) first
-      });
-      
-      // Assign placements for consolation games
-      let placementCounter = 5; // Start from 5th place
-      sortedConsolationGames.forEach(game => {
-        // Winner gets better placement
-        const winnerTeamId = game.home_score > game.away_score 
-          ? game.home_team_id 
-          : game.away_team_id;
+      // Process 5th-6th place game
+      const fifthPlaceGame = otherConsolationGames[0];
+      if (fifthPlaceGame && fifthPlaceGame.home_score !== null && fifthPlaceGame.away_score !== null) {
+        const fifthPlaceTeamId = fifthPlaceGame.home_score > fifthPlaceGame.away_score 
+          ? fifthPlaceGame.home_team_id 
+          : fifthPlaceGame.away_team_id;
         
-        // Loser gets next placement
-        const loserTeamId = game.home_score > game.away_score 
-          ? game.away_team_id 
-          : game.home_team_id;
+        const sixthPlaceTeamId = fifthPlaceGame.home_score > fifthPlaceGame.away_score 
+          ? fifthPlaceGame.away_team_id 
+          : fifthPlaceGame.home_team_id;
         
-        teamPlacements.set(winnerTeamId, { position: placementCounter++, confirmed: true });
-        teamPlacements.set(loserTeamId, { position: placementCounter++, confirmed: true });
-      });
+        teamPlacements.set(fifthPlaceTeamId, 5); // 5th place
+        teamPlacements.set(sixthPlaceTeamId, 6); // 6th place
+      }
+      
+      // Process 7th-8th place game
+      const seventhPlaceGame = otherConsolationGames[1];
+      if (seventhPlaceGame && seventhPlaceGame.home_score !== null && seventhPlaceGame.away_score !== null) {
+        const seventhPlaceTeamId = seventhPlaceGame.home_score > seventhPlaceGame.away_score 
+          ? seventhPlaceGame.home_team_id 
+          : seventhPlaceGame.away_team_id;
+        
+        const eighthPlaceTeamId = seventhPlaceGame.home_score > seventhPlaceGame.away_score 
+          ? seventhPlaceGame.away_team_id 
+          : seventhPlaceGame.home_team_id;
+        
+        teamPlacements.set(seventhPlaceTeamId, 7); // 7th place
+        teamPlacements.set(eighthPlaceTeamId, 8); // 8th place
+      }
+      
+      // Process 9th-10th place game if it exists
+      const ninthPlaceGame = otherConsolationGames[2];
+      if (ninthPlaceGame && ninthPlaceGame.home_score !== null && ninthPlaceGame.away_score !== null) {
+        const ninthPlaceTeamId = ninthPlaceGame.home_score > ninthPlaceGame.away_score 
+          ? ninthPlaceGame.home_team_id 
+          : ninthPlaceGame.away_team_id;
+        
+        const tenthPlaceTeamId = ninthPlaceGame.home_score > ninthPlaceGame.away_score 
+          ? ninthPlaceGame.away_team_id 
+          : ninthPlaceGame.home_team_id;
+        
+        teamPlacements.set(ninthPlaceTeamId, 9); // 9th place
+        teamPlacements.set(tenthPlaceTeamId, 10); // 10th place
+      }
     }
     
-    // Sort teams based on final placement
-    return [...sortedByRegularSeason].sort((a, b) => {
-      const aPlacement = teamPlacements.get(a.team_id)?.position || Number.MAX_SAFE_INTEGER;
-      const bPlacement = teamPlacements.get(b.team_id)?.position || Number.MAX_SAFE_INTEGER;
-      return aPlacement - bPlacement;
-    });
+    return teamPlacements;
   };
 
-  const finalStandings = getTeamFinalPlacement();
+  const teamPlacements = getTeamFinalPlacements();
 
-  const getFinalPlacement = (position: number): React.ReactNode => {
-    switch (position) {
-      case 0: return <span title="1st Place">🥇</span>;
-      case 1: return <span title="2nd Place">🥈</span>;
-      case 2: return <span title="3rd Place">🥉</span>;
-      case 3: return <span title="4th Place">🏆</span>;
-      case 4: return <span title="5th Place">🌟</span>;
-      case 5: return <span title="6th Place">🛡️</span>;
-      case 6: return <span title="7th Place">🚽</span>;
-      case 7: return <span title="8th Place">🤡</span>;
-      case 8: return <span title="9th Place">🤮</span>;
-      case 9: return <span title="10th Place">💩</span>;
-      default: return `${position + 1}`;
+  // Get emoji for final placement
+  const getFinalPlacementEmoji = (teamId: number): React.ReactNode => {
+    const placement = teamPlacements.get(teamId);
+    
+    if (!placement) return "";
+    
+    switch (placement) {
+      case 1: return <span title="1st Place">🥇</span>;
+      case 2: return <span title="2nd Place">🥈</span>;
+      case 3: return <span title="3rd Place">🥉</span>;
+      case 4: return <span title="4th Place">🏆</span>;
+      case 5: return <span title="5th Place">🌟</span>;
+      case 6: return <span title="6th Place">🛡️</span>;
+      case 7: return <span title="7th Place">🚽</span>;
+      case 8: return <span title="8th Place">🤡</span>;
+      case 9: return <span title="9th Place">🤮</span>;
+      case 10: return <span title="10th Place">💩</span>;
+      default: return "";
     }
   };
 
@@ -209,7 +216,7 @@ const StandingsTable = ({ seasonId }: StandingsTableProps) => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {finalStandings.map((team, index) => (
+          {sortedByRegularSeason.map((team, index) => (
             <TableRow key={team.team_id}>
               <TableCell className="font-medium">
                 {index + 1}
@@ -232,7 +239,9 @@ const StandingsTable = ({ seasonId }: StandingsTableProps) => {
               </TableCell>
               <TableCell className="text-center">{team.regular_season_points_for.toFixed(1)}</TableCell>
               <TableCell className="text-center">{team.regular_season_points_against.toFixed(1)}</TableCell>
-              <TableCell className="text-center font-medium text-xl">{getFinalPlacement(index)}</TableCell>
+              <TableCell className="text-center font-medium text-xl">
+                {getFinalPlacementEmoji(team.team_id)}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

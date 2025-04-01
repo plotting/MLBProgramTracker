@@ -50,27 +50,41 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
     (matchup) => matchup.week_number === 16
   );
 
-  // Find the 3rd place game - matchup between semifinal losers in week 16
+  // Find the 3rd place game
+  // For Modified Playoffs, 3rd place game is between semifinal losers
   const getSemiFinalLosers = () => {
+    if (!semiFinals.length) return [];
+    
     return semiFinals.map(match => {
+      if (match.home_score === null || match.away_score === null) return null;
       return match.home_score > match.away_score 
         ? match.away_team_id 
         : match.home_team_id;
-    });
+    }).filter(Boolean);
   };
 
   const semiFinalLosers = getSemiFinalLosers();
   
+  // Find the 3rd place game - matchup between semifinal losers in week 16
   const thirdPlaceGame = weekSixteenConsolation.find(
     (matchup) => 
-      semiFinalLosers.includes(matchup.home_team_id) && 
-      semiFinalLosers.includes(matchup.away_team_id)
+      semiFinalLosers.length === 2 &&
+      semiFinalLosers.includes(matchup.home_team_id || 0) && 
+      semiFinalLosers.includes(matchup.away_team_id || 0)
   );
 
   // Get other consolation games (not the 3rd place game)
   const otherConsolationGames = weekSixteenConsolation.filter(
     (matchup) => matchup !== thirdPlaceGame
   );
+
+  // Sort other consolation games by team ID or some other relevant criteria
+  // This will help ensure consistent display of 5th, 7th, 9th place games
+  const sortedConsolationGames = [...otherConsolationGames].sort((a, b) => {
+    const aSum = (a.home_team_id || 0) + (a.away_team_id || 0);
+    const bSum = (b.home_team_id || 0) + (b.away_team_id || 0);
+    return aSum - bSum;
+  });
 
   // Allocate matchup IDs
   let matchupCounter = 0;
@@ -109,7 +123,7 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
             </div>
 
             <div>
-              <h3 className="text-lg font-semibold mb-6 text-center">Consolation Brackets</h3>
+              <h3 className="text-lg font-semibold mb-6 text-center">Consolation Semifinals</h3>
               <div className="space-y-12">
                 {weekFifteenConsolation.map((matchup, index) => {
                   const id = matchupCounter++;
@@ -179,21 +193,20 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
               )}
             </div>
 
-            <div>
-              <h3 className="text-lg font-semibold mb-6 text-center">Final Placement Games</h3>
-              <div className="space-y-12">
-                {otherConsolationGames.map((matchup, index) => {
-                  const id = matchupCounter++;
-                  return (
-                    <div key={`final-consolation-${index}`} className="mx-auto w-[240px]">
+            {sortedConsolationGames.length > 0 && (
+              <>
+                {sortedConsolationGames[0] && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-6 text-center">5th Place Game</h3>
+                    <div className="mx-auto w-[240px]">
                       <Matchup
-                        matchupId={id}
-                        homeTeam={matchup.home_team_name}
-                        homeTeamId={matchup.home_team_id}
-                        homeScore={matchup.home_score}
-                        awayTeam={matchup.away_team_name}
-                        awayTeamId={matchup.away_team_id}
-                        awayScore={matchup.away_score}
+                        matchupId={matchupCounter++}
+                        homeTeam={sortedConsolationGames[0].home_team_name}
+                        homeTeamId={sortedConsolationGames[0].home_team_id}
+                        homeScore={sortedConsolationGames[0].home_score}
+                        awayTeam={sortedConsolationGames[0].away_team_name}
+                        awayTeamId={sortedConsolationGames[0].away_team_id}
+                        awayScore={sortedConsolationGames[0].away_score}
                         isConsolation
                         editMode={editMode}
                         onTeamSelect={onTeamSelect}
@@ -201,10 +214,54 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
                         teams={teams}
                       />
                     </div>
-                  );
-                })}
-              </div>
-            </div>
+                  </div>
+                )}
+
+                {sortedConsolationGames[1] && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-6 text-center">7th Place Game</h3>
+                    <div className="mx-auto w-[240px]">
+                      <Matchup
+                        matchupId={matchupCounter++}
+                        homeTeam={sortedConsolationGames[1].home_team_name}
+                        homeTeamId={sortedConsolationGames[1].home_team_id}
+                        homeScore={sortedConsolationGames[1].home_score}
+                        awayTeam={sortedConsolationGames[1].away_team_name}
+                        awayTeamId={sortedConsolationGames[1].away_team_id}
+                        awayScore={sortedConsolationGames[1].away_score}
+                        isConsolation
+                        editMode={editMode}
+                        onTeamSelect={onTeamSelect}
+                        onScoreUpdate={onScoreUpdate}
+                        teams={teams}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {sortedConsolationGames[2] && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-6 text-center">9th Place Game</h3>
+                    <div className="mx-auto w-[240px]">
+                      <Matchup
+                        matchupId={matchupCounter++}
+                        homeTeam={sortedConsolationGames[2].home_team_name}
+                        homeTeamId={sortedConsolationGames[2].home_team_id}
+                        homeScore={sortedConsolationGames[2].home_score}
+                        awayTeam={sortedConsolationGames[2].away_team_name}
+                        awayTeamId={sortedConsolationGames[2].away_team_id}
+                        awayScore={sortedConsolationGames[2].away_score}
+                        isConsolation
+                        editMode={editMode}
+                        onTeamSelect={onTeamSelect}
+                        onScoreUpdate={onScoreUpdate}
+                        teams={teams}
+                      />
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
       </div>
