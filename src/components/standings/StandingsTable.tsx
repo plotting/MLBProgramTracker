@@ -31,7 +31,7 @@ const StandingsTable = ({ seasonId }: StandingsTableProps) => {
         .from('matchup_scores_view')
         .select('*')
         .eq('season_id', seasonId)
-        .or('is_playoff.eq.true,is_consolation.eq.true');
+        .or('is_playoff.eq.true,is_consolation.eq.true,week_number.gte.15');
         
       if (error) throw error;
       return data;
@@ -65,12 +65,19 @@ const StandingsTable = ({ seasonId }: StandingsTableProps) => {
     // Map to track team placement
     const teamPlacements = new Map();
     
-    // Get all playoff matchups (non-consolation)
-    const playoffGames = playoffMatchups.filter(m => m.is_playoff && !m.is_consolation);
-    
-    // Find the championship game (week 16)
-    const championshipGame = playoffGames.find(m => 
-      m.week_number === 16
+    // Get championship game (week 16)
+    const championshipGame = playoffMatchups.find(m => 
+      m.week_number === 16 && 
+      m.is_playoff && 
+      !m.is_consolation &&
+      // For seasons with unusual configuration, find the championship game explicitly
+      // by looking at who played (usually the top 2 teams from semifinals)
+      ((playoffMatchups.filter(m => m.week_number === 15 && m.is_playoff && !m.is_consolation).length >= 2) ||
+       (m === playoffMatchups.find(game => 
+         game.week_number === 16 && 
+         game.is_playoff && 
+         !game.is_consolation
+       )))
     );
     
     if (championshipGame && championshipGame.home_score !== null && championshipGame.away_score !== null) {
@@ -87,9 +94,11 @@ const StandingsTable = ({ seasonId }: StandingsTableProps) => {
       teamPlacements.set(championTeamId, 1); // 1st place
       teamPlacements.set(runnerUpTeamId, 2); // 2nd place
       
-      // Find semifinal games (week 15)
-      const semiFinals = playoffGames.filter(m => 
-        m.week_number === 15 
+      // Get semifinal games (week 15)
+      const semiFinals = playoffMatchups.filter(m => 
+        m.week_number === 15 && 
+        m.is_playoff && 
+        !m.is_consolation
       );
       
       // Identify semifinal losers
@@ -100,26 +109,51 @@ const StandingsTable = ({ seasonId }: StandingsTableProps) => {
           : match.home_team_id;
       }).filter(Boolean);
       
-      // Find 3rd place game between semifinal losers in week 16
-      // First look for non-consolation game (in some seasons)
-      let thirdPlaceGame = playoffGames.find(m => 
-        m.week_number === 16 && 
-        m !== championshipGame && 
-        semiFinalLosers.includes(m.home_team_id || 0) && 
-        semiFinalLosers.includes(m.away_team_id || 0)
-      );
-      
-      // If not found, look for consolation game
-      if (!thirdPlaceGame) {
-        const consolationGames = playoffMatchups.filter(m => m.is_consolation);
-        thirdPlaceGame = consolationGames.find(m =>
-          m.week_number === 16 &&
-          semiFinalLosers.includes(m.home_team_id || 0) && 
-          semiFinalLosers.includes(m.away_team_id || 0)
+      // Find 3rd place game more comprehensively
+      const findThirdPlaceGame = () => {
+        // First check playoff (non-championship) games
+        const nonChampionship = playoffMatchups.filter(m => 
+          m.week_number === 16 && 
+          m.is_playoff && 
+          !m.is_consolation && 
+          m !== championshipGame
         );
-      }
+        
+        for (const matchup of nonChampionship) {
+          if (semiFinalLosers.includes(matchup.home_team_id || 0) && 
+              semiFinalLosers.includes(matchup.away_team_id || 0)) {
+            return matchup;
+          }
+        }
+        
+        // Then check consolation games
+        const consolationGames = playoffMatchups.filter(m => 
+          m.week_number === 16 && 
+          (m.is_consolation || !m.is_playoff)
+        );
+        
+        for (const matchup of consolationGames) {
+          if (semiFinalLosers.includes(matchup.home_team_id || 0) && 
+              semiFinalLosers.includes(matchup.away_team_id || 0)) {
+            return matchup;
+          }
+        }
+        
+        // Finally, check all week 16 games
+        const allWeek16 = playoffMatchups.filter(m => m.week_number === 16);
+        for (const matchup of allWeek16) {
+          if (semiFinalLosers.includes(matchup.home_team_id || 0) && 
+              semiFinalLosers.includes(matchup.away_team_id || 0)) {
+            return matchup;
+          }
+        }
+        
+        return null;
+      };
       
       // Set 3rd and 4th place if 3rd place game exists
+      const thirdPlaceGame = findThirdPlaceGame();
+      
       if (thirdPlaceGame && thirdPlaceGame.home_score !== null && thirdPlaceGame.away_score !== null) {
         const thirdPlaceTeamId = thirdPlaceGame.home_score > thirdPlaceGame.away_score 
           ? thirdPlaceGame.home_team_id 
@@ -134,14 +168,14 @@ const StandingsTable = ({ seasonId }: StandingsTableProps) => {
       }
       
       // Process consolation games for 5th-10th places
-      const consolationGames = playoffMatchups.filter(m => 
+      const consolidationGames = playoffMatchups.filter(m => 
         m.week_number === 16 && 
-        m.is_consolation &&
+        (m.is_consolation || (!m.is_playoff && m !== thirdPlaceGame)) &&
         m !== thirdPlaceGame
       );
       
       // Sort consolation games to make assignment consistent
-      const sortedConsolationGames = [...consolationGames].sort((a, b) => {
+      const sortedConsolationGames = [...consolidationGames].sort((a, b) => {
         const aSum = (a.home_team_id || 0) + (a.away_team_id || 0);
         const bSum = (b.home_team_id || 0) + (b.away_team_id || 0);
         return aSum - bSum;
