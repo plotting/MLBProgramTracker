@@ -50,28 +50,62 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
     (matchup) => matchup.week_number === 16
   );
 
-  // Find the 3rd place game
-  // For Modified Playoffs, 3rd place game is between semifinal losers
-  const getSemiFinalLosers = () => {
-    if (!semiFinals.length) return [];
-    
-    return semiFinals.map(match => {
-      if (match.home_score === null || match.away_score === null) return null;
-      return match.home_score > match.away_score 
-        ? match.away_team_id 
-        : match.home_team_id;
-    }).filter(Boolean);
+  // Calculate important playoff-related information
+  const getPlayoffResults = () => {
+    const results = {
+      championshipWinner: null,
+      championshipLoser: null,
+      semiFinalLosers: [] as number[],
+      thirdPlaceWinner: null,
+      thirdPlaceLoser: null,
+    };
+
+    // Championship winner/loser
+    if (championship && championship.home_score !== null && championship.away_score !== null) {
+      if (championship.home_score > championship.away_score) {
+        results.championshipWinner = championship.home_team_id;
+        results.championshipLoser = championship.away_team_id;
+      } else {
+        results.championshipWinner = championship.away_team_id;
+        results.championshipLoser = championship.home_team_id;
+      }
+    }
+
+    // Semifinal losers
+    semiFinals.forEach(match => {
+      if (match.home_score !== null && match.away_score !== null) {
+        const loser = match.home_score > match.away_score 
+          ? match.away_team_id 
+          : match.home_team_id;
+        
+        results.semiFinalLosers.push(loser);
+      }
+    });
+
+    // Find the 3rd place game - need to look at non-consolation games because semiFinals losers 
+    // play in the 3rd place game which is not marked as consolation
+    const thirdPlaceGame = playoffMatchups.find(
+      (matchup) => 
+        matchup.week_number === 16 && 
+        matchup !== championship &&
+        results.semiFinalLosers.includes(matchup.home_team_id || 0) && 
+        results.semiFinalLosers.includes(matchup.away_team_id || 0)
+    );
+
+    if (thirdPlaceGame && thirdPlaceGame.home_score !== null && thirdPlaceGame.away_score !== null) {
+      if (thirdPlaceGame.home_score > thirdPlaceGame.away_score) {
+        results.thirdPlaceWinner = thirdPlaceGame.home_team_id;
+        results.thirdPlaceLoser = thirdPlaceGame.away_team_id;
+      } else {
+        results.thirdPlaceWinner = thirdPlaceGame.away_team_id;
+        results.thirdPlaceLoser = thirdPlaceGame.home_team_id;
+      }
+    }
+
+    return { results, thirdPlaceGame };
   };
 
-  const semiFinalLosers = getSemiFinalLosers();
-  
-  // Find the 3rd place game - matchup between semifinal losers in week 16
-  const thirdPlaceGame = weekSixteenConsolation.find(
-    (matchup) => 
-      semiFinalLosers.length === 2 &&
-      semiFinalLosers.includes(matchup.home_team_id || 0) && 
-      semiFinalLosers.includes(matchup.away_team_id || 0)
-  );
+  const { results, thirdPlaceGame } = getPlayoffResults();
 
   // Get other consolation games (not the 3rd place game)
   const otherConsolationGames = weekSixteenConsolation.filter(

@@ -65,12 +65,12 @@ const StandingsTable = ({ seasonId }: StandingsTableProps) => {
     // Map to track team placement
     const teamPlacements = new Map();
     
-    // Define Championship game (highest week number playoff game, not consolation)
+    // Get all playoff matchups (non-consolation)
     const playoffGames = playoffMatchups.filter(m => m.is_playoff && !m.is_consolation);
-    const championshipWeek = Math.max(...playoffGames.map(m => m.week_number));
+    
+    // Find the championship game (week 16)
     const championshipGame = playoffGames.find(m => 
-      m.week_number === championshipWeek && 
-      !m.is_consolation
+      m.week_number === 16
     );
     
     if (championshipGame && championshipGame.home_score !== null && championshipGame.away_score !== null) {
@@ -87,10 +87,9 @@ const StandingsTable = ({ seasonId }: StandingsTableProps) => {
       teamPlacements.set(championTeamId, 1); // 1st place
       teamPlacements.set(runnerUpTeamId, 2); // 2nd place
       
-      // Find semifinal games
+      // Find semifinal games (week 15)
       const semiFinals = playoffGames.filter(m => 
-        m.week_number === (championshipWeek - 1) && 
-        !m.is_consolation
+        m.week_number === 15 
       );
       
       // Identify semifinal losers
@@ -101,23 +100,31 @@ const StandingsTable = ({ seasonId }: StandingsTableProps) => {
           : match.home_team_id;
       }).filter(Boolean);
       
-      // Find 3rd place game (between semifinal losers)
-      const consolationGames = playoffMatchups.filter(m => 
-        m.week_number === championshipWeek && m.is_consolation
+      // Find 3rd place game between semifinal losers in week 16
+      // First look for non-consolation game (in some seasons)
+      let thirdPlaceGame = playoffGames.find(m => 
+        m.week_number === 16 && 
+        m !== championshipGame && 
+        semiFinalLosers.includes(m.home_team_id || 0) && 
+        semiFinalLosers.includes(m.away_team_id || 0)
       );
       
-      const thirdPlaceGame = consolationGames.find(match => 
-        semiFinalLosers.includes(match.home_team_id || 0) && 
-        semiFinalLosers.includes(match.away_team_id || 0)
-      );
+      // If not found, look for consolation game
+      if (!thirdPlaceGame) {
+        const consolationGames = playoffMatchups.filter(m => m.is_consolation);
+        thirdPlaceGame = consolationGames.find(m =>
+          m.week_number === 16 &&
+          semiFinalLosers.includes(m.home_team_id || 0) && 
+          semiFinalLosers.includes(m.away_team_id || 0)
+        );
+      }
       
+      // Set 3rd and 4th place if 3rd place game exists
       if (thirdPlaceGame && thirdPlaceGame.home_score !== null && thirdPlaceGame.away_score !== null) {
-        // 3rd place winner
         const thirdPlaceTeamId = thirdPlaceGame.home_score > thirdPlaceGame.away_score 
           ? thirdPlaceGame.home_team_id 
           : thirdPlaceGame.away_team_id;
         
-        // 4th place
         const fourthPlaceTeamId = thirdPlaceGame.home_score > thirdPlaceGame.away_score 
           ? thirdPlaceGame.away_team_id 
           : thirdPlaceGame.home_team_id;
@@ -126,53 +133,39 @@ const StandingsTable = ({ seasonId }: StandingsTableProps) => {
         teamPlacements.set(fourthPlaceTeamId, 4); // 4th place
       }
       
-      // Identify other consolation games (5th-10th place games)
-      const otherConsolationGames = consolationGames.filter(m => m !== thirdPlaceGame);
+      // Process consolation games for 5th-10th places
+      const consolationGames = playoffMatchups.filter(m => 
+        m.week_number === 16 && 
+        m.is_consolation &&
+        m !== thirdPlaceGame
+      );
       
-      // Process 5th-6th place game
-      const fifthPlaceGame = otherConsolationGames[0];
-      if (fifthPlaceGame && fifthPlaceGame.home_score !== null && fifthPlaceGame.away_score !== null) {
-        const fifthPlaceTeamId = fifthPlaceGame.home_score > fifthPlaceGame.away_score 
-          ? fifthPlaceGame.home_team_id 
-          : fifthPlaceGame.away_team_id;
-        
-        const sixthPlaceTeamId = fifthPlaceGame.home_score > fifthPlaceGame.away_score 
-          ? fifthPlaceGame.away_team_id 
-          : fifthPlaceGame.home_team_id;
-        
-        teamPlacements.set(fifthPlaceTeamId, 5); // 5th place
-        teamPlacements.set(sixthPlaceTeamId, 6); // 6th place
-      }
+      // Sort consolation games to make assignment consistent
+      const sortedConsolationGames = [...consolationGames].sort((a, b) => {
+        const aSum = (a.home_team_id || 0) + (a.away_team_id || 0);
+        const bSum = (b.home_team_id || 0) + (b.away_team_id || 0);
+        return aSum - bSum;
+      });
       
-      // Process 7th-8th place game
-      const seventhPlaceGame = otherConsolationGames[1];
-      if (seventhPlaceGame && seventhPlaceGame.home_score !== null && seventhPlaceGame.away_score !== null) {
-        const seventhPlaceTeamId = seventhPlaceGame.home_score > seventhPlaceGame.away_score 
-          ? seventhPlaceGame.home_team_id 
-          : seventhPlaceGame.away_team_id;
+      // Assign 5th-10th places
+      sortedConsolationGames.forEach((game, index) => {
+        if (game.home_score === null || game.away_score === null) return;
         
-        const eighthPlaceTeamId = seventhPlaceGame.home_score > seventhPlaceGame.away_score 
-          ? seventhPlaceGame.away_team_id 
-          : seventhPlaceGame.home_team_id;
+        // Calculate placements based on index (0=5th place, 1=7th place, 2=9th place)
+        const winnerPlace = 5 + (index * 2);
+        const loserPlace = 6 + (index * 2);
         
-        teamPlacements.set(seventhPlaceTeamId, 7); // 7th place
-        teamPlacements.set(eighthPlaceTeamId, 8); // 8th place
-      }
-      
-      // Process 9th-10th place game if it exists
-      const ninthPlaceGame = otherConsolationGames[2];
-      if (ninthPlaceGame && ninthPlaceGame.home_score !== null && ninthPlaceGame.away_score !== null) {
-        const ninthPlaceTeamId = ninthPlaceGame.home_score > ninthPlaceGame.away_score 
-          ? ninthPlaceGame.home_team_id 
-          : ninthPlaceGame.away_team_id;
+        const winnerTeamId = game.home_score > game.away_score 
+          ? game.home_team_id 
+          : game.away_team_id;
         
-        const tenthPlaceTeamId = ninthPlaceGame.home_score > ninthPlaceGame.away_score 
-          ? ninthPlaceGame.away_team_id 
-          : ninthPlaceGame.home_team_id;
+        const loserTeamId = game.home_score > game.away_score 
+          ? game.away_team_id 
+          : game.home_team_id;
         
-        teamPlacements.set(ninthPlaceTeamId, 9); // 9th place
-        teamPlacements.set(tenthPlaceTeamId, 10); // 10th place
-      }
+        teamPlacements.set(winnerTeamId, winnerPlace);
+        teamPlacements.set(loserTeamId, loserPlace);
+      });
     }
     
     return teamPlacements;

@@ -32,7 +32,8 @@ const FourTeamPlayoffs: React.FC<FourTeamPlayoffsProps> = ({
 
   // Get championship matchup (week 16)
   const championship = playoffMatchups.find(
-    (matchup) => matchup.week_number === 16
+    (matchup) => matchup.week_number === 16 && 
+    !matchup.is_consolation
   );
 
   // Get consolation matchups
@@ -52,24 +53,47 @@ const FourTeamPlayoffs: React.FC<FourTeamPlayoffsProps> = ({
 
   // Find the 3rd place game - matchup between semifinal losers in week 16
   const getSemiFinalLosers = () => {
-    return semiFinals.map(match => {
-      return match.home_score > match.away_score 
+    const losers = [];
+    for (const match of semiFinals) {
+      if (match.home_score === null || match.away_score === null) continue;
+      
+      const loser = match.home_score > match.away_score 
         ? match.away_team_id 
         : match.home_team_id;
-    });
+      
+      losers.push(loser);
+    }
+    return losers;
   };
 
   const semiFinalLosers = getSemiFinalLosers();
   
-  const thirdPlaceGame = weekSixteenConsolation.find(
+  // Find week 16 playoff (non-consolation) game between semifinal losers (3rd place game)
+  // For older seasons, semifinal losers played for 3rd place in a non-consolation game
+  const thirdPlaceGame = playoffMatchups.find(
     (matchup) => 
-      semiFinalLosers.includes(matchup.home_team_id) && 
-      semiFinalLosers.includes(matchup.away_team_id)
+      matchup.week_number === 16 && 
+      matchup !== championship &&
+      semiFinalLosers.length >= 2 &&
+      semiFinalLosers.includes(matchup.home_team_id || 0) && 
+      semiFinalLosers.includes(matchup.away_team_id || 0)
   );
+
+  // If no 3rd place game found in playoff games, check consolation games
+  // For some seasons, the 3rd place game might be marked as a consolation game
+  const thirdPlaceGameInConsolation = !thirdPlaceGame ? weekSixteenConsolation.find(
+    (matchup) => 
+      semiFinalLosers.length >= 2 &&
+      semiFinalLosers.includes(matchup.home_team_id || 0) && 
+      semiFinalLosers.includes(matchup.away_team_id || 0)
+  ) : null;
+
+  // Use either the playoff 3rd place game or the consolation one
+  const finalThirdPlaceGame = thirdPlaceGame || thirdPlaceGameInConsolation;
 
   // Get other consolation games (5th place game, etc.)
   const otherConsolationGames = weekSixteenConsolation.filter(
-    (matchup) => matchup !== thirdPlaceGame
+    (matchup) => matchup !== finalThirdPlaceGame
   );
 
   return (
@@ -151,16 +175,17 @@ const FourTeamPlayoffs: React.FC<FourTeamPlayoffsProps> = ({
 
             <div>
               <h3 className="text-lg font-semibold mb-6 text-center">3rd Place Game</h3>
-              {thirdPlaceGame && (
+              {finalThirdPlaceGame && (
                 <div className="mx-auto w-[240px]">
                   <Matchup
                     matchupId={semiFinals.length + weekFifteenConsolation.length + 1}
-                    homeTeam={thirdPlaceGame.home_team_name}
-                    homeTeamId={thirdPlaceGame.home_team_id}
-                    homeScore={thirdPlaceGame.home_score}
-                    awayTeam={thirdPlaceGame.away_team_name}
-                    awayTeamId={thirdPlaceGame.away_team_id}
-                    awayScore={thirdPlaceGame.away_score}
+                    homeTeam={finalThirdPlaceGame.home_team_name}
+                    homeTeamId={finalThirdPlaceGame.home_team_id}
+                    homeScore={finalThirdPlaceGame.home_score}
+                    awayTeam={finalThirdPlaceGame.away_team_name}
+                    awayTeamId={finalThirdPlaceGame.away_team_id}
+                    awayScore={finalThirdPlaceGame.away_score}
+                    isConsolation={finalThirdPlaceGame.is_consolation}
                     editMode={editMode}
                     onTeamSelect={onTeamSelect}
                     onScoreUpdate={onScoreUpdate}
@@ -204,6 +229,28 @@ const FourTeamPlayoffs: React.FC<FourTeamPlayoffsProps> = ({
                     awayTeam={otherConsolationGames[1]?.away_team_name}
                     awayTeamId={otherConsolationGames[1]?.away_team_id}
                     awayScore={otherConsolationGames[1]?.away_score}
+                    isConsolation
+                    editMode={editMode}
+                    onTeamSelect={onTeamSelect}
+                    onScoreUpdate={onScoreUpdate}
+                    teams={teams}
+                  />
+                </div>
+              </div>
+            )}
+
+            {otherConsolationGames.length > 2 && (
+              <div>
+                <h3 className="text-lg font-semibold mb-6 text-center">9th Place Game</h3>
+                <div className="mx-auto w-[240px]">
+                  <Matchup
+                    matchupId={semiFinals.length + weekFifteenConsolation.length + 4}
+                    homeTeam={otherConsolationGames[2]?.home_team_name}
+                    homeTeamId={otherConsolationGames[2]?.home_team_id}
+                    homeScore={otherConsolationGames[2]?.home_score}
+                    awayTeam={otherConsolationGames[2]?.away_team_name}
+                    awayTeamId={otherConsolationGames[2]?.away_team_id}
+                    awayScore={otherConsolationGames[2]?.away_score}
                     isConsolation
                     editMode={editMode}
                     onTeamSelect={onTeamSelect}
