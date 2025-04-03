@@ -167,21 +167,22 @@ export const getTeamFinalPlacements = (
 
 /**
  * Get emoji for final placement
+ * Returns a string instead of JSX to avoid requiring a .tsx file
  */
-export const getFinalPlacementEmoji = (placement: number | undefined): JSX.Element | string => {
+export const getFinalPlacementEmoji = (placement: number | undefined): string => {
   if (!placement) return "";
   
   switch (placement) {
-    case 1: return <span title="1st Place">🥇</span>;
-    case 2: return <span title="2nd Place">🥈</span>;
-    case 3: return <span title="3rd Place">🥉</span>;
-    case 4: return <span title="4th Place">🏆</span>;
-    case 5: return <span title="5th Place">🌟</span>;
-    case 6: return <span title="6th Place">🛡️</span>;
-    case 7: return <span title="7th Place">🚽</span>;
-    case 8: return <span title="8th Place">🤡</span>;
-    case 9: return <span title="9th Place">🤮</span>;
-    case 10: return <span title="10th Place">💩</span>;
+    case 1: return "🥇";  // 1st place
+    case 2: return "🥈";  // 2nd place
+    case 3: return "🥉";  // 3rd place
+    case 4: return "🏆";  // 4th place
+    case 5: return "🌟";  // 5th place
+    case 6: return "🛡️";  // 6th place
+    case 7: return "🚽";  // 7th place
+    case 8: return "🤡";  // 8th place
+    case 9: return "🤮";  // 9th place
+    case 10: return "💩"; // 10th place
     default: return "";
   }
 };
