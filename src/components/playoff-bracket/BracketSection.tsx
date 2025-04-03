@@ -31,11 +31,25 @@ const BracketSection: React.FC<BracketSectionProps> = ({
   onScoreUpdate,
   teams = []
 }) => {
+  // Sort matchups by seed when possible, placing matches with higher seeds on top
+  const sortedMatchups = [...matchups].sort((a, b) => {
+    // Get minimum seed from each matchup (higher-seeded team)
+    const aMinSeed = Math.min(
+      a.homeSeed !== undefined ? a.homeSeed : 999, 
+      a.awaySeed !== undefined ? a.awaySeed : 999
+    );
+    const bMinSeed = Math.min(
+      b.homeSeed !== undefined ? b.homeSeed : 999, 
+      b.awaySeed !== undefined ? b.awaySeed : 999
+    );
+    return aMinSeed - bMinSeed; // Lower seed number (higher seed) comes first
+  });
+
   return (
     <div>
       <h3 className="text-lg font-semibold mb-6 text-center">{title}</h3>
       <div className="space-y-12">
-        {matchups.map((matchup, index) => (
+        {sortedMatchups.map((matchup, index) => (
           <div key={`${title.toLowerCase()}-${index}`} className="mx-auto w-[240px]">
             <Matchup
               matchupId={matchup.matchupId}
