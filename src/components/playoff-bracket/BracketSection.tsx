@@ -9,9 +9,11 @@ interface BracketSectionProps {
     matchupId: number;
     homeTeam?: string;
     homeTeamId?: number;
+    homeSeed?: number;
     homeScore?: number | null;
     awayTeam?: string;
     awayTeamId?: number;
+    awaySeed?: number;
     awayScore?: number | null;
     isConsolation?: boolean;
   }>;
@@ -37,10 +39,10 @@ const BracketSection: React.FC<BracketSectionProps> = ({
           <div key={`${title.toLowerCase()}-${index}`} className="mx-auto w-[240px]">
             <Matchup
               matchupId={matchup.matchupId}
-              homeTeam={matchup.homeTeam}
+              homeTeam={matchup.homeSeed ? `(${matchup.homeSeed}) ${matchup.homeTeam}` : matchup.homeTeam}
               homeTeamId={matchup.homeTeamId}
               homeScore={matchup.homeScore}
-              awayTeam={matchup.awayTeam}
+              awayTeam={matchup.awaySeed ? `(${matchup.awaySeed}) ${matchup.awayTeam}` : matchup.awayTeam}
               awayTeamId={matchup.awayTeamId}
               awayScore={matchup.awayScore}
               isConsolation={matchup.isConsolation}

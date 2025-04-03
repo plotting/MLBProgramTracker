@@ -11,6 +11,7 @@ interface SixTeamPlayoffsProps {
   onTeamSelect?: (matchupId: number, isHome: boolean, teamId: number) => void;
   onScoreUpdate?: (matchupId: number, isHome: boolean, score: number) => void;
   teams?: Team[];
+  teamSeeds?: Map<number, number>;
 }
 
 const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({ 
@@ -18,7 +19,8 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
   editMode = false,
   onTeamSelect,
   onScoreUpdate,
-  teams = []
+  teams = [],
+  teamSeeds = new Map()
 }) => {
   // Filter playoff matchups (non-consolation)
   const playoffMatchups = matchups.filter(
@@ -29,11 +31,25 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
   const wildcardGames = playoffMatchups.filter(
     (matchup) => matchup.week_number === 14
   );
+  
+  // Sort wildcard games by seed to put higher seeds on top
+  const sortedWildcardGames = [...wildcardGames].sort((a, b) => {
+    const aHigherSeed = Math.min(teamSeeds.get(a.home_team_id || 0) || 999, teamSeeds.get(a.away_team_id || 0) || 999);
+    const bHigherSeed = Math.min(teamSeeds.get(b.home_team_id || 0) || 999, teamSeeds.get(b.away_team_id || 0) || 999);
+    return aHigherSeed - bHigherSeed;
+  });
 
   // Get semifinal matchups (week 15)
   const semiFinals = playoffMatchups.filter(
     (matchup) => matchup.week_number === 15
   );
+  
+  // Sort semifinal matchups by seed to put higher seeds on top
+  const sortedSemiFinals = [...semiFinals].sort((a, b) => {
+    const aHigherSeed = Math.min(teamSeeds.get(a.home_team_id || 0) || 999, teamSeeds.get(a.away_team_id || 0) || 999);
+    const bHigherSeed = Math.min(teamSeeds.get(b.home_team_id || 0) || 999, teamSeeds.get(b.away_team_id || 0) || 999);
+    return aHigherSeed - bHigherSeed;
+  });
 
   // Get championship matchup (week 16)
   const championship = playoffMatchups.find(
@@ -49,13 +65,34 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
   const weekFifteenConsolation = consolationMatchups.filter(
     (matchup) => matchup.week_number === 15
   );
+  
+  // Sort week 15 consolation matchups by seed
+  const sortedWeekFifteenConsolation = [...weekFifteenConsolation].sort((a, b) => {
+    const aHigherSeed = Math.min(teamSeeds.get(a.home_team_id || 0) || 999, teamSeeds.get(a.away_team_id || 0) || 999);
+    const bHigherSeed = Math.min(teamSeeds.get(b.home_team_id || 0) || 999, teamSeeds.get(b.away_team_id || 0) || 999);
+    return aHigherSeed - bHigherSeed;
+  });
 
   // Get week 16 consolation matchups (3rd place and other games)
   const weekSixteenConsolation = consolationMatchups.filter(
     (matchup) => matchup.week_number === 16
   );
+  
+  // Sort week 16 consolation matchups by seed
+  const sortedWeekSixteenConsolation = [...weekSixteenConsolation].sort((a, b) => {
+    const aHigherSeed = Math.min(teamSeeds.get(a.home_team_id || 0) || 999, teamSeeds.get(a.away_team_id || 0) || 999);
+    const bHigherSeed = Math.min(teamSeeds.get(b.home_team_id || 0) || 999, teamSeeds.get(b.away_team_id || 0) || 999);
+    return aHigherSeed - bHigherSeed;
+  });
 
   let matchupCounter = 0;
+
+  // Function to format team name with seed
+  const getTeamWithSeed = (teamName?: string, teamId?: number) => {
+    if (!teamName || !teamId) return teamName || "";
+    const seed = teamSeeds.get(teamId);
+    return seed ? `(${seed}) ${teamName}` : teamName;
+  };
 
   return (
     <div className="overflow-auto">
@@ -67,16 +104,16 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
             <div>
               <h3 className="text-lg font-semibold mb-6 text-center">Wildcard</h3>
               <div className="space-y-12">
-                {wildcardGames.map((matchup, index) => {
+                {sortedWildcardGames.map((matchup, index) => {
                   const id = matchupCounter++;
                   return (
                     <div key={`wildcard-${index}`} className="mx-auto w-[240px]">
                       <Matchup
                         matchupId={id}
-                        homeTeam={matchup.home_team_name}
+                        homeTeam={getTeamWithSeed(matchup.home_team_name, matchup.home_team_id)}
                         homeTeamId={matchup.home_team_id}
                         homeScore={matchup.home_score}
-                        awayTeam={matchup.away_team_name}
+                        awayTeam={getTeamWithSeed(matchup.away_team_name, matchup.away_team_id)}
                         awayTeamId={matchup.away_team_id}
                         awayScore={matchup.away_score}
                         editMode={editMode}
@@ -95,16 +132,21 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
               <div className="space-y-12">
                 {consolationMatchups
                   .filter((matchup) => matchup.week_number === 14)
+                  .sort((a, b) => {
+                    const aHigherSeed = Math.min(teamSeeds.get(a.home_team_id || 0) || 999, teamSeeds.get(a.away_team_id || 0) || 999);
+                    const bHigherSeed = Math.min(teamSeeds.get(b.home_team_id || 0) || 999, teamSeeds.get(b.away_team_id || 0) || 999);
+                    return aHigherSeed - bHigherSeed;
+                  })
                   .map((matchup, index) => {
                     const id = matchupCounter++;
                     return (
                       <div key={`consolation-wildcard-${index}`} className="mx-auto w-[240px]">
                         <Matchup
                           matchupId={id}
-                          homeTeam={matchup.home_team_name}
+                          homeTeam={getTeamWithSeed(matchup.home_team_name, matchup.home_team_id)}
                           homeTeamId={matchup.home_team_id}
                           homeScore={matchup.home_score}
-                          awayTeam={matchup.away_team_name}
+                          awayTeam={getTeamWithSeed(matchup.away_team_name, matchup.away_team_id)}
                           awayTeamId={matchup.away_team_id}
                           awayScore={matchup.away_score}
                           isConsolation
@@ -124,16 +166,16 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
             <div>
               <h3 className="text-lg font-semibold mb-6 text-center">Semifinals</h3>
               <div className="space-y-12">
-                {semiFinals.map((matchup, index) => {
+                {sortedSemiFinals.map((matchup, index) => {
                   const id = matchupCounter++;
                   return (
                     <div key={`semifinal-${index}`} className="mx-auto w-[240px]">
                       <Matchup
                         matchupId={id}
-                        homeTeam={matchup.home_team_name}
+                        homeTeam={getTeamWithSeed(matchup.home_team_name, matchup.home_team_id)}
                         homeTeamId={matchup.home_team_id}
                         homeScore={matchup.home_score}
-                        awayTeam={matchup.away_team_name}
+                        awayTeam={getTeamWithSeed(matchup.away_team_name, matchup.away_team_id)}
                         awayTeamId={matchup.away_team_id}
                         awayScore={matchup.away_score}
                         editMode={editMode}
@@ -150,16 +192,16 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
             <div>
               <h3 className="text-lg font-semibold mb-6 text-center">Consolation Round 2</h3>
               <div className="space-y-12">
-                {weekFifteenConsolation.map((matchup, index) => {
+                {sortedWeekFifteenConsolation.map((matchup, index) => {
                   const id = matchupCounter++;
                   return (
                     <div key={`consolation-semifinal-${index}`} className="mx-auto w-[240px]">
                       <Matchup
                         matchupId={id}
-                        homeTeam={matchup.home_team_name}
+                        homeTeam={getTeamWithSeed(matchup.home_team_name, matchup.home_team_id)}
                         homeTeamId={matchup.home_team_id}
                         homeScore={matchup.home_score}
-                        awayTeam={matchup.away_team_name}
+                        awayTeam={getTeamWithSeed(matchup.away_team_name, matchup.away_team_id)}
                         awayTeamId={matchup.away_team_id}
                         awayScore={matchup.away_score}
                         isConsolation
@@ -182,10 +224,10 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
                 <div className="mx-auto w-[240px]">
                   <Matchup
                     matchupId={matchupCounter++}
-                    homeTeam={championship.home_team_name}
+                    homeTeam={getTeamWithSeed(championship.home_team_name, championship.home_team_id)}
                     homeTeamId={championship.home_team_id}
                     homeScore={championship.home_score}
-                    awayTeam={championship.away_team_name}
+                    awayTeam={getTeamWithSeed(championship.away_team_name, championship.away_team_id)}
                     awayTeamId={championship.away_team_id}
                     awayScore={championship.away_score}
                     editMode={editMode}
@@ -200,16 +242,16 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
             <div>
               <h3 className="text-lg font-semibold mb-6 text-center">Final Placement Games</h3>
               <div className="space-y-12">
-                {weekSixteenConsolation.map((matchup, index) => {
+                {sortedWeekSixteenConsolation.map((matchup, index) => {
                   const id = matchupCounter++;
                   return (
                     <div key={`final-consolation-${index}`} className="mx-auto w-[240px]">
                       <Matchup
                         matchupId={id}
-                        homeTeam={matchup.home_team_name}
+                        homeTeam={getTeamWithSeed(matchup.home_team_name, matchup.home_team_id)}
                         homeTeamId={matchup.home_team_id}
                         homeScore={matchup.home_score}
-                        awayTeam={matchup.away_team_name}
+                        awayTeam={getTeamWithSeed(matchup.away_team_name, matchup.away_team_id)}
                         awayTeamId={matchup.away_team_id}
                         awayScore={matchup.away_score}
                         isConsolation

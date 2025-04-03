@@ -1,3 +1,4 @@
+
 import React from "react";
 import { MatchupScoresView } from "@/types/database";
 import WeekLabels from "./WeekLabels";
@@ -15,6 +16,7 @@ interface FourTeamPlayoffsProps {
   onTeamSelect?: (matchupId: number, isHome: boolean, teamId: number) => void;
   onScoreUpdate?: (matchupId: number, isHome: boolean, score: number) => void;
   teams?: Team[];
+  teamSeeds?: Map<number, number>;
 }
 
 const FourTeamPlayoffs: React.FC<FourTeamPlayoffsProps> = ({ 
@@ -22,7 +24,8 @@ const FourTeamPlayoffs: React.FC<FourTeamPlayoffsProps> = ({
   editMode = false,
   onTeamSelect,
   onScoreUpdate,
-  teams = [] 
+  teams = [],
+  teamSeeds = new Map()
 }) => {
   // Filter playoff matchups (non-consolation)
   const playoffMatchups = matchups.filter(
@@ -55,14 +58,23 @@ const FourTeamPlayoffs: React.FC<FourTeamPlayoffsProps> = ({
     (matchup) => matchup !== thirdPlaceGame
   );
 
-  // Prepare data for bracket sections
-  const semiFinalsData = semiFinals.map((matchup, index) => ({
+  // Sort semifinal matchups to ensure higher seeds are on top
+  const sortedSemiFinals = [...semiFinals].sort((a, b) => {
+    const aHigherSeed = Math.min(teamSeeds.get(a.home_team_id || 0) || 999, teamSeeds.get(a.away_team_id || 0) || 999);
+    const bHigherSeed = Math.min(teamSeeds.get(b.home_team_id || 0) || 999, teamSeeds.get(b.away_team_id || 0) || 999);
+    return aHigherSeed - bHigherSeed;
+  });
+
+  // Prepare data for bracket sections with seeding information
+  const semiFinalsData = sortedSemiFinals.map((matchup, index) => ({
     matchupId: index,
     homeTeam: matchup.home_team_name,
     homeTeamId: matchup.home_team_id,
+    homeSeed: teamSeeds.get(matchup.home_team_id || 0),
     homeScore: matchup.home_score,
     awayTeam: matchup.away_team_name,
     awayTeamId: matchup.away_team_id,
+    awaySeed: teamSeeds.get(matchup.away_team_id || 0),
     awayScore: matchup.away_score,
     isConsolation: false,
   }));
@@ -71,9 +83,11 @@ const FourTeamPlayoffs: React.FC<FourTeamPlayoffsProps> = ({
     matchupId: semiFinals.length + index,
     homeTeam: matchup.home_team_name,
     homeTeamId: matchup.home_team_id,
+    homeSeed: teamSeeds.get(matchup.home_team_id || 0),
     homeScore: matchup.home_score,
     awayTeam: matchup.away_team_name,
     awayTeamId: matchup.away_team_id,
+    awaySeed: teamSeeds.get(matchup.away_team_id || 0),
     awayScore: matchup.away_score,
     isConsolation: true,
   }));
@@ -82,9 +96,11 @@ const FourTeamPlayoffs: React.FC<FourTeamPlayoffsProps> = ({
     matchupId: semiFinals.length + weekFifteenConsolation.length,
     homeTeam: championship.home_team_name,
     homeTeamId: championship.home_team_id,
+    homeSeed: teamSeeds.get(championship.home_team_id || 0),
     homeScore: championship.home_score,
     awayTeam: championship.away_team_name,
     awayTeamId: championship.away_team_id,
+    awaySeed: teamSeeds.get(championship.away_team_id || 0),
     awayScore: championship.away_score,
     isConsolation: false,
   }] : [];
@@ -93,14 +109,16 @@ const FourTeamPlayoffs: React.FC<FourTeamPlayoffsProps> = ({
     matchupId: semiFinals.length + weekFifteenConsolation.length + 1,
     homeTeam: thirdPlaceGame.home_team_name,
     homeTeamId: thirdPlaceGame.home_team_id,
+    homeSeed: teamSeeds.get(thirdPlaceGame.home_team_id || 0),
     homeScore: thirdPlaceGame.home_score,
     awayTeam: thirdPlaceGame.away_team_name,
     awayTeamId: thirdPlaceGame.away_team_id,
+    awaySeed: teamSeeds.get(thirdPlaceGame.away_team_id || 0),
     awayScore: thirdPlaceGame.away_score,
     isConsolation: thirdPlaceGame.is_consolation,
   }] : [];
 
-  // Prepare placement game data
+  // Prepare placement game data with seeds
   const placementGames = [
     otherConsolationGames[0] ? {
       title: "5th Place Game",
@@ -108,9 +126,11 @@ const FourTeamPlayoffs: React.FC<FourTeamPlayoffsProps> = ({
         matchupId: semiFinals.length + weekFifteenConsolation.length + 2,
         homeTeam: otherConsolationGames[0].home_team_name,
         homeTeamId: otherConsolationGames[0].home_team_id,
+        homeSeed: teamSeeds.get(otherConsolationGames[0].home_team_id || 0),
         homeScore: otherConsolationGames[0].home_score,
         awayTeam: otherConsolationGames[0].away_team_name,
         awayTeamId: otherConsolationGames[0].away_team_id,
+        awaySeed: teamSeeds.get(otherConsolationGames[0].away_team_id || 0),
         awayScore: otherConsolationGames[0].away_score,
         isConsolation: true,
       }],
@@ -121,9 +141,11 @@ const FourTeamPlayoffs: React.FC<FourTeamPlayoffsProps> = ({
         matchupId: semiFinals.length + weekFifteenConsolation.length + 3,
         homeTeam: otherConsolationGames[1].home_team_name,
         homeTeamId: otherConsolationGames[1].home_team_id,
+        homeSeed: teamSeeds.get(otherConsolationGames[1].home_team_id || 0),
         homeScore: otherConsolationGames[1].home_score,
         awayTeam: otherConsolationGames[1].away_team_name,
         awayTeamId: otherConsolationGames[1].away_team_id,
+        awaySeed: teamSeeds.get(otherConsolationGames[1].away_team_id || 0),
         awayScore: otherConsolationGames[1].away_score,
         isConsolation: true,
       }],
@@ -134,9 +156,11 @@ const FourTeamPlayoffs: React.FC<FourTeamPlayoffsProps> = ({
         matchupId: semiFinals.length + weekFifteenConsolation.length + 4,
         homeTeam: otherConsolationGames[2].home_team_name,
         homeTeamId: otherConsolationGames[2].home_team_id,
+        homeSeed: teamSeeds.get(otherConsolationGames[2].home_team_id || 0),
         homeScore: otherConsolationGames[2].home_score,
         awayTeam: otherConsolationGames[2].away_team_name,
         awayTeamId: otherConsolationGames[2].away_team_id,
+        awaySeed: teamSeeds.get(otherConsolationGames[2].away_team_id || 0),
         awayScore: otherConsolationGames[2].away_score,
         isConsolation: true,
       }],
