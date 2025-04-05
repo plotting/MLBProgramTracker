@@ -32,6 +32,7 @@ const TradeAssetModal = ({ open, onOpenChange, assetDescription }: TradeAssetMod
           team1:teams!trades_team1_id_fkey(id, name),
           team2:teams!trades_team2_id_fkey(id, name),
           items:trade_items(
+            id,
             item_type,
             item_description,
             from_team_id,
@@ -41,10 +42,16 @@ const TradeAssetModal = ({ open, onOpenChange, assetDescription }: TradeAssetMod
           ),
           season:seasons(season_number)
         `)
-        .filter("items.item_description", "ilike", `%${assetDescription}%`);
+        .eq("items.item_description", assetDescription);
       
       if (error) throw error;
-      return data || [];
+      
+      // Filter out trades that don't have the asset in their items
+      const filteredTrades = data?.filter(trade => 
+        trade.items.some(item => item.item_description === assetDescription)
+      );
+      
+      return filteredTrades || [];
     },
     enabled: !!assetDescription && open
   });
@@ -67,77 +74,110 @@ const TradeAssetModal = ({ open, onOpenChange, assetDescription }: TradeAssetMod
           </div>
         ) : trades && trades.length > 0 ? (
           <div className="space-y-6 mt-4">
-            {trades.map((trade) => (
-              <Card key={trade.id} className="p-4">
-                <div className="flex flex-col space-y-4">
-                  <div className="flex justify-between items-center">
-                    <div className="font-medium">
-                      <span className="text-muted-foreground">Trade between </span>
+            {trades.map((trade) => {
+              // Find the specific item that matches our asset
+              const targetItem = trade.items.find(item => 
+                item.item_description === assetDescription
+              );
+              
+              if (!targetItem) return null;
+              
+              // Determine the direction of the trade for this asset
+              const assetFromTeamId = targetItem.from_team_id;
+              const assetToTeamId = targetItem.to_team_id;
+              
+              // Get team names for the asset's movement
+              const fromTeam = trade.team1_id === assetFromTeamId ? trade.team1 : trade.team2;
+              const toTeam = trade.team1_id === assetToTeamId ? trade.team1 : trade.team2;
+              
+              // Group items by receiving team
+              const team1Items = trade.items.filter(item => item.to_team_id === trade.team1_id);
+              const team2Items = trade.items.filter(item => item.to_team_id === trade.team2_id);
+              
+              return (
+                <Card key={trade.id} className="p-4">
+                  <div className="flex flex-col space-y-4">
+                    <div className="flex justify-between items-center">
+                      <div className="font-medium">
+                        <span className="text-muted-foreground">Trade between </span>
+                        <Link 
+                          to={`/team/${trade.team1.id}?season=${trade.season.season_number}`}
+                          className="text-primary hover:underline"
+                        >
+                          {trade.team1.name}
+                        </Link>
+                        <span className="text-muted-foreground"> and </span>
+                        <Link 
+                          to={`/team/${trade.team2.id}?season=${trade.season.season_number}`}
+                          className="text-primary hover:underline"
+                        >
+                          {trade.team2.name}
+                        </Link>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {format(new Date(trade.trade_date), "MMM d, yyyy")}
+                      </div>
+                    </div>
+                    
+                    <div className="bg-muted/30 p-3 rounded-md">
+                      <p className="text-sm font-medium mb-2">
+                        <span className="text-primary font-bold">{assetDescription}</span> traded from{" "}
+                        <span className="font-medium">{fromTeam?.name || "Unknown"}</span> to{" "}
+                        <span className="font-medium">{toTeam?.name || "Unknown"}</span>
+                      </p>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                      <div>
+                        <p className="text-sm font-medium mb-1">{trade.team1.name} received:</p>
+                        <ul className="list-disc list-inside text-sm space-y-1">
+                          {team1Items.length > 0 ? (
+                            team1Items.map((item, index) => (
+                              <li key={index} className={
+                                item.item_description === assetDescription 
+                                  ? "font-bold text-primary" 
+                                  : "text-muted-foreground"
+                              }>
+                                {item.item_description}
+                              </li>
+                            ))
+                          ) : (
+                            <li className="text-muted-foreground">No items received</li>
+                          )}
+                        </ul>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium mb-1">{trade.team2.name} received:</p>
+                        <ul className="list-disc list-inside text-sm space-y-1">
+                          {team2Items.length > 0 ? (
+                            team2Items.map((item, index) => (
+                              <li key={index} className={
+                                item.item_description === assetDescription 
+                                  ? "font-bold text-primary" 
+                                  : "text-muted-foreground"
+                              }>
+                                {item.item_description}
+                              </li>
+                            ))
+                          ) : (
+                            <li className="text-muted-foreground">No items received</li>
+                          )}
+                        </ul>
+                      </div>
+                    </div>
+                    
+                    <div className="text-sm text-right">
                       <Link 
-                        to={`/team/${trade.team1.id}?season=${trade.season.season_number}`}
+                        to={`/trades?season=${trade.season.season_number}`}
                         className="text-primary hover:underline"
                       >
-                        {trade.team1.name}
-                      </Link>
-                      <span className="text-muted-foreground"> and </span>
-                      <Link 
-                        to={`/team/${trade.team2.id}?season=${trade.season.season_number}`}
-                        className="text-primary hover:underline"
-                      >
-                        {trade.team2.name}
+                        View season {trade.season.season_number} trades
                       </Link>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      {format(new Date(trade.trade_date), "MMM d, yyyy")}
-                    </div>
                   </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                    <div>
-                      <p className="text-sm font-medium mb-1">{trade.team1.name} received:</p>
-                      <ul className="list-disc list-inside text-sm space-y-1">
-                        {trade.items
-                          ?.filter(item => item.to_team_id === trade.team1_id)
-                          .map((item, index) => (
-                            <li key={index} className={
-                              item.item_description === assetDescription 
-                                ? "font-bold text-primary" 
-                                : "text-muted-foreground"
-                            }>
-                              {item.item_description}
-                            </li>
-                          ))}
-                      </ul>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium mb-1">{trade.team2.name} received:</p>
-                      <ul className="list-disc list-inside text-sm space-y-1">
-                        {trade.items
-                          ?.filter(item => item.to_team_id === trade.team2_id)
-                          .map((item, index) => (
-                            <li key={index} className={
-                              item.item_description === assetDescription 
-                                ? "font-bold text-primary" 
-                                : "text-muted-foreground"
-                            }>
-                              {item.item_description}
-                            </li>
-                          ))}
-                      </ul>
-                    </div>
-                  </div>
-                  
-                  <div className="text-sm text-right">
-                    <Link 
-                      to={`/trades?season=${trade.season.season_number}`}
-                      className="text-primary hover:underline"
-                    >
-                      View season {trade.season.season_number} trades
-                    </Link>
-                  </div>
-                </div>
-              </Card>
-            ))}
+                </Card>
+              );
+            })}
           </div>
         ) : (
           <div className="text-center py-8 text-muted-foreground">
