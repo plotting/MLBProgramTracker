@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import TeamHeader from "@/components/team/TeamHeader";
 import TeamStatsCards from "@/components/team/TeamStatsCards";
 import TeamMatchups from "@/components/team/TeamMatchups";
-import TeamDraftHistory from "@/components/TeamDraftHistory";
+import TeamDraftHistory from "@/components/team/TeamDraftHistory";
 import TeamTradesHistory from "@/components/team/TeamTradesHistory";
 import TradeAssetModal from "@/components/TradeAssetModal";
 
