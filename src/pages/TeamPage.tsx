@@ -23,11 +23,14 @@ import { format } from "date-fns";
 import { Link } from "react-router-dom";
 import type { MatchupScoresView, TeamRecordsView } from "@/types/database";
 import TeamDraftHistory from "@/components/TeamDraftHistory";
+import TradeAssetModal from "@/components/TradeAssetModal";
 
 const TeamPage = () => {
   const { id } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedSeason, setSelectedSeason] = useState(searchParams.get("season") || "1");
+  const [selectedAsset, setSelectedAsset] = useState<string | null>(null);
+  const [assetModalOpen, setAssetModalOpen] = useState(false);
 
   useEffect(() => {
     setSearchParams({ season: selectedSeason });
@@ -159,6 +162,11 @@ const TeamPage = () => {
   const avgPoints = totalGames > 0 ? totalPointsFor / totalGames : 0;
   const regularSeasonAvgPoints = regularSeasonGames > 0 ? regularSeasonPointsFor / regularSeasonGames : 0;
   const playoffAvgPoints = playoffGames > 0 ? playoffPointsFor / playoffGames : 0;
+
+  const handleAssetClick = (assetDescription: string) => {
+    setSelectedAsset(assetDescription);
+    setAssetModalOpen(true);
+  };
 
   return (
     <div className="min-h-screen">
@@ -401,7 +409,11 @@ const TeamPage = () => {
                         {receivedItems.length > 0 ? (
                           <ul className="list-disc list-inside text-sm space-y-1">
                             {receivedItems.map((item, index) => (
-                              <li key={index} className="text-muted-foreground">
+                              <li 
+                                key={index} 
+                                className="text-muted-foreground cursor-pointer hover:text-primary hover:underline"
+                                onClick={() => handleAssetClick(item.item_description)}
+                              >
                                 {item.item_description}
                               </li>
                             ))}
@@ -415,7 +427,11 @@ const TeamPage = () => {
                         {sentItems.length > 0 ? (
                           <ul className="list-disc list-inside text-sm space-y-1">
                             {sentItems.map((item, index) => (
-                              <li key={index} className="text-muted-foreground">
+                              <li 
+                                key={index} 
+                                className="text-muted-foreground cursor-pointer hover:text-primary hover:underline"
+                                onClick={() => handleAssetClick(item.item_description)}
+                              >
                                 {item.item_description}
                               </li>
                             ))}
@@ -434,6 +450,12 @@ const TeamPage = () => {
           )}
         </Card>
       </div>
+
+      <TradeAssetModal 
+        open={assetModalOpen} 
+        onOpenChange={setAssetModalOpen} 
+        assetDescription={selectedAsset} 
+      />
     </div>
   );
 };

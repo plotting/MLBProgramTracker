@@ -4,12 +4,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
 import { Link } from "react-router-dom";
+import { useState } from "react";
+import TradeAssetModal from "@/components/TradeAssetModal";
 
 interface DraftPicksTableProps {
   seasonId: number;
 }
 
 const DraftPicksTable = ({ seasonId }: DraftPicksTableProps) => {
+  const [selectedAsset, setSelectedAsset] = useState<string | null>(null);
+  const [assetModalOpen, setAssetModalOpen] = useState(false);
+
   const { data: draftPicks, isLoading } = useQuery({
     queryKey: ['draft-picks', seasonId],
     queryFn: async () => {
@@ -24,6 +29,11 @@ const DraftPicksTable = ({ seasonId }: DraftPicksTableProps) => {
       return data;
     },
   });
+
+  const handlePlayerClick = (playerName: string) => {
+    setSelectedAsset(playerName);
+    setAssetModalOpen(true);
+  };
 
   if (isLoading) {
     return <p className="text-center py-4">Loading draft picks...</p>;
@@ -63,12 +73,25 @@ const DraftPicksTable = ({ seasonId }: DraftPicksTableProps) => {
                     </Link>
                   )}
                 </TableCell>
-                <TableCell>{pick.player_name}</TableCell>
+                <TableCell>
+                  <span 
+                    className="cursor-pointer hover:text-primary hover:underline"
+                    onClick={() => handlePlayerClick(pick.player_name)}
+                  >
+                    {pick.player_name}
+                  </span>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
+
+      <TradeAssetModal 
+        open={assetModalOpen} 
+        onOpenChange={setAssetModalOpen} 
+        assetDescription={selectedAsset} 
+      />
     </Card>
   );
 };

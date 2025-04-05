@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import {
   Select,
@@ -20,9 +21,12 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getAllSeasons } from "@/utils/seasonUtils";
 import { format } from "date-fns";
+import TradeAssetModal from "@/components/TradeAssetModal";
 
 const Trades = () => {
   const [selectedSeason, setSelectedSeason] = useState("1");
+  const [selectedAsset, setSelectedAsset] = useState<string | null>(null);
+  const [assetModalOpen, setAssetModalOpen] = useState(false);
 
   const { data: trades, isLoading } = useQuery({
     queryKey: ["trades", selectedSeason],
@@ -51,6 +55,11 @@ const Trades = () => {
       return tradesData;
     },
   });
+
+  const handleAssetClick = (assetDescription: string) => {
+    setSelectedAsset(assetDescription);
+    setAssetModalOpen(true);
+  };
 
   return (
     <div className="min-h-screen">
@@ -114,7 +123,11 @@ const Trades = () => {
                       {trade.items
                         ?.filter((item) => item.to_team_id === trade.team1_id)
                         .map((item, index) => (
-                          <li key={index} className="text-sm">
+                          <li 
+                            key={index} 
+                            className="text-sm cursor-pointer hover:text-primary hover:underline"
+                            onClick={() => handleAssetClick(item.item_description)}
+                          >
                             {item.item_description}
                           </li>
                         ))}
@@ -137,7 +150,11 @@ const Trades = () => {
                       {trade.items
                         ?.filter((item) => item.to_team_id === trade.team2_id)
                         .map((item, index) => (
-                          <li key={index} className="text-sm">
+                          <li 
+                            key={index} 
+                            className="text-sm cursor-pointer hover:text-primary hover:underline"
+                            onClick={() => handleAssetClick(item.item_description)}
+                          >
                             {item.item_description}
                           </li>
                         ))}
@@ -153,6 +170,12 @@ const Trades = () => {
           </div>
         )}
       </Card>
+
+      <TradeAssetModal 
+        open={assetModalOpen} 
+        onOpenChange={setAssetModalOpen} 
+        assetDescription={selectedAsset} 
+      />
     </div>
   );
 };
