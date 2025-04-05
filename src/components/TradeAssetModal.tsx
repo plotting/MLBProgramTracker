@@ -41,8 +41,7 @@ const TradeAssetModal = ({ open, onOpenChange, assetDescription }: TradeAssetMod
             to_team:teams!trade_items_to_team_id_fkey(name)
           ),
           season:seasons(season_number)
-        `)
-        .eq("items.item_description", assetDescription);
+        `);
       
       if (error) throw error;
       
@@ -87,8 +86,8 @@ const TradeAssetModal = ({ open, onOpenChange, assetDescription }: TradeAssetMod
               const assetToTeamId = targetItem.to_team_id;
               
               // Get team names for the asset's movement
-              const fromTeam = trade.team1_id === assetFromTeamId ? trade.team1 : trade.team2;
-              const toTeam = trade.team1_id === assetToTeamId ? trade.team1 : trade.team2;
+              const fromTeamName = targetItem.from_team?.name || "Unknown";
+              const toTeamName = targetItem.to_team?.name || "Unknown";
               
               // Group items by receiving team
               const team1Items = trade.items.filter(item => item.to_team_id === trade.team1_id);
@@ -122,8 +121,8 @@ const TradeAssetModal = ({ open, onOpenChange, assetDescription }: TradeAssetMod
                     <div className="bg-muted/30 p-3 rounded-md">
                       <p className="text-sm font-medium mb-2">
                         <span className="text-primary font-bold">{assetDescription}</span> traded from{" "}
-                        <span className="font-medium">{fromTeam?.name || "Unknown"}</span> to{" "}
-                        <span className="font-medium">{toTeam?.name || "Unknown"}</span>
+                        <span className="font-medium">{fromTeamName}</span> to{" "}
+                        <span className="font-medium">{toTeamName}</span>
                       </p>
                     </div>
                     
