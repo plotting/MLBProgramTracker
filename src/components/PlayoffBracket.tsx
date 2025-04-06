@@ -1,4 +1,3 @@
-
 import React from "react";
 import FourTeamPlayoffs from "./playoff-bracket/FourTeamPlayoffs";
 import ModifiedPlayoffs from "./playoff-bracket/ModifiedPlayoffs";
@@ -99,6 +98,7 @@ const PlayoffBracket = ({ season }: { season: string }) => {
         matchups={matchups || []} 
         teams={teams || []} 
         teamSeeds={teamSeeds}
+        seasonNumber={seasonNum}
       />;
     }
 

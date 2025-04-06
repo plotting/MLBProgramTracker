@@ -15,6 +15,7 @@ interface PlacementGamesProps {
   onTeamSelect?: (matchupId: number, isHome: boolean, teamId: number) => void;
   onScoreUpdate?: (matchupId: number, isHome: boolean, score: number) => void;
   teams?: Team[];
+  ninthPlaceTitle?: string;
 }
 
 const PlacementGames: React.FC<PlacementGamesProps> = ({
@@ -29,6 +30,7 @@ const PlacementGames: React.FC<PlacementGamesProps> = ({
   onTeamSelect,
   onScoreUpdate,
   teams = [],
+  ninthPlaceTitle = "9th Place Game"
 }) => {
   let updatedCounter = matchupCounter;
   
@@ -82,7 +84,7 @@ const PlacementGames: React.FC<PlacementGamesProps> = ({
       
       {seventhPlaceGame && (
         <BracketSection
-          title="7th Place Game (Toilet Bowl)"
+          title="7th Place Game"
           matchups={[createPlacementMatchup(seventhPlaceGame, true) as any]}
           editMode={editMode}
           onTeamSelect={onTeamSelect}
@@ -94,7 +96,7 @@ const PlacementGames: React.FC<PlacementGamesProps> = ({
       
       {ninthPlaceGame && (
         <BracketSection
-          title="9th Place Game"
+          title={ninthPlaceTitle}
           matchups={[createPlacementMatchup(ninthPlaceGame, true) as any]}
           editMode={editMode}
           onTeamSelect={onTeamSelect}

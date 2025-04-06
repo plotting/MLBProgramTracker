@@ -16,6 +16,7 @@ interface ModifiedPlayoffsProps {
   onScoreUpdate?: (matchupId: number, isHome: boolean, score: number) => void;
   teams?: Team[];
   teamSeeds?: Map<number, number>;
+  seasonNumber?: number;
 }
 
 const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({ 
@@ -24,7 +25,8 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
   onTeamSelect,
   onScoreUpdate,
   teams = [],
-  teamSeeds = new Map()
+  teamSeeds = new Map(),
+  seasonNumber = 8
 }) => {
   const [matchupCounter, setMatchupCounter] = useState(0);
 
@@ -65,8 +67,8 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
     (matchup) => matchup.week_number === 16
   );
 
-  // Get toilet bowl teams
-  const { round1Winners, round1Losers } = getToiletBowlTeams(consolationMatchups);
+  // Get toilet bowl teams with the correct seasonNumber
+  const { round1Winners, round1Losers } = getToiletBowlTeams(consolationMatchups, seasonNumber);
 
   // Find 3rd place game (between semifinal losers)
   const semiFinalLosers = semiFinals
@@ -89,26 +91,31 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
       round1Winners.includes(matchup.away_team_id || 0)
   );
 
-  // 7th place game (toilet bowl - between a consolation round 1 winner and loser)
-  const seventhPlaceGame = weekSixteenConsolation.find(
-    matchup => 
-      !fifthPlaceGame || 
-      (matchup !== fifthPlaceGame && matchup !== thirdPlaceGame && matchup !== championship)
-  );
-
-  // 9th place game (between consolation round 1 losers)
+  // 9th place game (toilet bowl - between consolation round 1 losers in seasons 8-10)
   const ninthPlaceGame = weekSixteenConsolation.find(
     matchup => 
-      matchup !== fifthPlaceGame && 
-      matchup !== seventhPlaceGame &&
       round1Losers.includes(matchup.home_team_id || 0) && 
       round1Losers.includes(matchup.away_team_id || 0)
+  );
+
+  // 7th place game (between mixed teams)
+  const seventhPlaceGame = weekSixteenConsolation.find(
+    matchup => 
+      matchup !== fifthPlaceGame && 
+      matchup !== ninthPlaceGame &&
+      matchup !== thirdPlaceGame &&
+      matchup !== championship
   );
 
   // Handler to update the matchup counter
   const handleMatchupCounterUpdate = (value: number) => {
     setMatchupCounter(value);
   };
+
+  // For seasons 8-10, we update titles to reflect the "loser advances" format
+  const isLoserAdvancesFormat = seasonNumber >= 8 && seasonNumber <= 10;
+  const ninthPlaceTitle = isLoserAdvancesFormat ? "9th Place Game (Toilet Bowl)" : "9th Place Game";
+  const consolationTitle = isLoserAdvancesFormat ? "Consolation Bracket (Loser Advances)" : "Consolation Bracket";
 
   return (
     <div className="overflow-auto">
@@ -137,6 +144,8 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
               onTeamSelect={onTeamSelect}
               onScoreUpdate={onScoreUpdate}
               teams={teams}
+              title={consolationTitle}
+              subtitle={isLoserAdvancesFormat ? "Toilet Bowl: Loser advances to 9th place game" : "Winners advance to 5th place game"}
             />
           </div>
 
@@ -164,6 +173,7 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
               onTeamSelect={onTeamSelect}
               onScoreUpdate={onScoreUpdate}
               teams={teams}
+              ninthPlaceTitle={ninthPlaceTitle}
             />
           </div>
         </div>
