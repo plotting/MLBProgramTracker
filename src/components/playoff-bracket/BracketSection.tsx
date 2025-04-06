@@ -21,15 +21,19 @@ interface BracketSectionProps {
   onTeamSelect?: (matchupId: number, isHome: boolean, teamId: number) => void;
   onScoreUpdate?: (matchupId: number, isHome: boolean, score: number) => void;
   teams?: Team[];
+  subtitle?: string;
+  className?: string;
 }
 
 const BracketSection: React.FC<BracketSectionProps> = ({
   title,
+  subtitle,
   matchups,
   editMode = false,
   onTeamSelect,
   onScoreUpdate,
-  teams = []
+  teams = [],
+  className = ""
 }) => {
   // Sort matchups by seed when possible, placing matches with higher seeds on top
   const sortedMatchups = [...matchups].sort((a, b) => {
@@ -46,8 +50,11 @@ const BracketSection: React.FC<BracketSectionProps> = ({
   });
 
   return (
-    <div>
-      <h3 className="text-lg font-semibold mb-6 text-center">{title}</h3>
+    <div className={className}>
+      <h3 className="text-lg font-semibold mb-2 text-center">{title}</h3>
+      {subtitle && (
+        <h4 className="text-sm text-muted-foreground mb-4 text-center">{subtitle}</h4>
+      )}
       <div className="space-y-12">
         {sortedMatchups.map((matchup, index) => (
           <div key={`${title.toLowerCase()}-${index}`} className="mx-auto w-[240px]">
