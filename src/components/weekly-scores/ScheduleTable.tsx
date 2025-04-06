@@ -17,6 +17,39 @@ type ScheduleTableProps = {
 };
 
 const ScheduleTable = ({ matchupScores, selectedSeason }: ScheduleTableProps) => {
+  // Get season as number for comparison
+  const seasonNum = parseInt(selectedSeason, 10);
+  
+  // Create a map to track which teams have byes in playoff weeks (Season 8+)
+  const playoffByeTeams = new Map<string, boolean>();
+  
+  if (seasonNum >= 8 && matchupScores) {
+    // Find teams in playoff weeks (15-16) that don't have matchups
+    // We need to track which teams have matchups in week 15
+    const week15Teams = new Set<number>();
+    const playoffTeams = new Set<number>();
+    
+    // First find all teams that should be in playoffs
+    matchupScores.forEach(matchup => {
+      if (matchup.week_number === 16 && matchup.is_playoff && !matchup.is_consolation) {
+        playoffTeams.add(matchup.home_team_id);
+        playoffTeams.add(matchup.away_team_id);
+      }
+      
+      if (matchup.week_number === 15) {
+        week15Teams.add(matchup.home_team_id);
+        week15Teams.add(matchup.away_team_id);
+      }
+    });
+    
+    // Teams in playoffs but not in week 15 have byes
+    playoffTeams.forEach(teamId => {
+      if (!week15Teams.has(teamId)) {
+        playoffByeTeams.set(`15-${teamId}`, true);
+      }
+    });
+  }
+
   return (
     <Card className="overflow-x-auto">
       <h2 className="text-lg font-semibold p-4 border-b">Schedule</h2>
@@ -66,6 +99,40 @@ const ScheduleTable = ({ matchupScores, selectedSeason }: ScheduleTableProps) =>
               </TableCell>
             </TableRow>
           ))}
+          
+          {/* Add bye week rows for teams that get first-round byes in playoffs (Season 8+) */}
+          {seasonNum >= 8 && playoffByeTeams.size > 0 && matchupScores && 
+            Array.from(playoffByeTeams.keys()).map(key => {
+              const [week, teamId] = key.split('-');
+              // Find the team name
+              const team = matchupScores.find(m => 
+                m.home_team_id === parseInt(teamId) || m.away_team_id === parseInt(teamId)
+              );
+              
+              const teamName = team?.home_team_id === parseInt(teamId) 
+                ? team.home_team_name 
+                : team?.away_team_name;
+                
+              if (!teamName) return null;
+              
+              return (
+                <TableRow key={`bye-${week}-${teamId}`}>
+                  <TableCell>Week {week}</TableCell>
+                  <TableCell>
+                    <Link
+                      to={`/team/${teamId}?season=${selectedSeason}`}
+                      className="text-primary hover:underline"
+                    >
+                      {teamName}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="italic text-muted-foreground">BYE</TableCell>
+                  <TableCell>-</TableCell>
+                  <TableCell>Playoff</TableCell>
+                </TableRow>
+              );
+            })
+          }
         </TableBody>
       </Table>
     </Card>
