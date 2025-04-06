@@ -33,14 +33,14 @@ const Seasons = () => {
   });
 
   return (
-    <div className="min-h-screen space-y-8">
+    <div className="min-h-screen container mx-auto px-4 py-6">
       <SeasonHeader 
         selectedSeason={selectedSeason}
         setSelectedSeason={setSelectedSeason}
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-6">
+        <TabsList className="mb-6 flex justify-center">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="comparison">Team Comparison</TabsTrigger>
           <TabsTrigger value="playoffs">Playoff Bracket</TabsTrigger>

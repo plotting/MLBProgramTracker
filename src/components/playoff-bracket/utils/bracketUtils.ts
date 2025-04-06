@@ -65,6 +65,37 @@ export const findThirdPlaceGame = (
 };
 
 /**
+ * Get final teams for the toilet bowl (the worst-performing teams)
+ * Used in the modified playoffs bracket (seasons 8-10)
+ */
+export const getToiletBowlTeams = (
+  consolationMatchups: MatchupScoresView[]
+): { round1Winners: number[], round1Losers: number[] } => {
+  const round1Winners: number[] = [];
+  const round1Losers: number[] = [];
+
+  // Get week 15 consolation matchups (round 1)
+  const week15Matchups = consolationMatchups.filter(m => m.week_number === 15);
+  
+  for (const matchup of week15Matchups) {
+    if (matchup.home_score === null || matchup.away_score === null) continue;
+    
+    const winner = matchup.home_score > matchup.away_score 
+      ? matchup.home_team_id 
+      : matchup.away_team_id;
+    
+    const loser = matchup.home_score > matchup.away_score 
+      ? matchup.away_team_id 
+      : matchup.home_team_id;
+    
+    if (winner) round1Winners.push(winner);
+    if (loser) round1Losers.push(loser);
+  }
+  
+  return { round1Winners, round1Losers };
+};
+
+/**
  * Calculate team final placements based on playoff results
  */
 export const getTeamFinalPlacements = (
@@ -179,10 +210,10 @@ export const getFinalPlacementEmoji = (placement: number | undefined): string =>
     case 4: return "🏆";  // 4th place
     case 5: return "🌟";  // 5th place
     case 6: return "🛡️";  // 6th place
-    case 7: return "🚽";  // 7th place
+    case 7: return "🚽";  // 7th place - toilet bowl winner
     case 8: return "🤡";  // 8th place
     case 9: return "🤮";  // 9th place
-    case 10: return "💩"; // 10th place
+    case 10: return "💩"; // 10th place - toilet bowl loser
     default: return "";
   }
 };

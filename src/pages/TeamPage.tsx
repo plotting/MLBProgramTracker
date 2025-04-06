@@ -82,7 +82,7 @@ const TeamPage = () => {
   const parsedTeamId = parseInt(id!);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen container mx-auto px-4 py-6">
       <TeamHeader 
         teamName={team.name} 
         selectedSeason={selectedSeason} 
@@ -91,10 +91,10 @@ const TeamPage = () => {
 
       <TeamStatsCards teamRecords={teamRecords} isLoading={recordsLoading} />
 
-      <div className="space-y-6">
+      <div className="grid grid-cols-1 gap-6 mt-6">
         <TeamMatchups teamId={parsedTeamId} selectedSeason={selectedSeason} />
 
-        <TeamDraftHistory teamId={parsedTeamId} />
+        <TeamDraftHistory teamId={parsedTeamId} onAssetClick={handleAssetClick} />
 
         <TeamTradesHistory teamId={parsedTeamId} selectedSeason={selectedSeason} />
       </div>

@@ -5,16 +5,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card } from "@/components/ui/card";
 import { getSeasonLabel } from "@/utils/seasonUtils";
 import { useState } from "react";
-import TradeAssetModal from "@/components/TradeAssetModal";
 
 interface TeamDraftHistoryProps {
   teamId: number;
+  onAssetClick?: (assetDescription: string) => void;
 }
 
-const TeamDraftHistory = ({ teamId }: TeamDraftHistoryProps) => {
-  const [selectedAsset, setSelectedAsset] = useState<string | null>(null);
-  const [assetModalOpen, setAssetModalOpen] = useState(false);
-
+const TeamDraftHistory = ({ teamId, onAssetClick }: TeamDraftHistoryProps) => {
   const { data: draftPicks, isLoading } = useQuery({
     queryKey: ['team-draft-history', teamId],
     queryFn: async () => {
@@ -32,8 +29,9 @@ const TeamDraftHistory = ({ teamId }: TeamDraftHistoryProps) => {
   });
 
   const handlePlayerClick = (playerName: string) => {
-    setSelectedAsset(playerName);
-    setAssetModalOpen(true);
+    if (onAssetClick) {
+      onAssetClick(playerName);
+    }
   };
 
   if (isLoading) {
@@ -96,12 +94,6 @@ const TeamDraftHistory = ({ teamId }: TeamDraftHistoryProps) => {
             </Table>
           </div>
         ))}
-
-      <TradeAssetModal 
-        open={assetModalOpen} 
-        onOpenChange={setAssetModalOpen} 
-        assetDescription={selectedAsset} 
-      />
     </Card>
   );
 };

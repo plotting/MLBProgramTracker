@@ -3,6 +3,7 @@ import React from "react";
 import { MatchupScoresView } from "@/types/database";
 import Matchup from "./Matchup";
 import WeekLabels from "./WeekLabels";
+import { getToiletBowlTeams } from "./utils/bracketUtils";
 import type { Team } from "@/types/database";
 
 interface ModifiedPlayoffsProps {
@@ -54,82 +55,52 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
     (matchup) => matchup.week_number === 15
   );
 
-  // Get week 16 consolation matchups (including 3rd place game)
+  // Get week 16 consolation matchups
   const weekSixteenConsolation = consolationMatchups.filter(
     (matchup) => matchup.week_number === 16
   );
 
-  // Calculate important playoff-related information
-  const getPlayoffResults = () => {
-    const results = {
-      championshipWinner: null,
-      championshipLoser: null,
-      semiFinalLosers: [] as number[],
-      thirdPlaceWinner: null,
-      thirdPlaceLoser: null,
-    };
+  // Get toilet bowl teams
+  const { round1Winners, round1Losers } = getToiletBowlTeams(consolationMatchups);
 
-    // Championship winner/loser
-    if (championship && championship.home_score !== null && championship.away_score !== null) {
-      if (championship.home_score > championship.away_score) {
-        results.championshipWinner = championship.home_team_id;
-        results.championshipLoser = championship.away_team_id;
-      } else {
-        results.championshipWinner = championship.away_team_id;
-        results.championshipLoser = championship.home_team_id;
-      }
-    }
+  // Find 3rd place game (between semifinal losers)
+  const semiFinalLosers = semiFinals
+    .filter(match => match.home_score !== null && match.away_score !== null)
+    .map(match => match.home_score! > match.away_score! ? match.away_team_id : match.home_team_id);
 
-    // Semifinal losers
-    semiFinals.forEach(match => {
-      if (match.home_score !== null && match.away_score !== null) {
-        const loser = match.home_score > match.away_score 
-          ? match.away_team_id 
-          : match.home_team_id;
-        
-        results.semiFinalLosers.push(loser);
-      }
-    });
-
-    // Find the 3rd place game - need to look at non-consolation games because semiFinals losers 
-    // play in the 3rd place game which is not marked as consolation
-    const thirdPlaceGame = playoffMatchups.find(
-      (matchup) => 
-        matchup.week_number === 16 && 
-        matchup !== championship &&
-        results.semiFinalLosers.includes(matchup.home_team_id || 0) && 
-        results.semiFinalLosers.includes(matchup.away_team_id || 0)
-    );
-
-    if (thirdPlaceGame && thirdPlaceGame.home_score !== null && thirdPlaceGame.away_score !== null) {
-      if (thirdPlaceGame.home_score > thirdPlaceGame.away_score) {
-        results.thirdPlaceWinner = thirdPlaceGame.home_team_id;
-        results.thirdPlaceLoser = thirdPlaceGame.away_team_id;
-      } else {
-        results.thirdPlaceWinner = thirdPlaceGame.away_team_id;
-        results.thirdPlaceLoser = thirdPlaceGame.home_team_id;
-      }
-    }
-
-    return { results, thirdPlaceGame };
-  };
-
-  const { results, thirdPlaceGame } = getPlayoffResults();
-
-  // Get other consolation games (not the 3rd place game)
-  const otherConsolationGames = weekSixteenConsolation.filter(
-    (matchup) => matchup !== thirdPlaceGame
+  const thirdPlaceGame = playoffMatchups.find(
+    (matchup) => 
+      matchup.week_number === 16 && 
+      matchup !== championship &&
+      semiFinalLosers.includes(matchup.home_team_id || 0) && 
+      semiFinalLosers.includes(matchup.away_team_id || 0)
   );
 
-  // Sort other consolation games by team ID or some other relevant criteria
-  // This will help ensure consistent display of 5th, 7th, 9th place games
-  const sortedConsolationGames = [...otherConsolationGames].sort((a, b) => {
-    const aHigherSeed = Math.min(teamSeeds.get(a.home_team_id || 0) || 999, teamSeeds.get(a.away_team_id || 0) || 999);
-    const bHigherSeed = Math.min(teamSeeds.get(b.home_team_id || 0) || 999, teamSeeds.get(b.away_team_id || 0) || 999);
-    return aHigherSeed - bHigherSeed;
-  });
+  // Find consolation matchups for specific placements
+  // 5th place game (between consolation round 1 winners)
+  const fifthPlaceGame = weekSixteenConsolation.find(
+    matchup => 
+      round1Winners.includes(matchup.home_team_id || 0) && 
+      round1Winners.includes(matchup.away_team_id || 0)
+  );
 
-  // Allocate matchup IDs
+  // 7th place game (toilet bowl - between a consolation round 1 winner and loser)
+  const seventhPlaceGame = weekSixteenConsolation.find(
+    matchup => 
+      !fifthPlaceGame || 
+      (matchup !== fifthPlaceGame && matchup !== thirdPlaceGame && matchup !== championship)
+  );
+
+  // 9th place game (between consolation round 1 losers)
+  const ninthPlaceGame = weekSixteenConsolation.find(
+    matchup => 
+      matchup !== fifthPlaceGame && 
+      matchup !== seventhPlaceGame &&
+      round1Losers.includes(matchup.home_team_id || 0) && 
+      round1Losers.includes(matchup.away_team_id || 0)
+  );
+
+  // For tracking matchup IDs
   let matchupCounter = 0;
 
   // Function to format team name with seed
@@ -173,7 +144,8 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
             </div>
 
             <div>
-              <h3 className="text-lg font-semibold mb-6 text-center">Consolation Semifinals</h3>
+              <h3 className="text-lg font-semibold mb-2 text-center">Consolation Bracket</h3>
+              <h4 className="text-sm text-muted-foreground mb-4 text-center">Toilet Bowl: Loser is flushed to next round</h4>
               <div className="space-y-12">
                 {weekFifteenConsolation.map((matchup, index) => {
                   const id = matchupCounter++;
@@ -243,74 +215,70 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
               )}
             </div>
 
-            {sortedConsolationGames.length > 0 && (
-              <>
-                {sortedConsolationGames[0] && (
-                  <div>
-                    <h3 className="text-lg font-semibold mb-6 text-center">5th Place Game</h3>
-                    <div className="mx-auto w-[240px]">
-                      <Matchup
-                        matchupId={matchupCounter++}
-                        homeTeam={getTeamWithSeed(sortedConsolationGames[0].home_team_name, sortedConsolationGames[0].home_team_id)}
-                        homeTeamId={sortedConsolationGames[0].home_team_id}
-                        homeScore={sortedConsolationGames[0].home_score}
-                        awayTeam={getTeamWithSeed(sortedConsolationGames[0].away_team_name, sortedConsolationGames[0].away_team_id)}
-                        awayTeamId={sortedConsolationGames[0].away_team_id}
-                        awayScore={sortedConsolationGames[0].away_score}
-                        isConsolation
-                        editMode={editMode}
-                        onTeamSelect={onTeamSelect}
-                        onScoreUpdate={onScoreUpdate}
-                        teams={teams}
-                      />
-                    </div>
-                  </div>
-                )}
+            {fifthPlaceGame && (
+              <div>
+                <h3 className="text-lg font-semibold mb-6 text-center">5th Place Game</h3>
+                <div className="mx-auto w-[240px]">
+                  <Matchup
+                    matchupId={matchupCounter++}
+                    homeTeam={getTeamWithSeed(fifthPlaceGame.home_team_name, fifthPlaceGame.home_team_id)}
+                    homeTeamId={fifthPlaceGame.home_team_id}
+                    homeScore={fifthPlaceGame.home_score}
+                    awayTeam={getTeamWithSeed(fifthPlaceGame.away_team_name, fifthPlaceGame.away_team_id)}
+                    awayTeamId={fifthPlaceGame.away_team_id}
+                    awayScore={fifthPlaceGame.away_score}
+                    isConsolation
+                    editMode={editMode}
+                    onTeamSelect={onTeamSelect}
+                    onScoreUpdate={onScoreUpdate}
+                    teams={teams}
+                  />
+                </div>
+              </div>
+            )}
 
-                {sortedConsolationGames[1] && (
-                  <div>
-                    <h3 className="text-lg font-semibold mb-6 text-center">7th Place Game</h3>
-                    <div className="mx-auto w-[240px]">
-                      <Matchup
-                        matchupId={matchupCounter++}
-                        homeTeam={getTeamWithSeed(sortedConsolationGames[1].home_team_name, sortedConsolationGames[1].home_team_id)}
-                        homeTeamId={sortedConsolationGames[1].home_team_id}
-                        homeScore={sortedConsolationGames[1].home_score}
-                        awayTeam={getTeamWithSeed(sortedConsolationGames[1].away_team_name, sortedConsolationGames[1].away_team_id)}
-                        awayTeamId={sortedConsolationGames[1].away_team_id}
-                        awayScore={sortedConsolationGames[1].away_score}
-                        isConsolation
-                        editMode={editMode}
-                        onTeamSelect={onTeamSelect}
-                        onScoreUpdate={onScoreUpdate}
-                        teams={teams}
-                      />
-                    </div>
-                  </div>
-                )}
+            {seventhPlaceGame && (
+              <div>
+                <h3 className="text-lg font-semibold mb-6 text-center">7th Place Game (Toilet Bowl)</h3>
+                <div className="mx-auto w-[240px]">
+                  <Matchup
+                    matchupId={matchupCounter++}
+                    homeTeam={getTeamWithSeed(seventhPlaceGame.home_team_name, seventhPlaceGame.home_team_id)}
+                    homeTeamId={seventhPlaceGame.home_team_id}
+                    homeScore={seventhPlaceGame.home_score}
+                    awayTeam={getTeamWithSeed(seventhPlaceGame.away_team_name, seventhPlaceGame.away_team_id)}
+                    awayTeamId={seventhPlaceGame.away_team_id}
+                    awayScore={seventhPlaceGame.away_score}
+                    isConsolation
+                    editMode={editMode}
+                    onTeamSelect={onTeamSelect}
+                    onScoreUpdate={onScoreUpdate}
+                    teams={teams}
+                  />
+                </div>
+              </div>
+            )}
 
-                {sortedConsolationGames[2] && (
-                  <div>
-                    <h3 className="text-lg font-semibold mb-6 text-center">9th Place Game</h3>
-                    <div className="mx-auto w-[240px]">
-                      <Matchup
-                        matchupId={matchupCounter++}
-                        homeTeam={getTeamWithSeed(sortedConsolationGames[2].home_team_name, sortedConsolationGames[2].home_team_id)}
-                        homeTeamId={sortedConsolationGames[2].home_team_id}
-                        homeScore={sortedConsolationGames[2].home_score}
-                        awayTeam={getTeamWithSeed(sortedConsolationGames[2].away_team_name, sortedConsolationGames[2].away_team_id)}
-                        awayTeamId={sortedConsolationGames[2].away_team_id}
-                        awayScore={sortedConsolationGames[2].away_score}
-                        isConsolation
-                        editMode={editMode}
-                        onTeamSelect={onTeamSelect}
-                        onScoreUpdate={onScoreUpdate}
-                        teams={teams}
-                      />
-                    </div>
-                  </div>
-                )}
-              </>
+            {ninthPlaceGame && (
+              <div>
+                <h3 className="text-lg font-semibold mb-6 text-center">9th Place Game</h3>
+                <div className="mx-auto w-[240px]">
+                  <Matchup
+                    matchupId={matchupCounter++}
+                    homeTeam={getTeamWithSeed(ninthPlaceGame.home_team_name, ninthPlaceGame.home_team_id)}
+                    homeTeamId={ninthPlaceGame.home_team_id}
+                    homeScore={ninthPlaceGame.home_score}
+                    awayTeam={getTeamWithSeed(ninthPlaceGame.away_team_name, ninthPlaceGame.away_team_id)}
+                    awayTeamId={ninthPlaceGame.away_team_id}
+                    awayScore={ninthPlaceGame.away_score}
+                    isConsolation
+                    editMode={editMode}
+                    onTeamSelect={onTeamSelect}
+                    onScoreUpdate={onScoreUpdate}
+                    teams={teams}
+                  />
+                </div>
+              </div>
             )}
           </div>
         </div>
