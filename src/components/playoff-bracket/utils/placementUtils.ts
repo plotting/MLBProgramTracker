@@ -14,19 +14,14 @@ export const getTeamFinalPlacements = (
   // Map to track team placement
   const teamPlacements = new Map<number, number>();
   
-  // Get championship game (week 16)
+  // Get championship game (week 16 or 17 depending on season)
+  const seasonNumber = playoffMatchups[0]?.season_id || 0;
+  const champWeek = seasonNumber >= 11 ? 17 : 16;
+  
   const championshipGame = playoffMatchups.find(m => 
-    m.week_number === 16 && 
+    m.week_number === champWeek && 
     m.is_playoff && 
-    !m.is_consolation &&
-    // For seasons with unusual configuration, find the championship game explicitly
-    // by looking at who played (usually the top 2 teams from semifinals)
-    ((playoffMatchups.filter(m => m.week_number === 15 && m.is_playoff && !m.is_consolation).length >= 2) ||
-     (m === playoffMatchups.find(game => 
-       game.week_number === 16 && 
-       game.is_playoff && 
-       !game.is_consolation
-     )))
+    !m.is_consolation
   );
   
   if (championshipGame && championshipGame.home_score !== null && championshipGame.away_score !== null) {
@@ -43,9 +38,10 @@ export const getTeamFinalPlacements = (
     if (championTeamId) teamPlacements.set(championTeamId, 1); // 1st place
     if (runnerUpTeamId) teamPlacements.set(runnerUpTeamId, 2); // 2nd place
     
-    // Get semifinal games (week 15)
+    // Get semifinal games (week 15 or 16 depending on season)
+    const playoffStartWeek = seasonNumber >= 11 ? 16 : 15;
     const semiFinals = playoffMatchups.filter(m => 
-      m.week_number === 15 && 
+      m.week_number === playoffStartWeek && 
       m.is_playoff && 
       !m.is_consolation
     );
@@ -71,7 +67,7 @@ export const getTeamFinalPlacements = (
     
     // Process consolation games for 5th-10th places
     const consolidationGames = playoffMatchups.filter(m => 
-      m.week_number === 16 && 
+      m.week_number === champWeek && 
       (m.is_consolation || (!m.is_playoff && m !== thirdPlaceGame)) &&
       m !== thirdPlaceGame && 
       m !== championshipGame

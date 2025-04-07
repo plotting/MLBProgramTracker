@@ -17,7 +17,7 @@ const StandingsTable = ({ seasonId }: StandingsTableProps) => {
 
   return (
     <div className="overflow-x-auto">
-      <Table>
+      <Table className="w-full">
         <StandingsTableHeader />
         <TableBody>
           {sortedByRegularSeason.map((team, index) => (
