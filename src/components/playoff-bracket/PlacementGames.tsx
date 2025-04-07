@@ -2,6 +2,7 @@
 import React from "react";
 import BracketSection from "./BracketSection";
 import { MatchupScoresView, Team } from "@/types/database";
+import Matchup from "./Matchup";
 
 interface PlacementGamesProps {
   thirdPlaceGame?: MatchupScoresView;
@@ -16,6 +17,10 @@ interface PlacementGamesProps {
   onScoreUpdate?: (matchupId: number, isHome: boolean, score: number) => void;
   teams?: Team[];
   ninthPlaceTitle?: string;
+  thirdPlaceTitle?: string;
+  fifthPlaceTitle?: string;
+  seventhPlaceTitle?: string;
+  showOnlyFifthPlace?: boolean;
 }
 
 const PlacementGames: React.FC<PlacementGamesProps> = ({
@@ -30,7 +35,11 @@ const PlacementGames: React.FC<PlacementGamesProps> = ({
   onTeamSelect,
   onScoreUpdate,
   teams = [],
-  ninthPlaceTitle = "9th Place Game"
+  ninthPlaceTitle = "9th Place Game",
+  thirdPlaceTitle = "3rd Place Game",
+  fifthPlaceTitle = "5th Place Game",
+  seventhPlaceTitle = "7th Place Game",
+  showOnlyFifthPlace = false
 }) => {
   let updatedCounter = matchupCounter;
   
@@ -56,11 +65,26 @@ const PlacementGames: React.FC<PlacementGamesProps> = ({
     onMatchupCounterUpdate(updatedCounter);
   }, [updatedCounter, onMatchupCounterUpdate]);
   
+  if (showOnlyFifthPlace) {
+    return (
+      fifthPlaceGame && (
+        <BracketSection
+          title={fifthPlaceTitle}
+          matchups={[createPlacementMatchup(fifthPlaceGame, true) as any]}
+          editMode={editMode}
+          onTeamSelect={onTeamSelect}
+          onScoreUpdate={onScoreUpdate}
+          teams={teams}
+        />
+      )
+    );
+  }
+  
   return (
     <>
       {thirdPlaceGame && (
         <BracketSection
-          title="3rd Place Game"
+          title={thirdPlaceTitle}
           matchups={[createPlacementMatchup(thirdPlaceGame) as any]}
           editMode={editMode}
           onTeamSelect={onTeamSelect}
@@ -72,7 +96,7 @@ const PlacementGames: React.FC<PlacementGamesProps> = ({
       
       {fifthPlaceGame && (
         <BracketSection
-          title="5th Place Game"
+          title={fifthPlaceTitle}
           matchups={[createPlacementMatchup(fifthPlaceGame, true) as any]}
           editMode={editMode}
           onTeamSelect={onTeamSelect}
@@ -84,7 +108,7 @@ const PlacementGames: React.FC<PlacementGamesProps> = ({
       
       {seventhPlaceGame && (
         <BracketSection
-          title="7th Place Game"
+          title={seventhPlaceTitle}
           matchups={[createPlacementMatchup(seventhPlaceGame, true) as any]}
           editMode={editMode}
           onTeamSelect={onTeamSelect}
