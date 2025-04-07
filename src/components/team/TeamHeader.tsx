@@ -21,6 +21,7 @@ const TeamHeader = ({ teamName, selectedSeason, setSelectedSeason }: TeamHeaderP
             <SelectValue placeholder="Select Season" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem key="career" value="career">Career</SelectItem>
             {getAllSeasons().reverse().map((season) => (
               <SelectItem key={season.value} value={season.value}>
                 {season.label}

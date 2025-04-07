@@ -13,7 +13,7 @@ import TradeAssetModal from "@/components/TradeAssetModal";
 const TeamPage = () => {
   const { id } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [selectedSeason, setSelectedSeason] = useState(searchParams.get("season") || "1");
+  const [selectedSeason, setSelectedSeason] = useState(searchParams.get("season") || "career");
   const [selectedAsset, setSelectedAsset] = useState<string | null>(null);
   const [assetModalOpen, setAssetModalOpen] = useState(false);
 
@@ -42,15 +42,44 @@ const TeamPage = () => {
     queryKey: ['team-records', id, selectedSeason],
     queryFn: async () => {
       if (!id) throw new Error('No team ID provided');
-      const { data, error } = await supabase
-        .from('team_records_view')
-        .select('*')
-        .eq('season_id', parseInt(selectedSeason))
-        .eq('team_id', parseInt(id))
-        .maybeSingle();
+      
+      if (selectedSeason === 'career') {
+        // For career view, we need to aggregate data from all seasons
+        const { data, error } = await supabase
+          .from('team_records_view')
+          .select('*')
+          .eq('team_id', parseInt(id));
 
-      if (error) throw error;
-      return data;
+        if (error) throw error;
+        
+        // Aggregate the data
+        if (data && data.length > 0) {
+          return {
+            regular_season_wins: data.reduce((sum, record) => sum + (record.regular_season_wins || 0), 0),
+            regular_season_losses: data.reduce((sum, record) => sum + (record.regular_season_losses || 0), 0),
+            regular_season_ties: data.reduce((sum, record) => sum + (record.regular_season_ties || 0), 0),
+            regular_season_points_for: data.reduce((sum, record) => sum + (record.regular_season_points_for || 0), 0),
+            regular_season_points_against: data.reduce((sum, record) => sum + (record.regular_season_points_against || 0), 0),
+            playoff_wins: data.reduce((sum, record) => sum + (record.playoff_wins || 0), 0),
+            playoff_losses: data.reduce((sum, record) => sum + (record.playoff_losses || 0), 0),
+            playoff_ties: data.reduce((sum, record) => sum + (record.playoff_ties || 0), 0),
+            playoff_points_for: data.reduce((sum, record) => sum + (record.playoff_points_for || 0), 0),
+            playoff_points_against: data.reduce((sum, record) => sum + (record.playoff_points_against || 0), 0),
+          };
+        }
+        return null;
+      } else {
+        // For specific season, get that season's data
+        const { data, error } = await supabase
+          .from('team_records_view')
+          .select('*')
+          .eq('season_id', parseInt(selectedSeason))
+          .eq('team_id', parseInt(id))
+          .maybeSingle();
+
+        if (error) throw error;
+        return data;
+      }
     },
     enabled: !!id && !!team,
     retry: 1,
@@ -92,11 +121,20 @@ const TeamPage = () => {
       <TeamStatsCards teamRecords={teamRecords} isLoading={recordsLoading} />
 
       <div className="grid grid-cols-1 gap-6 mt-6">
-        <TeamMatchups teamId={parsedTeamId} selectedSeason={selectedSeason} />
+        {selectedSeason !== 'career' && (
+          <TeamMatchups teamId={parsedTeamId} selectedSeason={selectedSeason} />
+        )}
 
-        <TeamDraftHistory teamId={parsedTeamId} onAssetClick={handleAssetClick} />
+        <TeamDraftHistory 
+          teamId={parsedTeamId} 
+          onAssetClick={handleAssetClick} 
+          selectedSeason={selectedSeason}
+        />
 
-        <TeamTradesHistory teamId={parsedTeamId} selectedSeason={selectedSeason} />
+        <TeamTradesHistory 
+          teamId={parsedTeamId} 
+          selectedSeason={selectedSeason} 
+        />
       </div>
 
       <TradeAssetModal 

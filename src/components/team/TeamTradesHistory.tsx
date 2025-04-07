@@ -15,12 +15,14 @@ interface TeamTradesHistoryProps {
 const TeamTradesHistory = ({ teamId, selectedSeason }: TeamTradesHistoryProps) => {
   const [selectedAsset, setSelectedAsset] = useState<string | null>(null);
   const [assetModalOpen, setAssetModalOpen] = useState(false);
+  const isCareerView = selectedSeason === 'career';
 
   const { data: trades, isLoading } = useQuery({
     queryKey: ['team-trades', teamId, selectedSeason],
     queryFn: async () => {
       if (!teamId) throw new Error('No team ID provided');
-      const { data, error } = await supabase
+      
+      let query = supabase
         .from('trades')
         .select(`
           *,
@@ -35,9 +37,13 @@ const TeamTradesHistory = ({ teamId, selectedSeason }: TeamTradesHistoryProps) =
             to_team:teams!trade_items_to_team_id_fkey(name)
           )
         `)
-        .eq('season_id', parseInt(selectedSeason))
-        .or(`team1_id.eq.${teamId},team2_id.eq.${teamId}`)
-        .order('trade_date', { ascending: true });
+        .or(`team1_id.eq.${teamId},team2_id.eq.${teamId}`);
+      
+      if (!isCareerView) {
+        query = query.eq('season_id', parseInt(selectedSeason));
+      }
+      
+      const { data, error } = await query.order('trade_date', { ascending: false });
 
       if (error) throw error;
       return data || [];
@@ -83,7 +89,8 @@ const TeamTradesHistory = ({ teamId, selectedSeason }: TeamTradesHistoryProps) =
                   <div>
                     <p className="font-medium">Trade with {otherTeam.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {format(new Date(trade.trade_date), "MMM d, yyyy")}
+                      {format(new Date(trade.trade_date), "MMM d, yyyy")} 
+                      {isCareerView && ` • Season ${trade.season_id}`}
                     </p>
                   </div>
                 </div>
@@ -130,7 +137,7 @@ const TeamTradesHistory = ({ teamId, selectedSeason }: TeamTradesHistoryProps) =
           })}
         </div>
       ) : (
-        <p className="text-muted-foreground">No trades found for this season</p>
+        <p className="text-muted-foreground">No trades found {!isCareerView ? "for this season" : ""}</p>
       )}
 
       <TradeAssetModal 

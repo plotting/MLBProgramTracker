@@ -7,17 +7,26 @@ import { getSeasonLabel } from "@/utils/seasonUtils";
 
 interface TeamDraftHistoryProps {
   teamId: number;
+  selectedSeason: string;
   onAssetClick?: (assetDescription: string) => void;
 }
 
-const TeamDraftHistory = ({ teamId, onAssetClick }: TeamDraftHistoryProps) => {
+const TeamDraftHistory = ({ teamId, selectedSeason, onAssetClick }: TeamDraftHistoryProps) => {
+  const isCareerView = selectedSeason === 'career';
+
   const { data: draftPicks, isLoading } = useQuery({
-    queryKey: ['team-draft-history', teamId],
+    queryKey: ['team-draft-history', teamId, selectedSeason],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('draft_picks')
         .select('*, season:seasons(season_number)')
-        .eq('team_id', teamId)
+        .eq('team_id', teamId);
+      
+      if (!isCareerView) {
+        query = query.eq('season_id', parseInt(selectedSeason));
+      }
+      
+      const { data, error } = await query
         .order('season_id', { ascending: false })
         .order('round')
         .order('pick_number');
