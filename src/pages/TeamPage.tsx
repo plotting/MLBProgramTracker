@@ -55,6 +55,9 @@ const TeamPage = () => {
         // Aggregate the data
         if (data && data.length > 0) {
           return {
+            season_id: null, // Use null for career view
+            team_id: parseInt(id),
+            team_name: team?.name || '',
             regular_season_wins: data.reduce((sum, record) => sum + (record.regular_season_wins || 0), 0),
             regular_season_losses: data.reduce((sum, record) => sum + (record.regular_season_losses || 0), 0),
             regular_season_ties: data.reduce((sum, record) => sum + (record.regular_season_ties || 0), 0),
