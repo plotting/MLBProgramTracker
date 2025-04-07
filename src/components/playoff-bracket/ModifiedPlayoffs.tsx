@@ -8,6 +8,7 @@ import PlayoffSemifinals from "./PlayoffSemifinals";
 import ConsolationBracket from "./ConsolationBracket";
 import ChampionshipGame from "./ChampionshipGame";
 import PlacementGames from "./PlacementGames";
+import Matchup from "./Matchup"; // Add missing import
 
 interface ModifiedPlayoffsProps {
   matchups: MatchupScoresView[];
@@ -162,6 +163,9 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
   // For seasons 8-10 we need to display 3 weeks not 2
   const displayWeeks = isLoserAdvancesFormat ? [playoffStartWeek, champWeek, finalWeek] : [playoffStartWeek, champWeek];
 
+  // Create a local variable to track matchup IDs
+  let localMatchupCounter = matchupCounter;
+
   return (
     <div className="overflow-auto">
       <div className="flex flex-col min-w-[800px]">
@@ -230,7 +234,12 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
                     .filter(m => m !== fifthPlaceGame && m !== thirdPlaceGame)
                     .map((matchup, index) => {
                       // These are the toilet bowl track games
-                      const id = matchupCounter++;
+                      const id = localMatchupCounter;
+                      // Update the local counter
+                      localMatchupCounter++;
+                      // Update parent state at the end of rendering
+                      setTimeout(() => setMatchupCounter(localMatchupCounter), 0);
+                      
                       return (
                         <div 
                           key={`toilet-round2-${index}`} 
@@ -302,7 +311,7 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
                         3rd Place Game
                       </div>
                       <Matchup
-                        matchupId={matchupCounter++}
+                        matchupId={localMatchupCounter}
                         homeTeam={
                           thirdPlaceGame.home_team_id ? 
                             teamSeeds.get(thirdPlaceGame.home_team_id) ? 
@@ -329,13 +338,20 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
                     </div>
                   )}
                   
+                  {/* Increment the counter after using it */}
+                  {(() => {
+                    localMatchupCounter++;
+                    setTimeout(() => setMatchupCounter(localMatchupCounter), 0);
+                    return null;
+                  })()}
+                  
                   {seventhPlaceGame && (
                     <div className="mx-auto w-[240px]">
                       <div className="text-sm text-center text-muted-foreground mb-2">
                         7th Place Game
                       </div>
                       <Matchup
-                        matchupId={matchupCounter++}
+                        matchupId={localMatchupCounter}
                         homeTeam={
                           seventhPlaceGame.home_team_id ? 
                             teamSeeds.get(seventhPlaceGame.home_team_id) ? 
@@ -363,13 +379,20 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
                     </div>
                   )}
                   
+                  {/* Increment the counter after using it */}
+                  {(() => {
+                    localMatchupCounter++;
+                    setTimeout(() => setMatchupCounter(localMatchupCounter), 0);
+                    return null;
+                  })()}
+                  
                   {ninthPlaceGame && (
                     <div className="mx-auto w-[240px]">
                       <div className="text-sm text-center text-muted-foreground mb-2">
                         {ninthPlaceTitle}
                       </div>
                       <Matchup
-                        matchupId={matchupCounter++}
+                        matchupId={localMatchupCounter}
                         homeTeam={
                           ninthPlaceGame.home_team_id ? 
                             teamSeeds.get(ninthPlaceGame.home_team_id) ? 
@@ -396,6 +419,13 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
                       />
                     </div>
                   )}
+                  
+                  {/* Final increment of the counter */}
+                  {(() => {
+                    localMatchupCounter++;
+                    setTimeout(() => setMatchupCounter(localMatchupCounter), 0);
+                    return null;
+                  })()}
                 </div>
               )}
             </div>

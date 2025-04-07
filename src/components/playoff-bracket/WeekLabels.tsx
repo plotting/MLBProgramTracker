@@ -7,9 +7,9 @@ interface WeekLabelsProps {
 
 const WeekLabels: React.FC<WeekLabelsProps> = ({ weeks }) => {
   return (
-    <div className={`grid grid-cols-${weeks.length} gap-8 mb-4`}>
+    <div className="flex justify-between mb-4">
       {weeks.map((week, index) => (
-        <div key={`week-${week}`} className="text-center font-semibold text-lg">
+        <div key={`week-${week}`} className="text-center font-semibold text-lg flex-1">
           Week {week}
         </div>
       ))}
