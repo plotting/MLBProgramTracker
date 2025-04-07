@@ -24,49 +24,52 @@ const ScheduleTable = ({ matchupScores, selectedSeason }: ScheduleTableProps) =>
   const playoffByeTeams = new Map<string, boolean>();
   
   if (seasonNum >= 8 && matchupScores) {
-    // Find teams in playoff weeks (15-16) that don't have matchups
-    // We need to track which teams have matchups in week 15
-    const week15Teams = new Set<number>();
+    // Determine playoff start week based on season
+    const playoffStartWeek = seasonNum >= 11 ? 16 : 15;
+    
+    // Find teams in playoff weeks that don't have matchups
+    // We need to track which teams have matchups in first playoff week
+    const playoffWeekTeams = new Set<number>();
     const playoffTeams = new Set<number>();
     
     // First find all teams that should be in playoffs
     matchupScores.forEach(matchup => {
-      if (matchup.week_number === 16 && matchup.is_playoff && !matchup.is_consolation) {
+      if ((matchup.week_number === playoffStartWeek + 1) && matchup.is_playoff && !matchup.is_consolation) {
         playoffTeams.add(matchup.home_team_id);
         playoffTeams.add(matchup.away_team_id);
       }
       
-      if (matchup.week_number === 15) {
-        week15Teams.add(matchup.home_team_id);
-        week15Teams.add(matchup.away_team_id);
+      if (matchup.week_number === playoffStartWeek) {
+        playoffWeekTeams.add(matchup.home_team_id);
+        playoffWeekTeams.add(matchup.away_team_id);
       }
     });
     
-    // Teams in playoffs but not in week 15 have byes
+    // Teams in playoffs but not in first playoff week have byes
     playoffTeams.forEach(teamId => {
-      if (!week15Teams.has(teamId)) {
-        playoffByeTeams.set(`15-${teamId}`, true);
+      if (!playoffWeekTeams.has(teamId)) {
+        playoffByeTeams.set(`${playoffStartWeek}-${teamId}`, true);
       }
     });
   }
 
   return (
     <Card className="overflow-x-auto">
-      <h2 className="text-lg font-semibold p-4 border-b">Schedule</h2>
+      <h2 className="text-lg font-semibold p-4 border-b text-center">Schedule</h2>
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Week</TableHead>
-            <TableHead>Home Team</TableHead>
-            <TableHead>Away Team</TableHead>
-            <TableHead>Score</TableHead>
-            <TableHead>Type</TableHead>
+            <TableHead className="text-center">Week</TableHead>
+            <TableHead className="text-center">Home Team</TableHead>
+            <TableHead className="text-center">Away Team</TableHead>
+            <TableHead className="text-center">Score</TableHead>
+            <TableHead className="text-center">Type</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {matchupScores?.map((matchup) => (
             <TableRow key={`${matchup.week_number}-${matchup.home_team_id}-${matchup.away_team_id}`}>
-              <TableCell>Week {matchup.week_number}</TableCell>
+              <TableCell className="text-center">Week {matchup.week_number}</TableCell>
               <TableCell>
                 <Link 
                   to={`/team/${matchup.home_team_id}?season=${selectedSeason}`}
@@ -83,14 +86,14 @@ const ScheduleTable = ({ matchupScores, selectedSeason }: ScheduleTableProps) =>
                   {matchup.away_team_name}
                 </Link>
               </TableCell>
-              <TableCell>
+              <TableCell className="text-center">
                 {matchup.home_score !== null && matchup.away_score !== null ? (
                   `${matchup.home_score.toFixed(2)} - ${matchup.away_score.toFixed(2)}`
                 ) : (
                   'TBD'
                 )}
               </TableCell>
-              <TableCell>
+              <TableCell className="text-center">
                 {matchup.is_consolation 
                   ? 'Consolation' 
                   : matchup.is_playoff 
@@ -117,7 +120,7 @@ const ScheduleTable = ({ matchupScores, selectedSeason }: ScheduleTableProps) =>
               
               return (
                 <TableRow key={`bye-${week}-${teamId}`}>
-                  <TableCell>Week {week}</TableCell>
+                  <TableCell className="text-center">Week {week}</TableCell>
                   <TableCell>
                     <Link
                       to={`/team/${teamId}?season=${selectedSeason}`}
@@ -126,9 +129,9 @@ const ScheduleTable = ({ matchupScores, selectedSeason }: ScheduleTableProps) =>
                       {teamName}
                     </Link>
                   </TableCell>
-                  <TableCell className="italic text-muted-foreground">BYE</TableCell>
-                  <TableCell>-</TableCell>
-                  <TableCell>Playoff</TableCell>
+                  <TableCell className="italic text-muted-foreground text-center">BYE</TableCell>
+                  <TableCell className="text-center">-</TableCell>
+                  <TableCell className="text-center">Playoff</TableCell>
                 </TableRow>
               );
             })

@@ -13,13 +13,14 @@ export const getToiletBowlTeams = (
   const round1Losers: number[] = [];
 
   // Get week 15 consolation matchups (round 1)
-  const week15Matchups = consolationMatchups.filter(m => m.week_number === 15);
+  // For 17-week regular seasons, playoffs start in week 16 (not 15)
+  const playoffStartWeek = seasonNumber >= 11 ? 16 : 15;
+  const round1Matchups = consolationMatchups.filter(m => m.week_number === playoffStartWeek);
   
   // For seasons 8-10, the toilet bowl format is "loser advances"
-  // This means losers from round 1 play for 9th place (worst place)
   const isLoserAdvancesFormat = seasonNumber >= 8 && seasonNumber <= 10;
   
-  for (const matchup of week15Matchups) {
+  for (const matchup of round1Matchups) {
     if (matchup.home_score === null || matchup.away_score === null) continue;
     
     const winner = matchup.home_score > matchup.away_score 
@@ -55,11 +56,6 @@ export const identifyPlacementGame = (
   // - 7th place game could be mixed teams or undefined
   // - 9th place game (toilet bowl) is between consolation losers
   
-  // In normal format (other seasons):
-  // - 5th place game is between consolation winners
-  // - 7th place game is typically mixed or undefined
-  // - 9th place game is between consolation losers (but not the "toilet bowl")
-  
   const homeId = matchup.home_team_id;
   const awayId = matchup.away_team_id;
   
@@ -74,7 +70,6 @@ export const identifyPlacementGame = (
     (awayId && round1Losers.includes(awayId));
   
   // In loser advances format, 9th place game (toilet bowl) is between consolation losers
-  // In normal format, 9th place game is still between losers but not called "toilet bowl"
   const isNinthPlace = isBothLosers;
   
   // 5th place game is between consolation winners in both formats

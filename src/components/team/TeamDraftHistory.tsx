@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
 import { getSeasonLabel } from "@/utils/seasonUtils";
-import { useState } from "react";
 
 interface TeamDraftHistoryProps {
   teamId: number;
@@ -58,29 +57,29 @@ const TeamDraftHistory = ({ teamId, onAssetClick }: TeamDraftHistoryProps) => {
 
   return (
     <Card className="p-6">
-      <h2 className="text-xl font-bold mb-4">Draft History</h2>
+      <h2 className="text-xl font-bold mb-4 text-center">Draft History</h2>
       
       {Object.entries(draftPicksBySeason)
         .sort((a, b) => Number(b[0]) - Number(a[0])) // Sort by season number descending
         .map(([seasonNumber, picks]) => (
           <div key={seasonNumber} className="mb-6 last:mb-0">
-            <h3 className="text-lg font-medium mb-2">
+            <h3 className="text-lg font-medium mb-2 text-center">
               {getSeasonLabel(seasonNumber)}
             </h3>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Round</TableHead>
-                  <TableHead>Pick #</TableHead>
-                  <TableHead>Player</TableHead>
+                  <TableHead className="text-center">Round</TableHead>
+                  <TableHead className="text-center">Pick #</TableHead>
+                  <TableHead className="text-center">Player</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {picks.map((pick) => (
                   <TableRow key={`${pick.season_id}-${pick.round}-${pick.pick_number}`}>
-                    <TableCell>{pick.round}</TableCell>
-                    <TableCell>{pick.pick_number}</TableCell>
-                    <TableCell>
+                    <TableCell className="text-center">{pick.round}</TableCell>
+                    <TableCell className="text-center">{pick.pick_number}</TableCell>
+                    <TableCell className="text-center">
                       <span 
                         className="cursor-pointer hover:text-primary hover:underline"
                         onClick={() => handlePlayerClick(pick.player_name)}

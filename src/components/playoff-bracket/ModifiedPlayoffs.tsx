@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { MatchupScoresView } from "@/types/database";
 import WeekLabels from "./WeekLabels";
-import { getToiletBowlTeams } from "./utils/bracketUtils";
+import { getToiletBowlTeams } from "./utils/consolationUtils";
 import type { Team } from "@/types/database";
 import PlayoffSemifinals from "./PlayoffSemifinals";
 import ConsolationBracket from "./ConsolationBracket";
@@ -30,14 +30,18 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
 }) => {
   const [matchupCounter, setMatchupCounter] = useState(0);
 
+  // Determine playoff weeks based on season
+  const playoffStartWeek = seasonNumber >= 11 ? 16 : 15;
+  const champWeek = seasonNumber >= 11 ? 17 : 16;
+
   // Filter playoff matchups (non-consolation)
   const playoffMatchups = matchups.filter(
     (matchup) => matchup.is_playoff && !matchup.is_consolation
   );
 
-  // Get semifinal matchups (week 15)
+  // Get semifinal matchups (week 15 or 16 depending on season)
   const semiFinals = playoffMatchups.filter(
-    (matchup) => matchup.week_number === 15
+    (matchup) => matchup.week_number === playoffStartWeek
   );
   
   // Sort semifinal matchups by seed to put higher seeds on top
@@ -47,9 +51,9 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
     return aHigherSeed - bHigherSeed;
   });
 
-  // Get championship matchup (week 16)
+  // Get championship matchup (week 16 or 17 depending on season)
   const championship = playoffMatchups.find(
-    (matchup) => matchup.week_number === 16
+    (matchup) => matchup.week_number === champWeek
   );
 
   // Get consolation matchups
@@ -57,14 +61,14 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
     (matchup) => matchup.is_consolation
   );
 
-  // Get week 15 consolation matchups
+  // Get week 15/16 consolation matchups (first round)
   const weekFifteenConsolation = consolationMatchups.filter(
-    (matchup) => matchup.week_number === 15
+    (matchup) => matchup.week_number === playoffStartWeek
   );
 
-  // Get week 16 consolation matchups
+  // Get week 16/17 consolation matchups (final placement games)
   const weekSixteenConsolation = consolationMatchups.filter(
-    (matchup) => matchup.week_number === 16
+    (matchup) => matchup.week_number === champWeek
   );
 
   // Get toilet bowl teams with the correct seasonNumber
@@ -77,7 +81,7 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
 
   const thirdPlaceGame = playoffMatchups.find(
     (matchup) => 
-      matchup.week_number === 16 && 
+      matchup.week_number === champWeek && 
       matchup !== championship &&
       semiFinalLosers.includes(matchup.home_team_id || 0) && 
       semiFinalLosers.includes(matchup.away_team_id || 0)
@@ -120,7 +124,7 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
   return (
     <div className="overflow-auto">
       <div className="flex flex-col min-w-[800px]">
-        <WeekLabels weeks={[15, 16]} />
+        <WeekLabels weeks={[playoffStartWeek, champWeek]} />
         
         <div className="grid grid-cols-2 gap-8">
           <div className="space-y-12">

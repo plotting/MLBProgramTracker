@@ -1,3 +1,4 @@
+
 import React from "react";
 import FourTeamPlayoffs from "./playoff-bracket/FourTeamPlayoffs";
 import ModifiedPlayoffs from "./playoff-bracket/ModifiedPlayoffs";
@@ -102,7 +103,7 @@ const PlayoffBracket = ({ season }: { season: string }) => {
       />;
     }
 
-    // Seasons 11-12: 6-team playoffs
+    // Seasons 11-12: 6-team playoffs with 17-week regular season
     if (seasonNum <= 12) {
       return <SixTeamPlayoffs 
         matchups={matchups || []} 
@@ -122,7 +123,7 @@ const PlayoffBracket = ({ season }: { season: string }) => {
   return (
     <Card className="p-6">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold">Playoff Bracket</h2>
+        <h2 className="text-2xl font-bold text-center">Playoff Bracket</h2>
       </div>
 
       {renderBracket()}
