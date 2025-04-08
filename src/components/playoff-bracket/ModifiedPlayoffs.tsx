@@ -8,7 +8,7 @@ import PlayoffSemifinals from "./PlayoffSemifinals";
 import ConsolationBracket from "./ConsolationBracket";
 import ChampionshipGame from "./ChampionshipGame";
 import PlacementGames from "./PlacementGames";
-import Matchup from "./Matchup"; // Add missing import
+import Matchup from "./Matchup";
 
 interface ModifiedPlayoffsProps {
   matchups: MatchupScoresView[];
@@ -211,74 +211,67 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
             />
 
             {isLoserAdvancesFormat && (
-              <div>
-                <h3 className="text-lg font-semibold mb-6 text-center">Week {champWeek} Matchups</h3>
-                <div className="space-y-12">
-                  {fifthPlaceGame && (
-                    <PlacementGames
-                      fifthPlaceGame={fifthPlaceGame}
-                      teamSeeds={teamSeeds}
-                      matchupCounter={matchupCounter}
-                      onMatchupCounterUpdate={handleMatchupCounterUpdate}
-                      editMode={editMode}
-                      onTeamSelect={onTeamSelect}
-                      onScoreUpdate={onScoreUpdate}
-                      teams={teams}
-                      thirdPlaceTitle="3rd Place Game"
-                      fifthPlaceTitle="5th Place Game"
-                      showOnlyFifthPlace={true}
-                    />
-                  )}
-                  
-                  {weekTwoConsolation
-                    .filter(m => m !== fifthPlaceGame && m !== thirdPlaceGame)
-                    .map((matchup, index) => {
-                      // These are the toilet bowl track games
-                      const id = localMatchupCounter;
-                      // Update the local counter
-                      localMatchupCounter++;
-                      // Update parent state at the end of rendering
-                      setTimeout(() => setMatchupCounter(localMatchupCounter), 0);
-                      
-                      return (
-                        <div 
-                          key={`toilet-round2-${index}`} 
-                          className="mx-auto w-[240px]"
-                        >
-                          <div className="text-sm text-center text-muted-foreground mb-2">
-                            Toilet Bowl Round 2
-                          </div>
-                          <Matchup
-                            matchupId={id}
-                            homeTeam={
-                              matchup.home_team_id ? 
-                                teamSeeds.get(matchup.home_team_id) ? 
-                                  `(${teamSeeds.get(matchup.home_team_id)}) ${matchup.home_team_name}` : 
-                                  matchup.home_team_name : 
-                                ""
-                            }
-                            homeTeamId={matchup.home_team_id}
-                            homeScore={matchup.home_score}
-                            awayTeam={
-                              matchup.away_team_id ? 
-                                teamSeeds.get(matchup.away_team_id) ? 
-                                  `(${teamSeeds.get(matchup.away_team_id)}) ${matchup.away_team_name}` : 
-                                  matchup.away_team_name : 
-                                ""
-                            }
-                            awayTeamId={matchup.away_team_id}
-                            awayScore={matchup.away_score}
-                            isConsolation
-                            editMode={editMode}
-                            onTeamSelect={onTeamSelect}
-                            onScoreUpdate={onScoreUpdate}
-                            teams={teams}
-                          />
+              <div className="space-y-12">
+                {fifthPlaceGame && (
+                  <PlacementGames
+                    fifthPlaceGame={fifthPlaceGame}
+                    teamSeeds={teamSeeds}
+                    matchupCounter={matchupCounter}
+                    onMatchupCounterUpdate={handleMatchupCounterUpdate}
+                    editMode={editMode}
+                    onTeamSelect={onTeamSelect}
+                    onScoreUpdate={onScoreUpdate}
+                    teams={teams}
+                    thirdPlaceTitle="3rd Place Game"
+                    fifthPlaceTitle="5th Place Game"
+                    showOnlyFifthPlace={true}
+                  />
+                )}
+                
+                {weekTwoConsolation
+                  .filter(m => m !== fifthPlaceGame && m !== thirdPlaceGame)
+                  .map((matchup, index) => {
+                    // These are the toilet bowl track games
+                    const id = localMatchupCounter++;
+                    
+                    return (
+                      <div 
+                        key={`toilet-round2-${index}`} 
+                        className="mx-auto w-[240px]"
+                      >
+                        <div className="text-sm text-center text-muted-foreground mb-2">
+                          Toilet Bowl Round 2
                         </div>
-                      );
-                    })
-                  }
-                </div>
+                        <Matchup
+                          matchupId={id}
+                          homeTeam={
+                            matchup.home_team_id ? 
+                              teamSeeds.get(matchup.home_team_id) ? 
+                                `(${teamSeeds.get(matchup.home_team_id)}) ${matchup.home_team_name}` : 
+                                matchup.home_team_name : 
+                              ""
+                          }
+                          homeTeamId={matchup.home_team_id}
+                          homeScore={matchup.home_score}
+                          awayTeam={
+                            matchup.away_team_id ? 
+                              teamSeeds.get(matchup.away_team_id) ? 
+                                `(${teamSeeds.get(matchup.away_team_id)}) ${matchup.away_team_name}` : 
+                                matchup.away_team_name : 
+                              ""
+                          }
+                          awayTeamId={matchup.away_team_id}
+                          awayScore={matchup.away_score}
+                          isConsolation
+                          editMode={editMode}
+                          onTeamSelect={onTeamSelect}
+                          onScoreUpdate={onScoreUpdate}
+                          teams={teams}
+                        />
+                      </div>
+                    );
+                  })
+                }
               </div>
             )}
             
@@ -311,7 +304,7 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
                         3rd Place Game
                       </div>
                       <Matchup
-                        matchupId={localMatchupCounter}
+                        matchupId={localMatchupCounter++}
                         homeTeam={
                           thirdPlaceGame.home_team_id ? 
                             teamSeeds.get(thirdPlaceGame.home_team_id) ? 
@@ -338,20 +331,13 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
                     </div>
                   )}
                   
-                  {/* Increment the counter after using it */}
-                  {(() => {
-                    localMatchupCounter++;
-                    setTimeout(() => setMatchupCounter(localMatchupCounter), 0);
-                    return null;
-                  })()}
-                  
                   {seventhPlaceGame && (
                     <div className="mx-auto w-[240px]">
                       <div className="text-sm text-center text-muted-foreground mb-2">
                         7th Place Game
                       </div>
                       <Matchup
-                        matchupId={localMatchupCounter}
+                        matchupId={localMatchupCounter++}
                         homeTeam={
                           seventhPlaceGame.home_team_id ? 
                             teamSeeds.get(seventhPlaceGame.home_team_id) ? 
@@ -379,20 +365,13 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
                     </div>
                   )}
                   
-                  {/* Increment the counter after using it */}
-                  {(() => {
-                    localMatchupCounter++;
-                    setTimeout(() => setMatchupCounter(localMatchupCounter), 0);
-                    return null;
-                  })()}
-                  
                   {ninthPlaceGame && (
                     <div className="mx-auto w-[240px]">
                       <div className="text-sm text-center text-muted-foreground mb-2">
                         {ninthPlaceTitle}
                       </div>
                       <Matchup
-                        matchupId={localMatchupCounter}
+                        matchupId={localMatchupCounter++}
                         homeTeam={
                           ninthPlaceGame.home_team_id ? 
                             teamSeeds.get(ninthPlaceGame.home_team_id) ? 
@@ -419,13 +398,6 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
                       />
                     </div>
                   )}
-                  
-                  {/* Final increment of the counter */}
-                  {(() => {
-                    localMatchupCounter++;
-                    setTimeout(() => setMatchupCounter(localMatchupCounter), 0);
-                    return null;
-                  })()}
                 </div>
               )}
             </div>
