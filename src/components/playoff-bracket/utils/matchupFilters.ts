@@ -44,7 +44,7 @@ export const getChampionship = (
   champWeek: number
 ): MatchupScoresView | undefined => {
   return playoffMatchups.find(
-    (matchup) => matchup.week_number === champWeek
+    (matchup) => matchup.week_number === champWeek && !matchup.is_consolation
   );
 };
 

@@ -50,7 +50,7 @@ const FinalPlacementGames: React.FC<FinalPlacementGamesProps> = ({
       <h3 className="text-lg font-semibold mb-6 text-center">Final Placement Games</h3>
       {thirdPlaceGame && (
         <div className="mx-auto w-[240px]">
-          <div className="text-sm text-center text-muted-foreground mb-2">
+          <div className="text-sm text-center font-medium mb-2">
             3rd Place Game
           </div>
           <Matchup
@@ -71,7 +71,7 @@ const FinalPlacementGames: React.FC<FinalPlacementGamesProps> = ({
       
       {seventhPlaceGame && (
         <div className="mx-auto w-[240px]">
-          <div className="text-sm text-center text-muted-foreground mb-2">
+          <div className="text-sm text-center font-medium mb-2">
             7th Place Game
           </div>
           <Matchup
@@ -93,7 +93,7 @@ const FinalPlacementGames: React.FC<FinalPlacementGamesProps> = ({
       
       {ninthPlaceGame && (
         <div className="mx-auto w-[240px]">
-          <div className="text-sm text-center text-muted-foreground mb-2">
+          <div className="text-sm text-center font-medium mb-2">
             {ninthPlaceTitle}
           </div>
           <Matchup

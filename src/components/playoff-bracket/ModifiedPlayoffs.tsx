@@ -18,6 +18,7 @@ import {
   getChampionship, 
   getConsolationMatchups 
 } from "./utils/matchupFilters";
+import { Separator } from "../ui/separator";
 
 interface ModifiedPlayoffsProps {
   matchups: MatchupScoresView[];
@@ -152,29 +153,38 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
         <div className="grid grid-cols-3 gap-8">
           {/* Left Column - First Round */}
           <div className="space-y-12">
-            <PlayoffSemifinals 
-              semiFinals={sortedSemiFinals}
-              teamSeeds={teamSeeds}
-              matchupCounter={matchupCounter}
-              onMatchupCounterUpdate={handleMatchupCounterUpdate}
-              editMode={editMode}
-              onTeamSelect={onTeamSelect}
-              onScoreUpdate={onScoreUpdate}
-              teams={teams}
-            />
+            <div>
+              <h3 className="text-lg font-semibold mb-6 text-center">Playoff Bracket</h3>
+              <PlayoffSemifinals 
+                semiFinals={sortedSemiFinals}
+                teamSeeds={teamSeeds}
+                matchupCounter={matchupCounter}
+                onMatchupCounterUpdate={handleMatchupCounterUpdate}
+                editMode={editMode}
+                onTeamSelect={onTeamSelect}
+                onScoreUpdate={onScoreUpdate}
+                teams={teams}
+              />
+            </div>
 
-            <ConsolationBracket
-              weekFifteenConsolation={weekOneConsolation}
-              teamSeeds={teamSeeds}
-              matchupCounter={matchupCounter}
-              onMatchupCounterUpdate={handleMatchupCounterUpdate}
-              editMode={editMode}
-              onTeamSelect={onTeamSelect}
-              onScoreUpdate={onScoreUpdate}
-              teams={teams}
-              title={consolationTitle}
-              subtitle={isLoserAdvancesFormat ? "Toilet Bowl: Loser advances" : "Winners advance to 5th place game"}
-            />
+            <div className="pt-4">
+              <div className="text-center mb-4">
+                <Separator className="mb-4" />
+                <h3 className="text-base font-semibold">{consolationTitle}</h3>
+              </div>
+              <ConsolationBracket
+                weekFifteenConsolation={weekOneConsolation}
+                teamSeeds={teamSeeds}
+                matchupCounter={matchupCounter}
+                onMatchupCounterUpdate={handleMatchupCounterUpdate}
+                editMode={editMode}
+                onTeamSelect={onTeamSelect}
+                onScoreUpdate={onScoreUpdate}
+                teams={teams}
+                title=""
+                subtitle={isLoserAdvancesFormat ? "Toilet Bowl: Loser advances" : "Winners advance to 5th place game"}
+              />
+            </div>
           </div>
 
           {/* Middle Column - Second Round */}
@@ -192,20 +202,38 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
 
             {isLoserAdvancesFormat && (
               <div className="space-y-12">
-                {fifthPlaceGame && (
-                  <PlacementGames
-                    fifthPlaceGame={fifthPlaceGame}
-                    teamSeeds={teamSeeds}
-                    matchupCounter={matchupCounter}
-                    onMatchupCounterUpdate={handleMatchupCounterUpdate}
-                    editMode={editMode}
-                    onTeamSelect={onTeamSelect}
-                    onScoreUpdate={onScoreUpdate}
-                    teams={teams}
-                    thirdPlaceTitle="3rd Place Game"
-                    fifthPlaceTitle="5th Place Game"
-                    showOnlyFifthPlace={true}
-                  />
+                {(thirdPlaceGame || fifthPlaceGame) && (
+                  <div className="space-y-12">
+                    {thirdPlaceGame && (
+                      <PlacementGames
+                        thirdPlaceGame={thirdPlaceGame}
+                        teamSeeds={teamSeeds}
+                        matchupCounter={matchupCounter}
+                        onMatchupCounterUpdate={handleMatchupCounterUpdate}
+                        editMode={editMode}
+                        onTeamSelect={onTeamSelect}
+                        onScoreUpdate={onScoreUpdate}
+                        teams={teams}
+                        thirdPlaceTitle="3rd Place Game"
+                        showOnlyFifthPlace={false}
+                      />
+                    )}
+                    
+                    {fifthPlaceGame && (
+                      <PlacementGames
+                        fifthPlaceGame={fifthPlaceGame}
+                        teamSeeds={teamSeeds}
+                        matchupCounter={matchupCounter}
+                        onMatchupCounterUpdate={handleMatchupCounterUpdate}
+                        editMode={editMode}
+                        onTeamSelect={onTeamSelect}
+                        onScoreUpdate={onScoreUpdate}
+                        teams={teams}
+                        fifthPlaceTitle="5th Place Game"
+                        showOnlyFifthPlace={true}
+                      />
+                    )}
+                  </div>
                 )}
                 
                 <ToiletBowlRound
@@ -222,7 +250,7 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
               </div>
             )}
             
-            {!isLoserAdvancesFormat && thirdPlaceGame && (
+            {!isLoserAdvancesFormat && (
               <PlacementGames
                 thirdPlaceGame={thirdPlaceGame}
                 fifthPlaceGame={fifthPlaceGame}

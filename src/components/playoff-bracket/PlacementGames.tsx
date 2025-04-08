@@ -75,6 +75,7 @@ const PlacementGames: React.FC<PlacementGamesProps> = ({
           onTeamSelect={onTeamSelect}
           onScoreUpdate={onScoreUpdate}
           teams={teams}
+          titleClassName="font-medium"
         />
       )
     );
@@ -91,6 +92,7 @@ const PlacementGames: React.FC<PlacementGamesProps> = ({
           onScoreUpdate={onScoreUpdate}
           teams={teams}
           className="mb-12"
+          titleClassName="font-medium"
         />
       )}
       
@@ -103,6 +105,7 @@ const PlacementGames: React.FC<PlacementGamesProps> = ({
           onScoreUpdate={onScoreUpdate}
           teams={teams}
           className="mb-12"
+          titleClassName="font-medium"
         />
       )}
       
@@ -115,6 +118,7 @@ const PlacementGames: React.FC<PlacementGamesProps> = ({
           onScoreUpdate={onScoreUpdate}
           teams={teams}
           className="mb-12"
+          titleClassName="font-medium"
         />
       )}
       
@@ -126,6 +130,7 @@ const PlacementGames: React.FC<PlacementGamesProps> = ({
           onTeamSelect={onTeamSelect}
           onScoreUpdate={onScoreUpdate}
           teams={teams}
+          titleClassName="font-medium"
         />
       )}
     </>
