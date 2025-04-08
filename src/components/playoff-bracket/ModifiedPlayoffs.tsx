@@ -10,6 +10,8 @@ import ChampionshipGame from "./ChampionshipGame";
 import PlacementGames from "./PlacementGames";
 import FinalPlacementGames from "./FinalPlacementGames";
 import ToiletBowlRound from "./ToiletBowlRound";
+import BracketSection from "./BracketSection";
+import Matchup from "./Matchup";
 import { getPlayoffWeeks } from "./utils/playoffWeeks";
 import { 
   filterPlayoffMatchups, 
