@@ -21,6 +21,8 @@ interface PlacementGamesProps {
   fifthPlaceTitle?: string;
   seventhPlaceTitle?: string;
   showOnlyFifthPlace?: boolean;
+  showDivider?: boolean;
+  dividerText?: string;
 }
 
 const PlacementGames: React.FC<PlacementGamesProps> = ({
@@ -39,7 +41,9 @@ const PlacementGames: React.FC<PlacementGamesProps> = ({
   thirdPlaceTitle = "3rd Place Game",
   fifthPlaceTitle = "5th Place Game",
   seventhPlaceTitle = "7th Place Game",
-  showOnlyFifthPlace = false
+  showOnlyFifthPlace = false,
+  showDivider = false,
+  dividerText = ""
 }) => {
   let updatedCounter = matchupCounter;
   
@@ -76,6 +80,8 @@ const PlacementGames: React.FC<PlacementGamesProps> = ({
           onScoreUpdate={onScoreUpdate}
           teams={teams}
           titleClassName="font-medium"
+          showDivider={showDivider}
+          dividerText={dividerText}
         />
       )
     );
@@ -93,6 +99,8 @@ const PlacementGames: React.FC<PlacementGamesProps> = ({
           teams={teams}
           className="mb-12"
           titleClassName="font-medium"
+          showDivider={showDivider}
+          dividerText={dividerText}
         />
       )}
       
@@ -106,6 +114,8 @@ const PlacementGames: React.FC<PlacementGamesProps> = ({
           teams={teams}
           className="mb-12"
           titleClassName="font-medium"
+          showDivider={showDivider}
+          dividerText={dividerText}
         />
       )}
       
@@ -119,6 +129,8 @@ const PlacementGames: React.FC<PlacementGamesProps> = ({
           teams={teams}
           className="mb-12"
           titleClassName="font-medium"
+          showDivider={showDivider}
+          dividerText={dividerText}
         />
       )}
       
@@ -131,6 +143,8 @@ const PlacementGames: React.FC<PlacementGamesProps> = ({
           onScoreUpdate={onScoreUpdate}
           teams={teams}
           titleClassName="font-medium"
+          showDivider={showDivider}
+          dividerText={dividerText}
         />
       )}
     </>

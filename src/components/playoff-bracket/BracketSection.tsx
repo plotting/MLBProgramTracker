@@ -23,7 +23,9 @@ interface BracketSectionProps {
   teams?: Team[];
   subtitle?: string;
   className?: string;
-  titleClassName?: string; // Added this new prop
+  titleClassName?: string;
+  showDivider?: boolean;
+  dividerText?: string;
 }
 
 const BracketSection: React.FC<BracketSectionProps> = ({
@@ -35,7 +37,9 @@ const BracketSection: React.FC<BracketSectionProps> = ({
   onScoreUpdate,
   teams = [],
   className = "",
-  titleClassName = "" // Added default value
+  titleClassName = "",
+  showDivider = false,
+  dividerText = ""
 }) => {
   // Sort matchups by seed when possible, placing matches with higher seeds on top
   const sortedMatchups = [...matchups].sort((a, b) => {
@@ -53,6 +57,18 @@ const BracketSection: React.FC<BracketSectionProps> = ({
 
   return (
     <div className={className}>
+      {showDivider && (
+        <div className="w-full mb-4 mt-6">
+          <div className="flex items-center justify-center">
+            <div className="h-px bg-border flex-grow"></div>
+            {dividerText && (
+              <span className="px-4 text-sm text-muted-foreground font-medium">{dividerText}</span>
+            )}
+            <div className="h-px bg-border flex-grow"></div>
+          </div>
+        </div>
+      )}
+      
       <h3 className={`text-lg font-semibold mb-2 text-center ${titleClassName}`}>{title}</h3>
       {subtitle && (
         <h4 className="text-sm text-muted-foreground mb-4 text-center">{subtitle}</h4>

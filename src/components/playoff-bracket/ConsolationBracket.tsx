@@ -14,6 +14,8 @@ interface ConsolationBracketProps {
   teams?: Team[];
   title?: string;
   subtitle?: string;
+  showDivider?: boolean;
+  dividerText?: string;
 }
 
 const ConsolationBracket: React.FC<ConsolationBracketProps> = ({
@@ -26,7 +28,9 @@ const ConsolationBracket: React.FC<ConsolationBracketProps> = ({
   onScoreUpdate,
   teams = [],
   title = "Consolation Bracket",
-  subtitle = "Winners advance to 5th place game"
+  subtitle = "Winners advance to 5th place game",
+  showDivider = false,
+  dividerText = ""
 }) => {
   // Create matchup objects for BracketSection
   const consolationMatchups = weekFifteenConsolation.map(matchup => {
@@ -59,6 +63,8 @@ const ConsolationBracket: React.FC<ConsolationBracketProps> = ({
       onTeamSelect={onTeamSelect}
       onScoreUpdate={onScoreUpdate}
       teams={teams}
+      showDivider={showDivider}
+      dividerText={dividerText}
     />
   );
 };
