@@ -187,14 +187,25 @@ const FourTeamPlayoffs: React.FC<FourTeamPlayoffsProps> = ({
 
             {/* Consolation Semifinals */}
             {consolationSemiFinalsData.length > 0 && (
-              <BracketSection
-                title="Consolation"
-                matchups={consolationSemiFinalsData}
-                editMode={editMode}
-                onTeamSelect={onTeamSelect}
-                onScoreUpdate={onScoreUpdate}
-                teams={teams}
-              />
+              <div className="mt-10">
+                {/* Full width divider with text */}
+                <div className="w-full mb-6">
+                  <div className="flex items-center justify-center">
+                    <div className="h-px bg-border flex-grow"></div>
+                    <span className="px-4 text-sm text-muted-foreground font-medium">Consolation Bracket</span>
+                    <div className="h-px bg-border flex-grow"></div>
+                  </div>
+                </div>
+                
+                <BracketSection
+                  title="Consolation Matchups"
+                  matchups={consolationSemiFinalsData}
+                  editMode={editMode}
+                  onTeamSelect={onTeamSelect}
+                  onScoreUpdate={onScoreUpdate}
+                  teams={teams}
+                />
+              </div>
             )}
           </div>
 
@@ -222,18 +233,24 @@ const FourTeamPlayoffs: React.FC<FourTeamPlayoffsProps> = ({
               />
             )}
 
-            {/* Other placement games */}
-            {placementGames.map((game, index) => (
-              <BracketSection
-                key={`placement-${index}`}
-                title={game.title}
-                matchups={game.data}
-                editMode={editMode}
-                onTeamSelect={onTeamSelect}
-                onScoreUpdate={onScoreUpdate}
-                teams={teams}
-              />
-            ))}
+            {/* Consolation Placement Games */}
+            {placementGames.length > 0 && (
+              <div>
+                <div className="space-y-12 mt-10">
+                  {placementGames.map((game, index) => (
+                    <BracketSection
+                      key={`placement-${index}`}
+                      title={game.title}
+                      matchups={game.data}
+                      editMode={editMode}
+                      onTeamSelect={onTeamSelect}
+                      onScoreUpdate={onScoreUpdate}
+                      teams={teams}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

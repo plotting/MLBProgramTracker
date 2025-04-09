@@ -84,7 +84,7 @@ const PlayoffBracket = ({ season }: { season: string }) => {
 
   // Display appropriate bracket based on season
   const renderBracket = () => {
-    // Seasons 1-7: 4-team playoffs
+    // Seasons 1-7: 4-team playoffs (standard format)
     if (seasonNum <= 7) {
       return <FourTeamPlayoffs 
         matchups={matchups || []} 
@@ -93,7 +93,7 @@ const PlayoffBracket = ({ season }: { season: string }) => {
       />;
     }
 
-    // Seasons 8-10: Modified consolation bracket
+    // Seasons 8-10: Modified playoffs with loser-advances format
     if (seasonNum <= 10) {
       return <ModifiedPlayoffs 
         matchups={matchups || []} 
