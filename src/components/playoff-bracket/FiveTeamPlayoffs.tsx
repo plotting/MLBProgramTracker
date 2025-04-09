@@ -70,6 +70,7 @@ const FiveTeamPlayoffs: React.FC<FiveTeamPlayoffsProps> = ({
           <Week16Matchups
             championship={championship}
             consolationMatchups={weekSixteenConsolation}
+            weekFifteenConsolation={weekFifteenConsolation}
             editMode={editMode}
             onTeamSelect={onTeamSelect}
             onScoreUpdate={onScoreUpdate}

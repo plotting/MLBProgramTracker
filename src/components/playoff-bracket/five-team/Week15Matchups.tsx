@@ -92,48 +92,46 @@ const Week15Matchups: React.FC<Week15MatchupsProps> = ({
   }, [localCounter, onMatchupCounterUpdate]);
 
   return (
-    <div className="space-y-12">
-      <div>
-        <h3 className="text-lg font-semibold mb-6 text-center">Week 15</h3>
-        <div className="space-y-12">
-          <BracketSection
-            title="Playoff Matchups"
-            matchups={wildcardMatchups}
-            editMode={editMode}
-            onTeamSelect={onTeamSelect}
-            onScoreUpdate={onScoreUpdate}
-            teams={teams}
-          />
-          
-          <BracketSection
-            title="1 Seed Semifinal"
-            matchups={seedOneMatchup}
-            editMode={editMode}
-            onTeamSelect={onTeamSelect}
-            onScoreUpdate={onScoreUpdate}
-            teams={teams}
-          />
-        </div>
-      </div>
-
-      <div>
-        <div className="w-full mb-6">
-          <div className="flex items-center justify-center">
-            <div className="h-px bg-border flex-grow"></div>
-            <span className="px-4 text-sm text-muted-foreground font-medium">Consolation Bracket (Loser Advances)</span>
-            <div className="h-px bg-border flex-grow"></div>
-          </div>
-        </div>
+    <div className="space-y-6">
+      <h3 className="text-lg font-semibold mb-6 text-center">Week 15</h3>
+      <div className="space-y-12">
+        <BracketSection
+          title="Playoff Matchups"
+          matchups={wildcardMatchups}
+          editMode={editMode}
+          onTeamSelect={onTeamSelect}
+          onScoreUpdate={onScoreUpdate}
+          teams={teams}
+        />
         
         <BracketSection
-          title="Consolation Round"
-          matchups={consolationMatchups}
+          title="1 Seed Semifinal"
+          matchups={seedOneMatchup}
           editMode={editMode}
           onTeamSelect={onTeamSelect}
           onScoreUpdate={onScoreUpdate}
           teams={teams}
         />
       </div>
+
+      {/* Full width divider with text */}
+      <div className="w-full mt-12 mb-6">
+        <div className="flex items-center justify-center">
+          <div className="h-px bg-border flex-grow"></div>
+          <span className="px-4 text-sm text-muted-foreground font-medium">Consolation Bracket (Loser Advances)</span>
+          <div className="h-px bg-border flex-grow"></div>
+        </div>
+      </div>
+      
+      <BracketSection
+        title="Consolation Round"
+        subtitle="Losers advance to next round"
+        matchups={consolationMatchups}
+        editMode={editMode}
+        onTeamSelect={onTeamSelect}
+        onScoreUpdate={onScoreUpdate}
+        teams={teams}
+      />
     </div>
   );
 };

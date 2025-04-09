@@ -3,10 +3,15 @@ import React from "react";
 import { MatchupScoresView } from "@/types/database";
 import BracketSection from "../BracketSection";
 import type { Team } from "@/types/database";
+import { 
+  getWeekFifteenConsolationLosers,
+  identifyPlacementGames 
+} from "./fiveTeamUtils";
 
 interface Week16MatchupsProps {
   championship?: MatchupScoresView;
   consolationMatchups: MatchupScoresView[];
+  weekFifteenConsolation: MatchupScoresView[];
   editMode?: boolean;
   onTeamSelect?: (matchupId: number, isHome: boolean, teamId: number) => void;
   onScoreUpdate?: (matchupId: number, isHome: boolean, score: number) => void;
@@ -19,6 +24,7 @@ interface Week16MatchupsProps {
 const Week16Matchups: React.FC<Week16MatchupsProps> = ({
   championship,
   consolationMatchups,
+  weekFifteenConsolation,
   editMode = false,
   onTeamSelect,
   onScoreUpdate,
@@ -37,6 +43,15 @@ const Week16Matchups: React.FC<Week16MatchupsProps> = ({
     return seed ? `(${seed}) ${teamName}` : teamName;
   };
 
+  // Get the week 15 consolation losers (who advance to next round)
+  const weekFifteenLosers = getWeekFifteenConsolationLosers(weekFifteenConsolation);
+  
+  // Identify placement games
+  const { seventhPlaceGame, ninthPlaceGame } = identifyPlacementGames(
+    consolationMatchups,
+    weekFifteenLosers
+  );
+
   // Create matchup for championship game
   const championshipMatchup = championship ? [{
     matchupId: localCounter++,
@@ -50,15 +65,13 @@ const Week16Matchups: React.FC<Week16MatchupsProps> = ({
     awayScore: championship.away_score
   }] : [];
 
-  // Sort consolation matchups by seed to put higher seeds on top
-  const sortedConsolationGames = [...consolationMatchups].sort((a, b) => {
-    const aHigherSeed = Math.min(teamSeeds.get(a.home_team_id || 0) || 999, teamSeeds.get(a.away_team_id || 0) || 999);
-    const bHigherSeed = Math.min(teamSeeds.get(b.home_team_id || 0) || 999, teamSeeds.get(b.away_team_id || 0) || 999);
-    return aHigherSeed - bHigherSeed;
-  });
+  // Filter out the 7th and 9th place games from consolation matchups
+  const otherConsolationGames = consolationMatchups.filter(
+    game => game !== seventhPlaceGame && game !== ninthPlaceGame
+  );
 
-  // Create matchup objects for consolation games
-  const finalPlacementMatchups = sortedConsolationGames.map(matchup => {
+  // Create matchups for other consolation games
+  const otherConsolationMatchups = otherConsolationGames.map(matchup => {
     const id = localCounter++;
     return {
       matchupId: id,
@@ -73,6 +86,39 @@ const Week16Matchups: React.FC<Week16MatchupsProps> = ({
       isConsolation: true
     };
   });
+  
+  // Create matchups for 7th and 9th place games
+  const placementMatchups = [];
+  
+  if (seventhPlaceGame) {
+    placementMatchups.push({
+      matchupId: localCounter++,
+      homeTeam: getTeamWithSeed(seventhPlaceGame.home_team_name, seventhPlaceGame.home_team_id),
+      homeTeamId: seventhPlaceGame.home_team_id,
+      homeSeed: teamSeeds.get(seventhPlaceGame.home_team_id),
+      homeScore: seventhPlaceGame.home_score,
+      awayTeam: getTeamWithSeed(seventhPlaceGame.away_team_name, seventhPlaceGame.away_team_id),
+      awayTeamId: seventhPlaceGame.away_team_id,
+      awaySeed: teamSeeds.get(seventhPlaceGame.away_team_id),
+      awayScore: seventhPlaceGame.away_score,
+      isConsolation: true
+    });
+  }
+  
+  if (ninthPlaceGame) {
+    placementMatchups.push({
+      matchupId: localCounter++,
+      homeTeam: getTeamWithSeed(ninthPlaceGame.home_team_name, ninthPlaceGame.home_team_id),
+      homeTeamId: ninthPlaceGame.home_team_id,
+      homeSeed: teamSeeds.get(ninthPlaceGame.home_team_id),
+      homeScore: ninthPlaceGame.home_score,
+      awayTeam: getTeamWithSeed(ninthPlaceGame.away_team_name, ninthPlaceGame.away_team_id),
+      awayTeamId: ninthPlaceGame.away_team_id,
+      awaySeed: teamSeeds.get(ninthPlaceGame.away_team_id),
+      awayScore: ninthPlaceGame.away_score,
+      isConsolation: true
+    });
+  }
 
   // Update parent's counter
   React.useEffect(() => {
@@ -80,9 +126,9 @@ const Week16Matchups: React.FC<Week16MatchupsProps> = ({
   }, [localCounter, onMatchupCounterUpdate]);
 
   return (
-    <div className="space-y-12">
-      <div>
-        <h3 className="text-lg font-semibold mb-6 text-center">Championship</h3>
+    <div className="space-y-6">
+      <h3 className="text-lg font-semibold mb-6 text-center">Week 16</h3>
+      <div className="space-y-12">
         <BracketSection
           title="Championship Game"
           matchups={championshipMatchup}
@@ -93,24 +139,38 @@ const Week16Matchups: React.FC<Week16MatchupsProps> = ({
         />
       </div>
 
-      <div className="mt-8">
-        <div className="w-full mb-6">
-          <div className="flex items-center justify-center">
-            <div className="h-px bg-border flex-grow"></div>
-            <span className="px-4 text-sm text-muted-foreground font-medium">Final Placement Games</span>
-            <div className="h-px bg-border flex-grow"></div>
-          </div>
+      {/* Full width divider with text */}
+      <div className="w-full mt-12 mb-6">
+        <div className="flex items-center justify-center">
+          <div className="h-px bg-border flex-grow"></div>
+          <span className="px-4 text-sm text-muted-foreground font-medium">Consolation Bracket</span>
+          <div className="h-px bg-border flex-grow"></div>
         </div>
-        
+      </div>
+      
+      {otherConsolationMatchups.length > 0 && (
         <BracketSection
-          title="Placement Matchups"
-          matchups={finalPlacementMatchups}
+          title="Consolation Matchups"
+          matchups={otherConsolationMatchups}
+          editMode={editMode}
+          onTeamSelect={onTeamSelect}
+          onScoreUpdate={onScoreUpdate}
+          teams={teams}
+          className="mb-10"
+        />
+      )}
+      
+      {placementMatchups.length > 0 && (
+        <BracketSection
+          title="Placement Games"
+          subtitle="Based on consolation results from Week 15"
+          matchups={placementMatchups}
           editMode={editMode}
           onTeamSelect={onTeamSelect}
           onScoreUpdate={onScoreUpdate}
           teams={teams}
         />
-      </div>
+      )}
     </div>
   );
 };
