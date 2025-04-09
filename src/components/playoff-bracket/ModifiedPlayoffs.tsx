@@ -152,6 +152,7 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
       <div className="flex flex-col min-w-[800px]">
         <WeekLabels weeks={displayWeeks} />
         
+        {/* Main playoff bracket */}
         <div className="grid grid-cols-3 gap-8">
           {/* Left Column - First Round */}
           <div className="space-y-6">
@@ -168,15 +169,101 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
                 teams={teams}
               />
             </div>
+          </div>
 
-            <div>
+          {/* Middle Column - Championship */}
+          <div>
+            <ChampionshipGame
+              championship={championship}
+              teamSeeds={teamSeeds}
+              matchupCounter={matchupCounter}
+              onMatchupCounterUpdate={handleMatchupCounterUpdate}
+              editMode={editMode}
+              onTeamSelect={onTeamSelect}
+              onScoreUpdate={onScoreUpdate}
+              teams={teams}
+            />
+
+            {!isLoserAdvancesFormat && thirdPlaceGame && (
+              <PlacementGames
+                thirdPlaceGame={thirdPlaceGame}
+                teamSeeds={teamSeeds}
+                matchupCounter={matchupCounter}
+                onMatchupCounterUpdate={handleMatchupCounterUpdate}
+                editMode={editMode}
+                onTeamSelect={onTeamSelect}
+                onScoreUpdate={onScoreUpdate}
+                teams={teams}
+                thirdPlaceTitle="3rd Place Game"
+                showOnlyFifthPlace={false}
+              />
+            )}
+          </div>
+          
+          {/* Right Column - Final Round (only for seasons 8-10) */}
+          <div>
+            {isLoserAdvancesFormat && thirdPlaceGame && (
+              <PlacementGames
+                thirdPlaceGame={thirdPlaceGame}
+                teamSeeds={teamSeeds}
+                matchupCounter={matchupCounter}
+                onMatchupCounterUpdate={handleMatchupCounterUpdate}
+                editMode={editMode}
+                onTeamSelect={onTeamSelect}
+                onScoreUpdate={onScoreUpdate}
+                teams={teams}
+                thirdPlaceTitle="3rd Place Game"
+                showOnlyFifthPlace={false}
+              />
+            )}
+          </div>
+        </div>
+        
+        {/* Full width divider for consolation bracket */}
+        <div className="w-full my-8">
+          <div className="flex items-center justify-center">
+            <div className="h-px bg-border flex-grow"></div>
+            <span className="px-4 text-sm text-muted-foreground font-medium">{consolationTitle}</span>
+            <div className="h-px bg-border flex-grow"></div>
+          </div>
+        </div>
+        
+        {/* Consolation bracket in a different grid layout */}
+        <div className="grid grid-cols-3 gap-8">
+          {/* Week 15 Consolation Games */}
+          <div>
+            <h4 className="text-center text-sm font-medium mb-4">Week {playoffStartWeek}</h4>
+            <BracketSection
+              title=""
+              subtitle={isLoserAdvancesFormat ? "Toilet Bowl Round 1: Loser advances" : "Winners advance to 5th place game"}
+              matchups={weekOneConsolation.map((matchup, idx) => ({
+                matchupId: matchupCounter + idx,
+                homeTeam: matchup.home_team_name,
+                homeTeamId: matchup.home_team_id,
+                homeSeed: matchup.home_team_id ? teamSeeds.get(matchup.home_team_id) : undefined,
+                homeScore: matchup.home_score,
+                awayTeam: matchup.away_team_name,
+                awayTeamId: matchup.away_team_id,
+                awaySeed: matchup.away_team_id ? teamSeeds.get(matchup.away_team_id) : undefined,
+                awayScore: matchup.away_score,
+                isConsolation: true
+              }))}
+              editMode={editMode}
+              onTeamSelect={onTeamSelect}
+              onScoreUpdate={onScoreUpdate}
+              teams={teams}
+            />
+          </div>
+          
+          {/* Week 16 Consolation Games */}
+          <div>
+            <h4 className="text-center text-sm font-medium mb-4">Week {champWeek}</h4>
+            {isLoserAdvancesFormat && toiletBowlRound2.length > 0 && (
               <BracketSection
-                showDivider={true}
-                dividerText={consolationTitle}
-                title=""
-                subtitle={isLoserAdvancesFormat ? "Toilet Bowl: Loser advances to next round" : "Winners advance to 5th place game"}
-                matchups={weekOneConsolation.map((matchup, idx) => ({
-                  matchupId: matchupCounter + idx,
+                title="Toilet Bowl Round 2"
+                subtitle="Loser advances to Toilet Bowl"
+                matchups={toiletBowlRound2.map((matchup, idx) => ({
+                  matchupId: matchupCounter + weekOneConsolation.length + idx,
                   homeTeam: matchup.home_team_name,
                   homeTeamId: matchup.home_team_id,
                   homeSeed: matchup.home_team_id ? teamSeeds.get(matchup.home_team_id) : undefined,
@@ -191,97 +278,34 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
                 onTeamSelect={onTeamSelect}
                 onScoreUpdate={onScoreUpdate}
                 teams={teams}
-                className="mt-2"
               />
-            </div>
-          </div>
-
-          {/* Middle Column - Second Round */}
-          <div className="space-y-6">
-            <ChampionshipGame
-              championship={championship}
-              teamSeeds={teamSeeds}
-              matchupCounter={matchupCounter}
-              onMatchupCounterUpdate={handleMatchupCounterUpdate}
-              editMode={editMode}
-              onTeamSelect={onTeamSelect}
-              onScoreUpdate={onScoreUpdate}
-              teams={teams}
-            />
-
-            {isLoserAdvancesFormat && (
-              <div className="space-y-6">
-                {(thirdPlaceGame || fifthPlaceGame) && (
-                  <div className="space-y-6">
-                    {thirdPlaceGame && (
-                      <PlacementGames
-                        thirdPlaceGame={thirdPlaceGame}
-                        teamSeeds={teamSeeds}
-                        matchupCounter={matchupCounter}
-                        onMatchupCounterUpdate={handleMatchupCounterUpdate}
-                        editMode={editMode}
-                        onTeamSelect={onTeamSelect}
-                        onScoreUpdate={onScoreUpdate}
-                        teams={teams}
-                        thirdPlaceTitle="3rd Place Game"
-                        showOnlyFifthPlace={false}
-                      />
-                    )}
-                    
-                    {fifthPlaceGame && (
-                      <PlacementGames
-                        fifthPlaceGame={fifthPlaceGame}
-                        teamSeeds={teamSeeds}
-                        matchupCounter={matchupCounter}
-                        onMatchupCounterUpdate={handleMatchupCounterUpdate}
-                        editMode={editMode}
-                        onTeamSelect={onTeamSelect}
-                        onScoreUpdate={onScoreUpdate}
-                        teams={teams}
-                        fifthPlaceTitle="5th Place Game"
-                        showOnlyFifthPlace={true}
-                      />
-                    )}
-                  </div>
-                )}
-                
-                {toiletBowlRound2.length > 0 && (
-                  <div className="mt-4">
-                    <BracketSection
-                      showDivider={true}
-                      dividerText="Toilet Bowl Round 2"
-                      title=""
-                      subtitle="Loser advances to Toilet Bowl"
-                      matchups={toiletBowlRound2.map((matchup, idx) => ({
-                        matchupId: matchupCounter + weekOneConsolation.length + idx,
-                        homeTeam: matchup.home_team_name,
-                        homeTeamId: matchup.home_team_id,
-                        homeSeed: matchup.home_team_id ? teamSeeds.get(matchup.home_team_id) : undefined,
-                        homeScore: matchup.home_score,
-                        awayTeam: matchup.away_team_name,
-                        awayTeamId: matchup.away_team_id,
-                        awaySeed: matchup.away_team_id ? teamSeeds.get(matchup.away_team_id) : undefined,
-                        awayScore: matchup.away_score,
-                        isConsolation: true
-                      }))}
-                      editMode={editMode}
-                      onTeamSelect={onTeamSelect}
-                      onScoreUpdate={onScoreUpdate}
-                      teams={teams}
-                    />
-                  </div>
-                )}
+            )}
+            
+            {/* Add 5th place game below toilet bowl round 2 */}
+            {isLoserAdvancesFormat && fifthPlaceGame && (
+              <div className="mt-12">
+                <PlacementGames
+                  fifthPlaceGame={fifthPlaceGame}
+                  teamSeeds={teamSeeds}
+                  matchupCounter={matchupCounter + weekOneConsolation.length + toiletBowlRound2.length}
+                  onMatchupCounterUpdate={handleMatchupCounterUpdate}
+                  editMode={editMode}
+                  onTeamSelect={onTeamSelect}
+                  onScoreUpdate={onScoreUpdate}
+                  teams={teams}
+                  fifthPlaceTitle="5th Place Game"
+                  showOnlyFifthPlace={true}
+                />
               </div>
             )}
             
             {!isLoserAdvancesFormat && (
               <PlacementGames
-                thirdPlaceGame={thirdPlaceGame}
                 fifthPlaceGame={fifthPlaceGame}
                 seventhPlaceGame={seventhPlaceGame}
                 ninthPlaceGame={ninthPlaceGame}
                 teamSeeds={teamSeeds}
-                matchupCounter={matchupCounter}
+                matchupCounter={matchupCounter + weekOneConsolation.length}
                 onMatchupCounterUpdate={handleMatchupCounterUpdate}
                 editMode={editMode}
                 onTeamSelect={onTeamSelect}
@@ -292,22 +316,13 @@ const ModifiedPlayoffs: React.FC<ModifiedPlayoffsProps> = ({
             )}
           </div>
           
-          {/* Right Column - Final Round (only for seasons 8-10) */}
+          {/* Week 17 Consolation Games */}
           {isLoserAdvancesFormat && weekThreeConsolation.length > 0 && (
-            <div className="space-y-6">
-              <h3 className="text-lg font-semibold mb-6 text-center">Final Placement Games</h3>
-              
-              {/* Full width divider with text */}
-              <div className="w-full mb-6">
-                <div className="flex items-center justify-center">
-                  <div className="h-px bg-border flex-grow"></div>
-                  <span className="px-4 text-sm text-muted-foreground font-medium">Consolation Bracket</span>
-                  <div className="h-px bg-border flex-grow"></div>
-                </div>
-              </div>
+            <div>
+              <h4 className="text-center text-sm font-medium mb-4">Week {finalWeek}</h4>
               
               {/* 7th and 9th place games */}
-              <div className="space-y-6">
+              <div className="space-y-12">
                 {seventhPlaceGame && (
                   <div className="mx-auto w-[240px]">
                     <div className="text-sm text-center font-medium mb-2">
