@@ -94,7 +94,14 @@ const Week16Matchups: React.FC<Week16MatchupsProps> = ({
       </div>
 
       <div className="mt-8">
-        <h3 className="text-lg font-semibold mb-6 text-center">Final Placement Games</h3>
+        <div className="w-full mb-6">
+          <div className="flex items-center justify-center">
+            <div className="h-px bg-border flex-grow"></div>
+            <span className="px-4 text-sm text-muted-foreground font-medium">Final Placement Games</span>
+            <div className="h-px bg-border flex-grow"></div>
+          </div>
+        </div>
+        
         <BracketSection
           title="Placement Matchups"
           matchups={finalPlacementMatchups}
