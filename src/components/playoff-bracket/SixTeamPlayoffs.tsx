@@ -26,7 +26,7 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
   seasonNumber = 11
 }) => {
   // Get playoff week numbers based on season
-  const { playoffStartWeek, champWeek } = getPlayoffWeeks(seasonNumber);
+  const { playoffStartWeek, champWeek, displayWeeks } = getPlayoffWeeks(seasonNumber);
   
   // Filter playoff matchups (non-consolation)
   const playoffMatchups = matchups.filter(
@@ -103,7 +103,7 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
   return (
     <div className="overflow-auto">
       <div className="flex flex-col min-w-[1000px]">
-        <WeekLabels weeks={[playoffStartWeek, playoffStartWeek + 1, champWeek]} />
+        <WeekLabels weeks={displayWeeks} />
         
         <div className="grid grid-cols-3 gap-8">
           <div className="space-y-12">

@@ -11,7 +11,7 @@ export const getPlayoffWeeks = (seasonNumber: number) => {
   // For seasons 11-12, playoffs start in week 15 (not 16)
   const playoffStartWeek = (seasonNumber >= 11 && seasonNumber <= 12) ? 15 : 
                            seasonNumber >= 13 ? 16 : 15;
-  const champWeek = (seasonNumber >= 11 && seasonNumber <= 12) ? 16 : 
+  const champWeek = (seasonNumber >= 11 && seasonNumber <= 12) ? 17 : 
                     seasonNumber >= 13 ? 17 : 16;
   const finalWeek = champWeek + 1;
   
@@ -19,8 +19,8 @@ export const getPlayoffWeeks = (seasonNumber: number) => {
     playoffStartWeek,
     champWeek,
     finalWeek,
-    displayWeeks: seasonNumber >= 8 && seasonNumber <= 10 
-      ? [playoffStartWeek, champWeek, finalWeek] 
-      : [playoffStartWeek, champWeek]
+    displayWeeks: (seasonNumber >= 11 && seasonNumber <= 12) 
+      ? [playoffStartWeek, playoffStartWeek + 1, champWeek] 
+      : [playoffStartWeek, playoffStartWeek + 1, champWeek]
   };
 };
