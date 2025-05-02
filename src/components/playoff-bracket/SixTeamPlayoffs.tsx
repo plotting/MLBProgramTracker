@@ -26,7 +26,7 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
   seasonNumber = 11
 }) => {
   // Get playoff week numbers based on season
-  const { playoffStartWeek, champWeek, displayWeeks } = getPlayoffWeeks(seasonNumber);
+  const { playoffStartWeek, champWeek, displayWeeks, isLoserAdvancesFormat } = getPlayoffWeeks(seasonNumber);
   
   // Filter playoff matchups (non-consolation)
   const playoffMatchups = matchups.filter(
@@ -99,6 +99,10 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
     const seed = teamSeeds.get(teamId);
     return seed ? `(${seed}) ${teamName}` : teamName;
   };
+
+  // For seasons 8-12, use the "loser advances" title format
+  const ninthPlaceTitle = isLoserAdvancesFormat ? "9th Place Game (Toilet Bowl)" : "9th Place Game";
+  const consolationTitle = isLoserAdvancesFormat ? "Consolation Bracket (Loser Advances)" : "Consolation Bracket";
 
   return (
     <div className="overflow-auto">
@@ -195,6 +199,15 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
               </div>
             </div>
 
+            {/* Consolation Bracket Header */}
+            <div className="w-full my-4">
+              <div className="flex items-center justify-center">
+                <div className="h-px bg-border flex-grow"></div>
+                <span className="px-4 text-sm text-muted-foreground font-medium">{consolationTitle}</span>
+                <div className="h-px bg-border flex-grow"></div>
+              </div>
+            </div>
+
             <div>
               <h3 className="text-lg font-semibold mb-6 text-center">Consolation Round 2</h3>
               <div className="space-y-12">
@@ -250,8 +263,19 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
               <div className="space-y-12">
                 {sortedWeekSixteenConsolation.map((matchup, index) => {
                   const id = matchupCounter++;
+                  const isLastMatch = index === sortedWeekSixteenConsolation.length - 1;
+                  
+                  // For the last match in seasons 8-12, use the toilet bowl title
+                  const matchTitle = isLastMatch && isLoserAdvancesFormat ? ninthPlaceTitle : 
+                                     index === 0 ? "5th Place Game" : 
+                                     index === 1 ? "7th Place Game" : 
+                                     "9th Place Game";
+                  
                   return (
                     <div key={`final-consolation-${index}`} className="mx-auto w-[240px]">
+                      <div className="text-sm text-center font-medium mb-2">
+                        {matchTitle}
+                      </div>
                       <Matchup
                         matchupId={id}
                         homeTeam={getTeamWithSeed(matchup.home_team_name, matchup.home_team_id)}

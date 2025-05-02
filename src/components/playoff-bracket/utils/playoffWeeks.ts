@@ -19,8 +19,9 @@ export const getPlayoffWeeks = (seasonNumber: number) => {
     playoffStartWeek,
     champWeek,
     finalWeek,
-    displayWeeks: (seasonNumber >= 11 && seasonNumber <= 12) 
-      ? [playoffStartWeek, playoffStartWeek + 1, champWeek] 
-      : [playoffStartWeek, playoffStartWeek + 1, champWeek]
+    displayWeeks: [playoffStartWeek, playoffStartWeek + 1, champWeek],
+    // Determine if this season should use the loser advances format for consolation brackets
+    isLoserAdvancesFormat: seasonNumber >= 8 && seasonNumber <= 12 // Updated to include seasons 11-12
   };
 };
+
