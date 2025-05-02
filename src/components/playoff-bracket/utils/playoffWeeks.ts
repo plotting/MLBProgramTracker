@@ -8,7 +8,7 @@
  */
 export const getPlayoffWeeks = (seasonNumber: number) => {
   // Determine playoff weeks based on season
-  // For seasons 11-12, start playoffs in week 15 (not 16)
+  // For seasons 11-12, playoffs start in week 15 (not 16)
   const playoffStartWeek = (seasonNumber >= 11 && seasonNumber <= 12) ? 15 : 
                            seasonNumber >= 13 ? 16 : 15;
   const champWeek = (seasonNumber >= 11 && seasonNumber <= 12) ? 16 : 

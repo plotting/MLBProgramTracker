@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/table";
 import type { MatchupScoresView } from "@/types/database";
 import { Card } from "@/components/ui/card";
+import { getPlayoffWeeks } from "@/components/playoff-bracket/utils/playoffWeeks";
 
 type ScheduleTableProps = {
   matchupScores?: MatchupScoresView[];
@@ -25,7 +26,7 @@ const ScheduleTable = ({ matchupScores, selectedSeason }: ScheduleTableProps) =>
   
   if (seasonNum >= 8 && matchupScores) {
     // Determine playoff start week based on season
-    const playoffStartWeek = seasonNum >= 11 ? 16 : 15;
+    const { playoffStartWeek } = getPlayoffWeeks(seasonNum);
     
     // Find teams in playoff weeks that don't have matchups
     // We need to track which teams have matchups in first playoff week
