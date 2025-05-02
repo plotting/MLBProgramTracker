@@ -108,7 +108,8 @@ const PlayoffBracket = ({ season }: { season: string }) => {
       return <SixTeamPlayoffs 
         matchups={matchups || []} 
         teams={teams || []}
-        teamSeeds={teamSeeds} 
+        teamSeeds={teamSeeds}
+        seasonNumber={seasonNum}
       />;
     }
 

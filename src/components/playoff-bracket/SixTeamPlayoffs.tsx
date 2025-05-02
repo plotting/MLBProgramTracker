@@ -4,6 +4,7 @@ import { MatchupScoresView } from "@/types/database";
 import Matchup from "./Matchup";
 import WeekLabels from "./WeekLabels";
 import type { Team } from "@/types/database";
+import { getPlayoffWeeks } from "./utils/playoffWeeks";
 
 interface SixTeamPlayoffsProps {
   matchups: MatchupScoresView[];
@@ -12,6 +13,7 @@ interface SixTeamPlayoffsProps {
   onScoreUpdate?: (matchupId: number, isHome: boolean, score: number) => void;
   teams?: Team[];
   teamSeeds?: Map<number, number>;
+  seasonNumber?: number;
 }
 
 const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({ 
@@ -20,16 +22,20 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
   onTeamSelect,
   onScoreUpdate,
   teams = [],
-  teamSeeds = new Map()
+  teamSeeds = new Map(),
+  seasonNumber = 11
 }) => {
+  // Get playoff week numbers based on season
+  const { playoffStartWeek, champWeek } = getPlayoffWeeks(seasonNumber);
+  
   // Filter playoff matchups (non-consolation)
   const playoffMatchups = matchups.filter(
     (matchup) => matchup.is_playoff && !matchup.is_consolation
   );
 
-  // Get wildcard matchups (week 14)
+  // Get wildcard matchups (first playoff week)
   const wildcardGames = playoffMatchups.filter(
-    (matchup) => matchup.week_number === 14
+    (matchup) => matchup.week_number === playoffStartWeek
   );
   
   // Sort wildcard games by seed to put higher seeds on top
@@ -39,9 +45,9 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
     return aHigherSeed - bHigherSeed;
   });
 
-  // Get semifinal matchups (week 15)
+  // Get semifinal matchups (second playoff week)
   const semiFinals = playoffMatchups.filter(
-    (matchup) => matchup.week_number === 15
+    (matchup) => matchup.week_number === playoffStartWeek + 1
   );
   
   // Sort semifinal matchups by seed to put higher seeds on top
@@ -51,9 +57,9 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
     return aHigherSeed - bHigherSeed;
   });
 
-  // Get championship matchup (week 16)
+  // Get championship matchup (final playoff week)
   const championship = playoffMatchups.find(
-    (matchup) => matchup.week_number === 16
+    (matchup) => matchup.week_number === champWeek
   );
 
   // Get consolation matchups
@@ -63,7 +69,7 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
 
   // Get week 15 consolation matchups
   const weekFifteenConsolation = consolationMatchups.filter(
-    (matchup) => matchup.week_number === 15
+    (matchup) => matchup.week_number === playoffStartWeek + 1
   );
   
   // Sort week 15 consolation matchups by seed
@@ -75,7 +81,7 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
 
   // Get week 16 consolation matchups (3rd place and other games)
   const weekSixteenConsolation = consolationMatchups.filter(
-    (matchup) => matchup.week_number === 16
+    (matchup) => matchup.week_number === champWeek
   );
   
   // Sort week 16 consolation matchups by seed
@@ -97,7 +103,7 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
   return (
     <div className="overflow-auto">
       <div className="flex flex-col min-w-[1000px]">
-        <WeekLabels weeks={[14, 15, 16]} />
+        <WeekLabels weeks={[playoffStartWeek, playoffStartWeek + 1, champWeek]} />
         
         <div className="grid grid-cols-3 gap-8">
           <div className="space-y-12">
@@ -131,7 +137,7 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
               <h3 className="text-lg font-semibold mb-6 text-center">Consolation Round 1</h3>
               <div className="space-y-12">
                 {consolationMatchups
-                  .filter((matchup) => matchup.week_number === 14)
+                  .filter((matchup) => matchup.week_number === playoffStartWeek)
                   .sort((a, b) => {
                     const aHigherSeed = Math.min(teamSeeds.get(a.home_team_id || 0) || 999, teamSeeds.get(a.away_team_id || 0) || 999);
                     const bHigherSeed = Math.min(teamSeeds.get(b.home_team_id || 0) || 999, teamSeeds.get(b.away_team_id || 0) || 999);
