@@ -4,11 +4,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
 import { getSeasonLabel } from "@/utils/seasonUtils";
+import { DraftPick } from "@/types/database";
 
 interface TeamDraftHistoryProps {
   teamId: number;
   selectedSeason: string;
   onAssetClick?: (assetDescription: string) => void;
+}
+
+interface DraftPickWithSeason extends DraftPick {
+  season?: {
+    season_number: number;
+  };
 }
 
 const TeamDraftHistory = ({ teamId, selectedSeason, onAssetClick }: TeamDraftHistoryProps) => {
@@ -32,7 +39,7 @@ const TeamDraftHistory = ({ teamId, selectedSeason, onAssetClick }: TeamDraftHis
         .order('pick_number');
       
       if (error) throw error;
-      return data;
+      return data as DraftPickWithSeason[];
     },
   });
 
@@ -54,7 +61,7 @@ const TeamDraftHistory = ({ teamId, selectedSeason, onAssetClick }: TeamDraftHis
     );
   }
 
-  // Group draft picks by season for easier display
+  // Group draft picks by season for easier display with proper typing
   const draftPicksBySeason = draftPicks.reduce((acc, pick) => {
     const seasonNumber = pick.season?.season_number || 0;
     if (!acc[seasonNumber]) {
@@ -62,7 +69,7 @@ const TeamDraftHistory = ({ teamId, selectedSeason, onAssetClick }: TeamDraftHis
     }
     acc[seasonNumber].push(pick);
     return acc;
-  }, {} as Record<number, typeof draftPicks>);
+  }, {} as Record<number, DraftPickWithSeason[]>);
 
   return (
     <Card className="p-6">
