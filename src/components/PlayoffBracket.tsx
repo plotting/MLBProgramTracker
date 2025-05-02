@@ -103,7 +103,7 @@ const PlayoffBracket = ({ season }: { season: string }) => {
       />;
     }
 
-    // Seasons 11-12: 6-team playoffs with 17-week regular season
+    // Seasons 11-12: 6-team playoffs with playoffs starting in week 15
     if (seasonNum <= 12) {
       return <SixTeamPlayoffs 
         matchups={matchups || []} 
