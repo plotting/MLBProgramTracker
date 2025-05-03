@@ -95,7 +95,7 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
 
   // Get week 16 consolation matchups (second round)
   const weekSixteenConsolation = consolationMatchups.filter(
-    (matchup) => matchup.week_number === champWeek
+    (matchup) => matchup.week_number === playoffStartWeek + 1
   );
   
   // For 5th place game - this is the game between the two teams that won in week 15 consolation
@@ -200,28 +200,6 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
                 })}
               </div>
             </div>
-
-            {/* Third Place Game */}
-            {thirdPlaceGame && (
-              <div>
-                <h4 className="text-center font-medium mb-4">3rd Place Game</h4>
-                <div className="mx-auto w-[240px]">
-                  <Matchup
-                    matchupId={matchupCounter++}
-                    homeTeam={getTeamWithSeed(thirdPlaceGame.home_team_name, thirdPlaceGame.home_team_id)}
-                    homeTeamId={thirdPlaceGame.home_team_id}
-                    homeScore={thirdPlaceGame.home_score}
-                    awayTeam={getTeamWithSeed(thirdPlaceGame.away_team_name, thirdPlaceGame.away_team_id)}
-                    awayTeamId={thirdPlaceGame.away_team_id}
-                    awayScore={thirdPlaceGame.away_score}
-                    editMode={editMode}
-                    onTeamSelect={onTeamSelect}
-                    onScoreUpdate={onScoreUpdate}
-                    teams={teams}
-                  />
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Right Column - Week 17 */}
@@ -246,35 +224,28 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
                 </div>
               )}
             </div>
-
-            {/* Final Placement Games Section */}
-            <div>
-              <h4 className="text-center font-medium mb-4">Final Placement Games</h4>
-              <div className="space-y-12">
-                {sortedOtherWeekSixteenConsolation.map((matchup, index) => {
-                  const id = matchupCounter++;
-                  
-                  return (
-                    <div key={`final-placement-${index}`} className="mx-auto w-[240px]">
-                      <Matchup
-                        matchupId={id}
-                        homeTeam={getTeamWithSeed(matchup.home_team_name, matchup.home_team_id)}
-                        homeTeamId={matchup.home_team_id}
-                        homeScore={matchup.home_score}
-                        awayTeam={getTeamWithSeed(matchup.away_team_name, matchup.away_team_id)}
-                        awayTeamId={matchup.away_team_id}
-                        awayScore={matchup.away_score}
-                        isConsolation
-                        editMode={editMode}
-                        onTeamSelect={onTeamSelect}
-                        onScoreUpdate={onScoreUpdate}
-                        teams={teams}
-                      />
-                    </div>
-                  );
-                })}
+            
+            {/* Third Place Game */}
+            {thirdPlaceGame && (
+              <div>
+                <h4 className="text-center font-medium mb-4">3rd Place Game</h4>
+                <div className="mx-auto w-[240px]">
+                  <Matchup
+                    matchupId={matchupCounter++}
+                    homeTeam={getTeamWithSeed(thirdPlaceGame.home_team_name, thirdPlaceGame.home_team_id)}
+                    homeTeamId={thirdPlaceGame.home_team_id}
+                    homeScore={thirdPlaceGame.home_score}
+                    awayTeam={getTeamWithSeed(thirdPlaceGame.away_team_name, thirdPlaceGame.away_team_id)}
+                    awayTeamId={thirdPlaceGame.away_team_id}
+                    awayScore={thirdPlaceGame.away_score}
+                    editMode={editMode}
+                    onTeamSelect={onTeamSelect}
+                    onScoreUpdate={onScoreUpdate}
+                    teams={teams}
+                  />
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
         
@@ -322,7 +293,7 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
 
           {/* Week 16 */}
           <div>
-            <h4 className="text-center text-sm font-medium mb-4">Week {champWeek}</h4>
+            <h4 className="text-center text-sm font-medium mb-4">Week {playoffStartWeek + 1}</h4>
             
             {/* 5th Place Game */}
             {fifthPlaceGame && (
@@ -376,18 +347,18 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
             </div>
           </div>
           
-          {/* Week 17 - for completeness, even if there are no week 17 consolation games in seasons 11-12 */}
+          {/* Week 17 placeholder column */}
           <div>
-            <h4 className="text-center text-sm font-medium mb-4">Week {champWeek + 1}</h4>
+            <h4 className="text-center text-sm font-medium mb-4">Week {champWeek}</h4>
             
-            {/* Placeholder for 7th and 9th place games, matching season 10 format */}
+            {/* Placeholder for 7th and 9th place games to match season 10 format */}
             <div className="space-y-12">
               <div>
                 <h4 className="text-center text-sm font-medium mb-4">7th Place Game</h4>
                 <div className="mx-auto w-[240px] opacity-50">
                   {/* This is an empty matchup placeholder to maintain visual consistency with season 10 */}
                   <div className="border border-dashed border-border rounded-lg p-4 h-[100px] flex items-center justify-center">
-                    <span className="text-sm text-muted-foreground">No week 17 games in season {seasonNumber}</span>
+                    <span className="text-sm text-muted-foreground">No week {champWeek} games in season {seasonNumber}</span>
                   </div>
                 </div>
               </div>
@@ -397,7 +368,7 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
                 <div className="mx-auto w-[240px] opacity-50">
                   {/* This is an empty matchup placeholder to maintain visual consistency with season 10 */}
                   <div className="border border-dashed border-border rounded-lg p-4 h-[100px] flex items-center justify-center">
-                    <span className="text-sm text-muted-foreground">No week 17 games in season {seasonNumber}</span>
+                    <span className="text-sm text-muted-foreground">No week {champWeek} games in season {seasonNumber}</span>
                   </div>
                 </div>
               </div>
