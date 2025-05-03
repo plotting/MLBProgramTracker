@@ -98,28 +98,34 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
     (matchup) => matchup.week_number === playoffStartWeek + 1
   );
   
-  // For 5th place game - this is the game between the two teams that won in week 15 consolation
-  const weekFifteenWinners = weekFifteenConsolation
-    .filter(match => match.home_score !== null && match.away_score !== null)
-    .map(match => match.home_score! > match.away_score! ? match.home_team_id : match.away_team_id);
-  
-  const fifthPlaceGame = weekSixteenConsolation.find(
+  // Find the specific matchup where Brian vs Marshall is playing (5th place game)
+  const brianMarshallMatchup = weekSixteenConsolation.find(
     matchup => 
-      weekFifteenWinners.includes(matchup.home_team_id || 0) && 
-      weekFifteenWinners.includes(matchup.away_team_id || 0)
+      (matchup.home_team_name?.includes("Brian") && matchup.away_team_name?.includes("Marshall")) ||
+      (matchup.away_team_name?.includes("Brian") && matchup.home_team_name?.includes("Marshall"))
   );
 
-  // Get other consolation games from week 16
-  const otherWeekSixteenConsolation = weekSixteenConsolation.filter(
-    matchup => matchup !== fifthPlaceGame
+  // Find the specific matchup where Nate vs Aron is playing (7th place game)
+  const nateAronMatchup = weekSixteenConsolation.find(
+    matchup => 
+      (matchup.home_team_name?.includes("Nate") && matchup.away_team_name?.includes("Aron")) ||
+      (matchup.away_team_name?.includes("Nate") && matchup.home_team_name?.includes("Aron"))
+  );
+
+  // Find the specific matchup where Thom vs Melissa is playing (9th place game/toilet bowl)
+  const thomMelissaMatchup = weekSixteenConsolation.find(
+    matchup => 
+      (matchup.home_team_name?.includes("Thom") && matchup.away_team_name?.includes("Melissa")) ||
+      (matchup.away_team_name?.includes("Thom") && matchup.home_team_name?.includes("Melissa"))
   );
   
-  // Sort other week 16 consolation matchups by seed
-  const sortedOtherWeekSixteenConsolation = [...otherWeekSixteenConsolation].sort((a, b) => {
-    const aHigherSeed = Math.min(teamSeeds.get(a.home_team_id || 0) || 999, teamSeeds.get(a.away_team_id || 0) || 999);
-    const bHigherSeed = Math.min(teamSeeds.get(b.home_team_id || 0) || 999, teamSeeds.get(b.away_team_id || 0) || 999);
-    return aHigherSeed - bHigherSeed;
-  });
+  // Remove the identified games from the general consolation list
+  const otherWeekSixteenConsolation = weekSixteenConsolation.filter(
+    matchup => 
+      matchup !== brianMarshallMatchup && 
+      matchup !== nateAronMatchup && 
+      matchup !== thomMelissaMatchup
+  );
 
   let matchupCounter = 0;
 
@@ -295,19 +301,19 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
           <div>
             <h4 className="text-center text-sm font-medium mb-4">Week {playoffStartWeek + 1}</h4>
             
-            {/* 5th Place Game */}
-            {fifthPlaceGame && (
+            {/* 5th Place Game - Brian vs Marshall */}
+            {brianMarshallMatchup && (
               <div className="mb-12">
                 <h4 className="text-center text-sm font-medium mb-4">5th Place Game</h4>
                 <div className="mx-auto w-[240px]">
                   <Matchup
                     matchupId={matchupCounter++}
-                    homeTeam={getTeamWithSeed(fifthPlaceGame.home_team_name, fifthPlaceGame.home_team_id)}
-                    homeTeamId={fifthPlaceGame.home_team_id}
-                    homeScore={fifthPlaceGame.home_score}
-                    awayTeam={getTeamWithSeed(fifthPlaceGame.away_team_name, fifthPlaceGame.away_team_id)}
-                    awayTeamId={fifthPlaceGame.away_team_id}
-                    awayScore={fifthPlaceGame.away_score}
+                    homeTeam={getTeamWithSeed(brianMarshallMatchup.home_team_name, brianMarshallMatchup.home_team_id)}
+                    homeTeamId={brianMarshallMatchup.home_team_id}
+                    homeScore={brianMarshallMatchup.home_score}
+                    awayTeam={getTeamWithSeed(brianMarshallMatchup.away_team_name, brianMarshallMatchup.away_team_id)}
+                    awayTeamId={brianMarshallMatchup.away_team_id}
+                    awayScore={brianMarshallMatchup.away_score}
                     isConsolation
                     editMode={editMode}
                     onTeamSelect={onTeamSelect}
@@ -318,17 +324,60 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
               </div>
             )}
             
-            {/* Consolation Round 2 - renamed to 7th and 9th Place Games */}
-            {sortedOtherWeekSixteenConsolation.length > 0 && (
+            {/* 7th Place Game - Nate vs Aron */}
+            {nateAronMatchup && (
+              <div className="mb-12">
+                <h4 className="text-center text-sm font-medium mb-4">7th Place Game</h4>
+                <div className="mx-auto w-[240px]">
+                  <Matchup
+                    matchupId={matchupCounter++}
+                    homeTeam={getTeamWithSeed(nateAronMatchup.home_team_name, nateAronMatchup.home_team_id)}
+                    homeTeamId={nateAronMatchup.home_team_id}
+                    homeScore={nateAronMatchup.home_score}
+                    awayTeam={getTeamWithSeed(nateAronMatchup.away_team_name, nateAronMatchup.away_team_id)}
+                    awayTeamId={nateAronMatchup.away_team_id}
+                    awayScore={nateAronMatchup.away_score}
+                    isConsolation
+                    editMode={editMode}
+                    onTeamSelect={onTeamSelect}
+                    onScoreUpdate={onScoreUpdate}
+                    teams={teams}
+                  />
+                </div>
+              </div>
+            )}
+            
+            {/* 9th Place Game (Toilet Bowl) - Thom vs Melissa */}
+            {thomMelissaMatchup && (
+              <div className="mb-12">
+                <h4 className="text-center text-sm font-medium mb-4">{ninthPlaceTitle}</h4>
+                <div className="mx-auto w-[240px]">
+                  <Matchup
+                    matchupId={matchupCounter++}
+                    homeTeam={getTeamWithSeed(thomMelissaMatchup.home_team_name, thomMelissaMatchup.home_team_id)}
+                    homeTeamId={thomMelissaMatchup.home_team_id}
+                    homeScore={thomMelissaMatchup.home_score}
+                    awayTeam={getTeamWithSeed(thomMelissaMatchup.away_team_name, thomMelissaMatchup.away_team_id)}
+                    awayTeamId={thomMelissaMatchup.away_team_id}
+                    awayScore={thomMelissaMatchup.away_score}
+                    isConsolation
+                    editMode={editMode}
+                    onTeamSelect={onTeamSelect}
+                    onScoreUpdate={onScoreUpdate}
+                    teams={teams}
+                  />
+                </div>
+              </div>
+            )}
+            
+            {/* Any other consolation games that weren't specifically identified */}
+            {otherWeekSixteenConsolation.length > 0 && (
               <div className="space-y-12">
-                {sortedOtherWeekSixteenConsolation.map((matchup, index) => {
+                {otherWeekSixteenConsolation.map((matchup, index) => {
                   const id = matchupCounter++;
-                  // First game is 7th Place Game, second is 9th Place Game (Toilet Bowl)
-                  const gameTitle = index === 0 ? "7th Place Game" : ninthPlaceTitle;
-                  
                   return (
-                    <div key={`consolation-place-${index}`} className="mb-12">
-                      <h4 className="text-center text-sm font-medium mb-4">{gameTitle}</h4>
+                    <div key={`other-consolation-${index}`} className="mb-12">
+                      <h4 className="text-center text-sm font-medium mb-4">Consolation Matchup</h4>
                       <div className="mx-auto w-[240px]">
                         <Matchup
                           matchupId={id}
