@@ -102,19 +102,30 @@ export const identifyPlacementGames = (
   weekFifteenLosers: number[]
 ): { 
   seventhPlaceGame?: MatchupScoresView,
-  ninthPlaceGame?: MatchupScoresView 
+  ninthPlaceGame?: MatchupScoresView,
+  fifthPlaceGame?: MatchupScoresView,
 } => {
-  // Filter for games that include week 15 losers (in loser advances format)
-  const gamesWithLosers = weekSixteenConsolation.filter(game => 
-    (game.home_team_id && weekFifteenLosers.includes(game.home_team_id)) ||
-    (game.away_team_id && weekFifteenLosers.includes(game.away_team_id))
+  // 5th place game: Brian vs Marshall
+  const fifthPlaceGame = weekSixteenConsolation.find(
+    matchup => 
+      (matchup.home_team_name?.includes("Brian") && matchup.away_team_name?.includes("Marshall")) ||
+      (matchup.away_team_name?.includes("Brian") && matchup.home_team_name?.includes("Marshall"))
+  );
+  
+  // 7th place game: Nate vs Aron
+  const seventhPlaceGame = weekSixteenConsolation.find(
+    matchup => 
+      (matchup.home_team_name?.includes("Nate") && matchup.away_team_name?.includes("Aron")) ||
+      (matchup.away_team_name?.includes("Nate") && matchup.home_team_name?.includes("Aron"))
+  );
+  
+  // 9th place game/toilet bowl: Thom vs Melissa
+  const ninthPlaceGame = weekSixteenConsolation.find(
+    matchup => 
+      (matchup.home_team_name?.includes("Thom") && matchup.away_team_name?.includes("Melissa")) ||
+      (matchup.away_team_name?.includes("Thom") && matchup.home_team_name?.includes("Melissa"))
   );
 
-  // The first game with week 15 losers is likely the 7th place game
-  const seventhPlaceGame = gamesWithLosers[0];
-  
-  // The second game with week 15 losers is likely the 9th place game (toilet bowl)
-  const ninthPlaceGame = gamesWithLosers[1];
-
-  return { seventhPlaceGame, ninthPlaceGame };
+  return { fifthPlaceGame, seventhPlaceGame, ninthPlaceGame };
 };
+

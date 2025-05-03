@@ -98,21 +98,22 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
     (matchup) => matchup.week_number === playoffStartWeek + 1
   );
   
-  // Find the specific matchup where Brian vs Marshall is playing (5th place game)
+  // Find specific matchups for placement games
+  // 5th place game: Brian vs Marshall
   const brianMarshallMatchup = weekSixteenConsolation.find(
     matchup => 
       (matchup.home_team_name?.includes("Brian") && matchup.away_team_name?.includes("Marshall")) ||
       (matchup.away_team_name?.includes("Brian") && matchup.home_team_name?.includes("Marshall"))
   );
 
-  // Find the specific matchup where Nate vs Aron is playing (7th place game)
+  // 7th place game: Nate vs Aron
   const nateAronMatchup = weekSixteenConsolation.find(
     matchup => 
       (matchup.home_team_name?.includes("Nate") && matchup.away_team_name?.includes("Aron")) ||
       (matchup.away_team_name?.includes("Nate") && matchup.home_team_name?.includes("Aron"))
   );
 
-  // Find the specific matchup where Thom vs Melissa is playing (9th place game/toilet bowl)
+  // 9th place game/toilet bowl: Thom vs Melissa
   const thomMelissaMatchup = weekSixteenConsolation.find(
     matchup => 
       (matchup.home_team_name?.includes("Thom") && matchup.away_team_name?.includes("Melissa")) ||
@@ -150,7 +151,7 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
           {/* Left Column - Week 15 */}
           <div className="space-y-12">
             <div>
-              <h3 className="text-lg font-semibold mb-6 text-center">Playoff Bracket</h3>
+              {/* Removed redundant "Playoff Bracket" title */}
               <div className="mb-6">
                 <h4 className="text-center font-medium mb-4">Wildcard</h4>
                 <div className="space-y-12">

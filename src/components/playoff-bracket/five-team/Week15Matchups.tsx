@@ -95,8 +95,9 @@ const Week15Matchups: React.FC<Week15MatchupsProps> = ({
     <div className="space-y-6">
       <h3 className="text-lg font-semibold mb-6 text-center">Week 15</h3>
       <div className="space-y-12">
+        {/* Removed redundant "Playoff Bracket" title */}
         <BracketSection
-          title="Playoff Matchups"
+          title="Wildcard Games"
           matchups={wildcardMatchups}
           editMode={editMode}
           onTeamSelect={onTeamSelect}

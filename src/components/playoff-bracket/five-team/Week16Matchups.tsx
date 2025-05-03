@@ -1,4 +1,3 @@
-
 import React from "react";
 import { MatchupScoresView } from "@/types/database";
 import BracketSection from "../BracketSection";
@@ -47,7 +46,7 @@ const Week16Matchups: React.FC<Week16MatchupsProps> = ({
   const weekFifteenLosers = getWeekFifteenConsolationLosers(weekFifteenConsolation);
   
   // Identify placement games
-  const { seventhPlaceGame, ninthPlaceGame } = identifyPlacementGames(
+  const { fifthPlaceGame, seventhPlaceGame, ninthPlaceGame } = identifyPlacementGames(
     consolationMatchups,
     weekFifteenLosers
   );
@@ -65,9 +64,9 @@ const Week16Matchups: React.FC<Week16MatchupsProps> = ({
     awayScore: championship.away_score
   }] : [];
 
-  // Filter out the 7th and 9th place games from consolation matchups
+  // Filter out the placement games from consolation matchups
   const otherConsolationGames = consolationMatchups.filter(
-    game => game !== seventhPlaceGame && game !== ninthPlaceGame
+    game => game !== fifthPlaceGame && game !== seventhPlaceGame && game !== ninthPlaceGame
   );
 
   // Create matchups for other consolation games
@@ -87,12 +86,31 @@ const Week16Matchups: React.FC<Week16MatchupsProps> = ({
     };
   });
   
-  // Create matchups for 7th and 9th place games
+  // Create matchups for placement games
   const placementMatchups = [];
   
+  // 5th Place Game - Brian vs Marshall
+  if (fifthPlaceGame) {
+    placementMatchups.push({
+      matchupId: localCounter++,
+      title: "5th Place Game",
+      homeTeam: getTeamWithSeed(fifthPlaceGame.home_team_name, fifthPlaceGame.home_team_id),
+      homeTeamId: fifthPlaceGame.home_team_id,
+      homeSeed: teamSeeds.get(fifthPlaceGame.home_team_id),
+      homeScore: fifthPlaceGame.home_score,
+      awayTeam: getTeamWithSeed(fifthPlaceGame.away_team_name, fifthPlaceGame.away_team_id),
+      awayTeamId: fifthPlaceGame.away_team_id,
+      awaySeed: teamSeeds.get(fifthPlaceGame.away_team_id),
+      awayScore: fifthPlaceGame.away_score,
+      isConsolation: true
+    });
+  }
+  
+  // 7th Place Game - Nate vs Aron
   if (seventhPlaceGame) {
     placementMatchups.push({
       matchupId: localCounter++,
+      title: "7th Place Game",
       homeTeam: getTeamWithSeed(seventhPlaceGame.home_team_name, seventhPlaceGame.home_team_id),
       homeTeamId: seventhPlaceGame.home_team_id,
       homeSeed: teamSeeds.get(seventhPlaceGame.home_team_id),
@@ -105,9 +123,11 @@ const Week16Matchups: React.FC<Week16MatchupsProps> = ({
     });
   }
   
+  // 9th Place Game (Toilet Bowl) - Thom vs Melissa
   if (ninthPlaceGame) {
     placementMatchups.push({
       matchupId: localCounter++,
+      title: "9th Place Game (Toilet Bowl)",
       homeTeam: getTeamWithSeed(ninthPlaceGame.home_team_name, ninthPlaceGame.home_team_id),
       homeTeamId: ninthPlaceGame.home_team_id,
       homeSeed: teamSeeds.get(ninthPlaceGame.home_team_id),
@@ -148,6 +168,21 @@ const Week16Matchups: React.FC<Week16MatchupsProps> = ({
         </div>
       </div>
       
+      {/* Place games section */}
+      {placementMatchups.length > 0 && placementMatchups.map((matchup, index) => (
+        <BracketSection
+          key={`placement-${index}`}
+          title={matchup.title || "Placement Game"}
+          matchups={[matchup]}
+          editMode={editMode}
+          onTeamSelect={onTeamSelect}
+          onScoreUpdate={onScoreUpdate}
+          teams={teams}
+          className="mb-10"
+        />
+      ))}
+      
+      {/* Other consolation matchups */}
       {otherConsolationMatchups.length > 0 && (
         <BracketSection
           title="Consolation Matchups"
@@ -157,18 +192,6 @@ const Week16Matchups: React.FC<Week16MatchupsProps> = ({
           onScoreUpdate={onScoreUpdate}
           teams={teams}
           className="mb-10"
-        />
-      )}
-      
-      {placementMatchups.length > 0 && (
-        <BracketSection
-          title="Placement Games"
-          subtitle="Based on consolation results from Week 15"
-          matchups={placementMatchups}
-          editMode={editMode}
-          onTeamSelect={onTeamSelect}
-          onScoreUpdate={onScoreUpdate}
-          teams={teams}
         />
       )}
     </div>
