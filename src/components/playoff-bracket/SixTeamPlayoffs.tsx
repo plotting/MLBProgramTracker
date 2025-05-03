@@ -5,6 +5,7 @@ import Matchup from "./Matchup";
 import WeekLabels from "./WeekLabels";
 import type { Team } from "@/types/database";
 import { getPlayoffWeeks } from "./utils/playoffWeeks";
+import BracketSection from "./BracketSection";
 
 interface SixTeamPlayoffsProps {
   matchups: MatchupScoresView[];
@@ -62,14 +63,27 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
     (matchup) => matchup.week_number === champWeek
   );
 
+  // Get third place game (between semifinal losers)
+  const semiFinalLosers = sortedSemiFinals
+    .filter(match => match.home_score !== null && match.away_score !== null)
+    .map(match => match.home_score! > match.away_score! ? match.away_team_id : match.home_team_id);
+
+  const thirdPlaceGame = playoffMatchups.find(
+    (matchup) => 
+      matchup.week_number === champWeek && 
+      matchup !== championship &&
+      semiFinalLosers.includes(matchup.home_team_id || 0) && 
+      semiFinalLosers.includes(matchup.away_team_id || 0)
+  );
+
   // Get consolation matchups
   const consolationMatchups = matchups.filter(
     (matchup) => matchup.is_consolation
   );
 
-  // Get week 15 consolation matchups
+  // Get week 15 consolation matchups (first round)
   const weekFifteenConsolation = consolationMatchups.filter(
-    (matchup) => matchup.week_number === playoffStartWeek + 1
+    (matchup) => matchup.week_number === playoffStartWeek
   );
   
   // Sort week 15 consolation matchups by seed
@@ -79,13 +93,29 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
     return aHigherSeed - bHigherSeed;
   });
 
-  // Get week 16 consolation matchups (3rd place and other games)
+  // Get week 16 consolation matchups (second round)
   const weekSixteenConsolation = consolationMatchups.filter(
     (matchup) => matchup.week_number === champWeek
   );
   
-  // Sort week 16 consolation matchups by seed
-  const sortedWeekSixteenConsolation = [...weekSixteenConsolation].sort((a, b) => {
+  // For 5th place game - this is the game between the two teams that won in week 15 consolation
+  const weekFifteenWinners = weekFifteenConsolation
+    .filter(match => match.home_score !== null && match.away_score !== null)
+    .map(match => match.home_score! > match.away_score! ? match.home_team_id : match.away_team_id);
+  
+  const fifthPlaceGame = weekSixteenConsolation.find(
+    matchup => 
+      weekFifteenWinners.includes(matchup.home_team_id || 0) && 
+      weekFifteenWinners.includes(matchup.away_team_id || 0)
+  );
+
+  // Get other consolation games from week 16
+  const otherWeekSixteenConsolation = weekSixteenConsolation.filter(
+    matchup => matchup !== fifthPlaceGame
+  );
+  
+  // Sort other week 16 consolation matchups by seed
+  const sortedOtherWeekSixteenConsolation = [...otherWeekSixteenConsolation].sort((a, b) => {
     const aHigherSeed = Math.min(teamSeeds.get(a.home_team_id || 0) || 999, teamSeeds.get(a.away_team_id || 0) || 999);
     const bHigherSeed = Math.min(teamSeeds.get(b.home_team_id || 0) || 999, teamSeeds.get(b.away_team_id || 0) || 999);
     return aHigherSeed - bHigherSeed;
@@ -103,6 +133,7 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
   // For seasons 8-12, use the "loser advances" title format
   const ninthPlaceTitle = isLoserAdvancesFormat ? "9th Place Game (Toilet Bowl)" : "9th Place Game";
   const consolationTitle = isLoserAdvancesFormat ? "Consolation Bracket (Loser Advances)" : "Consolation Bracket";
+  const toiletBowlRoundTitle = isLoserAdvancesFormat ? "Toilet Bowl Round 1: Loser advances" : "Consolation Round 1";
 
   return (
     <div className="overflow-auto">
@@ -110,47 +141,17 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
         <WeekLabels weeks={displayWeeks} />
         
         <div className="grid grid-cols-3 gap-8">
+          {/* Left Column - Week 15 */}
           <div className="space-y-12">
             <div>
-              <h3 className="text-lg font-semibold mb-6 text-center">Wildcard</h3>
-              <div className="space-y-12">
-                {sortedWildcardGames.map((matchup, index) => {
-                  const id = matchupCounter++;
-                  return (
-                    <div key={`wildcard-${index}`} className="mx-auto w-[240px]">
-                      <Matchup
-                        matchupId={id}
-                        homeTeam={getTeamWithSeed(matchup.home_team_name, matchup.home_team_id)}
-                        homeTeamId={matchup.home_team_id}
-                        homeScore={matchup.home_score}
-                        awayTeam={getTeamWithSeed(matchup.away_team_name, matchup.away_team_id)}
-                        awayTeamId={matchup.away_team_id}
-                        awayScore={matchup.away_score}
-                        editMode={editMode}
-                        onTeamSelect={onTeamSelect}
-                        onScoreUpdate={onScoreUpdate}
-                        teams={teams}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold mb-6 text-center">Consolation Round 1</h3>
-              <div className="space-y-12">
-                {consolationMatchups
-                  .filter((matchup) => matchup.week_number === playoffStartWeek)
-                  .sort((a, b) => {
-                    const aHigherSeed = Math.min(teamSeeds.get(a.home_team_id || 0) || 999, teamSeeds.get(a.away_team_id || 0) || 999);
-                    const bHigherSeed = Math.min(teamSeeds.get(b.home_team_id || 0) || 999, teamSeeds.get(b.away_team_id || 0) || 999);
-                    return aHigherSeed - bHigherSeed;
-                  })
-                  .map((matchup, index) => {
+              <h3 className="text-lg font-semibold mb-6 text-center">Playoff Bracket</h3>
+              <div className="mb-6">
+                <h4 className="text-center font-medium mb-4">Wildcard</h4>
+                <div className="space-y-12">
+                  {sortedWildcardGames.map((matchup, index) => {
                     const id = matchupCounter++;
                     return (
-                      <div key={`consolation-wildcard-${index}`} className="mx-auto w-[240px]">
+                      <div key={`wildcard-${index}`} className="mx-auto w-[240px]">
                         <Matchup
                           matchupId={id}
                           homeTeam={getTeamWithSeed(matchup.home_team_name, matchup.home_team_id)}
@@ -159,7 +160,6 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
                           awayTeam={getTeamWithSeed(matchup.away_team_name, matchup.away_team_id)}
                           awayTeamId={matchup.away_team_id}
                           awayScore={matchup.away_score}
-                          isConsolation
                           editMode={editMode}
                           onTeamSelect={onTeamSelect}
                           onScoreUpdate={onScoreUpdate}
@@ -168,10 +168,12 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
                       </div>
                     );
                   })}
+                </div>
               </div>
             </div>
           </div>
 
+          {/* Middle Column - Week 16 */}
           <div className="space-y-12">
             <div>
               <h3 className="text-lg font-semibold mb-6 text-center">Semifinals</h3>
@@ -199,43 +201,30 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
               </div>
             </div>
 
-            {/* Consolation Bracket Header */}
-            <div className="w-full my-4">
-              <div className="flex items-center justify-center">
-                <div className="h-px bg-border flex-grow"></div>
-                <span className="px-4 text-sm text-muted-foreground font-medium">{consolationTitle}</span>
-                <div className="h-px bg-border flex-grow"></div>
+            {/* Third Place Game */}
+            {thirdPlaceGame && (
+              <div>
+                <h4 className="text-center font-medium mb-4">3rd Place Game</h4>
+                <div className="mx-auto w-[240px]">
+                  <Matchup
+                    matchupId={matchupCounter++}
+                    homeTeam={getTeamWithSeed(thirdPlaceGame.home_team_name, thirdPlaceGame.home_team_id)}
+                    homeTeamId={thirdPlaceGame.home_team_id}
+                    homeScore={thirdPlaceGame.home_score}
+                    awayTeam={getTeamWithSeed(thirdPlaceGame.away_team_name, thirdPlaceGame.away_team_id)}
+                    awayTeamId={thirdPlaceGame.away_team_id}
+                    awayScore={thirdPlaceGame.away_score}
+                    editMode={editMode}
+                    onTeamSelect={onTeamSelect}
+                    onScoreUpdate={onScoreUpdate}
+                    teams={teams}
+                  />
+                </div>
               </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold mb-6 text-center">Consolation Round 2</h3>
-              <div className="space-y-12">
-                {sortedWeekFifteenConsolation.map((matchup, index) => {
-                  const id = matchupCounter++;
-                  return (
-                    <div key={`consolation-semifinal-${index}`} className="mx-auto w-[240px]">
-                      <Matchup
-                        matchupId={id}
-                        homeTeam={getTeamWithSeed(matchup.home_team_name, matchup.home_team_id)}
-                        homeTeamId={matchup.home_team_id}
-                        homeScore={matchup.home_score}
-                        awayTeam={getTeamWithSeed(matchup.away_team_name, matchup.away_team_id)}
-                        awayTeamId={matchup.away_team_id}
-                        awayScore={matchup.away_score}
-                        isConsolation
-                        editMode={editMode}
-                        onTeamSelect={onTeamSelect}
-                        onScoreUpdate={onScoreUpdate}
-                        teams={teams}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            )}
           </div>
 
+          {/* Right Column - Week 17 */}
           <div className="space-y-12">
             <div>
               <h3 className="text-lg font-semibold mb-6 text-center">Championship</h3>
@@ -258,24 +247,15 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
               )}
             </div>
 
+            {/* Final Placement Games Section */}
             <div>
-              <h3 className="text-lg font-semibold mb-6 text-center">Final Placement Games</h3>
+              <h4 className="text-center font-medium mb-4">Final Placement Games</h4>
               <div className="space-y-12">
-                {sortedWeekSixteenConsolation.map((matchup, index) => {
+                {sortedOtherWeekSixteenConsolation.map((matchup, index) => {
                   const id = matchupCounter++;
-                  const isLastMatch = index === sortedWeekSixteenConsolation.length - 1;
-                  
-                  // For the last match in seasons 8-12, use the toilet bowl title
-                  const matchTitle = isLastMatch && isLoserAdvancesFormat ? ninthPlaceTitle : 
-                                     index === 0 ? "5th Place Game" : 
-                                     index === 1 ? "7th Place Game" : 
-                                     "9th Place Game";
                   
                   return (
-                    <div key={`final-consolation-${index}`} className="mx-auto w-[240px]">
-                      <div className="text-sm text-center font-medium mb-2">
-                        {matchTitle}
-                      </div>
+                    <div key={`final-placement-${index}`} className="mx-auto w-[240px]">
                       <Matchup
                         matchupId={id}
                         homeTeam={getTeamWithSeed(matchup.home_team_name, matchup.home_team_id)}
@@ -293,6 +273,133 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
                     </div>
                   );
                 })}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Consolation Bracket Divider */}
+        <div className="w-full my-8">
+          <div className="flex items-center justify-center">
+            <div className="h-px bg-border flex-grow"></div>
+            <span className="px-4 text-sm text-muted-foreground font-medium">{consolationTitle}</span>
+            <div className="h-px bg-border flex-grow"></div>
+          </div>
+        </div>
+        
+        {/* Consolation Bracket */}
+        <div className="grid grid-cols-3 gap-8">
+          {/* Week 15 */}
+          <div>
+            <h4 className="text-center text-sm font-medium mb-4">Week {playoffStartWeek}</h4>
+            <div>
+              <h4 className="text-center text-sm text-muted-foreground mb-4">{toiletBowlRoundTitle}</h4>
+              <div className="space-y-12">
+                {sortedWeekFifteenConsolation.map((matchup, index) => {
+                  const id = matchupCounter++;
+                  return (
+                    <div key={`consolation-round1-${index}`} className="mx-auto w-[240px]">
+                      <Matchup
+                        matchupId={id}
+                        homeTeam={getTeamWithSeed(matchup.home_team_name, matchup.home_team_id)}
+                        homeTeamId={matchup.home_team_id}
+                        homeScore={matchup.home_score}
+                        awayTeam={getTeamWithSeed(matchup.away_team_name, matchup.away_team_id)}
+                        awayTeamId={matchup.away_team_id}
+                        awayScore={matchup.away_score}
+                        isConsolation
+                        editMode={editMode}
+                        onTeamSelect={onTeamSelect}
+                        onScoreUpdate={onScoreUpdate}
+                        teams={teams}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Week 16 */}
+          <div>
+            <h4 className="text-center text-sm font-medium mb-4">Week {champWeek}</h4>
+            
+            {/* 5th Place Game */}
+            {fifthPlaceGame && (
+              <div className="mb-12">
+                <h4 className="text-center text-sm font-medium mb-4">5th Place Game</h4>
+                <div className="mx-auto w-[240px]">
+                  <Matchup
+                    matchupId={matchupCounter++}
+                    homeTeam={getTeamWithSeed(fifthPlaceGame.home_team_name, fifthPlaceGame.home_team_id)}
+                    homeTeamId={fifthPlaceGame.home_team_id}
+                    homeScore={fifthPlaceGame.home_score}
+                    awayTeam={getTeamWithSeed(fifthPlaceGame.away_team_name, fifthPlaceGame.away_team_id)}
+                    awayTeamId={fifthPlaceGame.away_team_id}
+                    awayScore={fifthPlaceGame.away_score}
+                    isConsolation
+                    editMode={editMode}
+                    onTeamSelect={onTeamSelect}
+                    onScoreUpdate={onScoreUpdate}
+                    teams={teams}
+                  />
+                </div>
+              </div>
+            )}
+            
+            {/* Consolation Round 2 */}
+            <div>
+              <h4 className="text-center text-sm font-medium mb-4">Consolation Round 2</h4>
+              <div className="space-y-12">
+                {sortedOtherWeekSixteenConsolation.map((matchup, index) => {
+                  const id = matchupCounter++;
+                  return (
+                    <div key={`consolation-round2-${index}`} className="mx-auto w-[240px]">
+                      <Matchup
+                        matchupId={id}
+                        homeTeam={getTeamWithSeed(matchup.home_team_name, matchup.home_team_id)}
+                        homeTeamId={matchup.home_team_id}
+                        homeScore={matchup.home_score}
+                        awayTeam={getTeamWithSeed(matchup.away_team_name, matchup.away_team_id)}
+                        awayTeamId={matchup.away_team_id}
+                        awayScore={matchup.away_score}
+                        isConsolation
+                        editMode={editMode}
+                        onTeamSelect={onTeamSelect}
+                        onScoreUpdate={onScoreUpdate}
+                        teams={teams}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+          
+          {/* Week 17 - for completeness, even if there are no week 17 consolation games in seasons 11-12 */}
+          <div>
+            <h4 className="text-center text-sm font-medium mb-4">Week {champWeek + 1}</h4>
+            
+            {/* Placeholder for 7th and 9th place games, matching season 10 format */}
+            <div className="space-y-12">
+              <div>
+                <h4 className="text-center text-sm font-medium mb-4">7th Place Game</h4>
+                <div className="mx-auto w-[240px] opacity-50">
+                  {/* This is an empty matchup placeholder to maintain visual consistency with season 10 */}
+                  <div className="border border-dashed border-border rounded-lg p-4 h-[100px] flex items-center justify-center">
+                    <span className="text-sm text-muted-foreground">No week 17 games in season {seasonNumber}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="text-center text-sm font-medium mb-4">{ninthPlaceTitle}</h4>
+                <div className="mx-auto w-[240px] opacity-50">
+                  {/* This is an empty matchup placeholder to maintain visual consistency with season 10 */}
+                  <div className="border border-dashed border-border rounded-lg p-4 h-[100px] flex items-center justify-center">
+                    <span className="text-sm text-muted-foreground">No week 17 games in season {seasonNumber}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
