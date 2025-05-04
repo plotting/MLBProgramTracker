@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import BracketSection from "./BracketSection";
 import { MatchupScoresView, Team } from "@/types/database";
 
@@ -33,8 +33,8 @@ const ConsolationBracket: React.FC<ConsolationBracketProps> = ({
   dividerText = ""
 }) => {
   // Create matchup objects for BracketSection
-  const consolationMatchups = weekFifteenConsolation.map(matchup => {
-    const id = matchupCounter++;
+  const consolationMatchups = weekFifteenConsolation.map((matchup, index) => {
+    const id = matchupCounter + index;
     return {
       matchupId: id,
       homeTeam: matchup.home_team_name,
@@ -49,10 +49,12 @@ const ConsolationBracket: React.FC<ConsolationBracketProps> = ({
     };
   });
 
-  // Update the counter in the parent component
-  React.useEffect(() => {
-    onMatchupCounterUpdate(matchupCounter);
-  }, [matchupCounter, onMatchupCounterUpdate]);
+  // Update the counter in the parent component only once when weekFifteenConsolation changes
+  useEffect(() => {
+    if (weekFifteenConsolation.length > 0) {
+      onMatchupCounterUpdate(matchupCounter + weekFifteenConsolation.length);
+    }
+  }, [weekFifteenConsolation, matchupCounter, onMatchupCounterUpdate]);
 
   return (
     <BracketSection

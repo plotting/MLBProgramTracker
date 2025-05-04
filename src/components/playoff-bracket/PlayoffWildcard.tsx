@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { MatchupScoresView, Team } from "@/types/database";
 import BracketSection from "./BracketSection";
 
@@ -25,8 +25,8 @@ const PlayoffWildcard: React.FC<PlayoffWildcardProps> = ({
   teams = [],
 }) => {
   // Create matchup objects for BracketSection
-  const wildcardMatchups = wildcardGames.map(matchup => {
-    const id = matchupCounter++;
+  const wildcardMatchups = wildcardGames.map((matchup, index) => {
+    const id = matchupCounter + index;
     return {
       matchupId: id,
       homeTeam: matchup.home_team_name,
@@ -41,10 +41,12 @@ const PlayoffWildcard: React.FC<PlayoffWildcardProps> = ({
     };
   });
 
-  // Update the counter in the parent component
-  React.useEffect(() => {
-    onMatchupCounterUpdate(matchupCounter);
-  }, [matchupCounter, onMatchupCounterUpdate]);
+  // Update the counter in the parent component only once when wildcardGames change
+  useEffect(() => {
+    if (wildcardGames.length > 0) {
+      onMatchupCounterUpdate(matchupCounter + wildcardGames.length);
+    }
+  }, [wildcardGames, matchupCounter, onMatchupCounterUpdate]);
 
   return (
     <BracketSection

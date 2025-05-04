@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import BracketSection from "./BracketSection";
 import { MatchupScoresView, Team } from "@/types/database";
 
@@ -25,8 +25,8 @@ const PlayoffSemifinals: React.FC<PlayoffSemifinalsProps> = ({
   teams = [],
 }) => {
   // Create matchup objects for BracketSection
-  const semifinalMatchups = semiFinals.map(matchup => {
-    const id = matchupCounter++;
+  const semifinalMatchups = semiFinals.map((matchup, index) => {
+    const id = matchupCounter + index;
     return {
       matchupId: id,
       homeTeam: matchup.home_team_name,
@@ -41,10 +41,12 @@ const PlayoffSemifinals: React.FC<PlayoffSemifinalsProps> = ({
     };
   });
 
-  // Update the counter in the parent component
-  React.useEffect(() => {
-    onMatchupCounterUpdate(matchupCounter);
-  }, [matchupCounter, onMatchupCounterUpdate]);
+  // Update the counter in the parent component only once when semiFinals change
+  useEffect(() => {
+    if (semiFinals.length > 0) {
+      onMatchupCounterUpdate(matchupCounter + semiFinals.length);
+    }
+  }, [semiFinals, matchupCounter, onMatchupCounterUpdate]);
 
   return (
     <BracketSection

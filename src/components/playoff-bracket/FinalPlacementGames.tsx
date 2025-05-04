@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { MatchupScoresView, Team } from "@/types/database";
 import Matchup from "./Matchup";
 
@@ -30,9 +30,12 @@ const FinalPlacementGames: React.FC<FinalPlacementGamesProps> = ({
   teams = [],
   ninthPlaceTitle
 }) => {
-  // Create a local variable to track matchup IDs
-  let localMatchupCounter = matchupCounter;
-
+  // Count how many games we'll show
+  let gamesToShow = 0;
+  if (thirdPlaceGame) gamesToShow++;
+  if (seventhPlaceGame) gamesToShow++;
+  if (ninthPlaceGame) gamesToShow++;
+  
   // Format team name with seed
   const formatTeamWithSeed = (teamId: number | null, teamName: string | null) => {
     if (!teamId || !teamName) return "";
@@ -40,10 +43,15 @@ const FinalPlacementGames: React.FC<FinalPlacementGamesProps> = ({
     return seed ? `(${seed}) ${teamName}` : teamName;
   };
 
-  // Update parent counter when finished rendering
-  React.useEffect(() => {
-    onMatchupCounterUpdate(localMatchupCounter);
-  }, [localMatchupCounter, onMatchupCounterUpdate]);
+  // Update parent counter when finished rendering, but only once
+  useEffect(() => {
+    if (gamesToShow > 0) {
+      onMatchupCounterUpdate(matchupCounter + gamesToShow);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array means this runs once on mount
+
+  let currentMatchupId = matchupCounter;
 
   return (
     <div className="space-y-12">
@@ -54,7 +62,7 @@ const FinalPlacementGames: React.FC<FinalPlacementGamesProps> = ({
             3rd Place Game
           </div>
           <Matchup
-            matchupId={localMatchupCounter++}
+            matchupId={currentMatchupId++}
             homeTeam={formatTeamWithSeed(thirdPlaceGame.home_team_id, thirdPlaceGame.home_team_name)}
             homeTeamId={thirdPlaceGame.home_team_id}
             homeScore={thirdPlaceGame.home_score}
@@ -75,7 +83,7 @@ const FinalPlacementGames: React.FC<FinalPlacementGamesProps> = ({
             7th Place Game
           </div>
           <Matchup
-            matchupId={localMatchupCounter++}
+            matchupId={currentMatchupId++}
             homeTeam={formatTeamWithSeed(seventhPlaceGame.home_team_id, seventhPlaceGame.home_team_name)}
             homeTeamId={seventhPlaceGame.home_team_id}
             homeScore={seventhPlaceGame.home_score}
@@ -97,7 +105,7 @@ const FinalPlacementGames: React.FC<FinalPlacementGamesProps> = ({
             {ninthPlaceTitle}
           </div>
           <Matchup
-            matchupId={localMatchupCounter++}
+            matchupId={currentMatchupId++}
             homeTeam={formatTeamWithSeed(ninthPlaceGame.home_team_id, ninthPlaceGame.home_team_name)}
             homeTeamId={ninthPlaceGame.home_team_id}
             homeScore={ninthPlaceGame.home_score}

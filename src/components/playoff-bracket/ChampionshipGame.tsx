@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import BracketSection from "./BracketSection";
 import { MatchupScoresView, Team } from "@/types/database";
 
@@ -38,10 +38,11 @@ const ChampionshipGame: React.FC<ChampionshipGameProps> = ({
     isConsolation: false
   };
 
-  // Update the counter in the parent component
-  React.useEffect(() => {
+  // Update the counter in the parent component only once when component mounts
+  useEffect(() => {
     onMatchupCounterUpdate(matchupCounter + 1);
-  }, [matchupCounter, onMatchupCounterUpdate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array means this runs once on mount
 
   return (
     <BracketSection

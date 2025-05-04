@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import BracketSection from "./BracketSection";
 import { MatchupScoresView, Team } from "@/types/database";
 import Matchup from "./Matchup";
@@ -45,13 +45,17 @@ const PlacementGames: React.FC<PlacementGamesProps> = ({
   showDivider = false,
   dividerText = ""
 }) => {
-  let updatedCounter = matchupCounter;
+  let gamesToShow = 0;
+  if (thirdPlaceGame) gamesToShow++;
+  if (fifthPlaceGame) gamesToShow++;
+  if (seventhPlaceGame) gamesToShow++;
+  if (ninthPlaceGame) gamesToShow++;
   
   // Create the placement game matchups
-  const createPlacementMatchup = (matchup: MatchupScoresView | undefined, isConsolation: boolean = false) => {
+  const createPlacementMatchup = (matchup: MatchupScoresView | undefined, index: number, isConsolation: boolean = false) => {
     if (!matchup) return null;
     return {
-      matchupId: updatedCounter++,
+      matchupId: matchupCounter + index,
       homeTeam: matchup.home_team_name,
       homeTeamId: matchup.home_team_id,
       homeSeed: matchup.home_team_id ? teamSeeds.get(matchup.home_team_id) : undefined,
@@ -64,17 +68,19 @@ const PlacementGames: React.FC<PlacementGamesProps> = ({
     };
   };
 
-  // Update the counter in the parent component
-  React.useEffect(() => {
-    onMatchupCounterUpdate(updatedCounter);
-  }, [updatedCounter, onMatchupCounterUpdate]);
+  // Update the counter in the parent component only once
+  useEffect(() => {
+    if (gamesToShow > 0) {
+      onMatchupCounterUpdate(matchupCounter + gamesToShow);
+    }
+  }, [gamesToShow, matchupCounter, onMatchupCounterUpdate]);
   
   if (showOnlyFifthPlace) {
     return (
       fifthPlaceGame && (
         <BracketSection
           title={fifthPlaceTitle}
-          matchups={[createPlacementMatchup(fifthPlaceGame, true) as any]}
+          matchups={[createPlacementMatchup(fifthPlaceGame, 0, true) as any]}
           editMode={editMode}
           onTeamSelect={onTeamSelect}
           onScoreUpdate={onScoreUpdate}
@@ -92,7 +98,7 @@ const PlacementGames: React.FC<PlacementGamesProps> = ({
       {thirdPlaceGame && (
         <BracketSection
           title={thirdPlaceTitle}
-          matchups={[createPlacementMatchup(thirdPlaceGame) as any]}
+          matchups={[createPlacementMatchup(thirdPlaceGame, 0) as any]}
           editMode={editMode}
           onTeamSelect={onTeamSelect}
           onScoreUpdate={onScoreUpdate}
@@ -107,7 +113,7 @@ const PlacementGames: React.FC<PlacementGamesProps> = ({
       {fifthPlaceGame && (
         <BracketSection
           title={fifthPlaceTitle}
-          matchups={[createPlacementMatchup(fifthPlaceGame, true) as any]}
+          matchups={[createPlacementMatchup(fifthPlaceGame, thirdPlaceGame ? 1 : 0, true) as any]}
           editMode={editMode}
           onTeamSelect={onTeamSelect}
           onScoreUpdate={onScoreUpdate}
@@ -122,7 +128,7 @@ const PlacementGames: React.FC<PlacementGamesProps> = ({
       {seventhPlaceGame && (
         <BracketSection
           title={seventhPlaceTitle}
-          matchups={[createPlacementMatchup(seventhPlaceGame, true) as any]}
+          matchups={[createPlacementMatchup(seventhPlaceGame, thirdPlaceGame && fifthPlaceGame ? 2 : (thirdPlaceGame || fifthPlaceGame ? 1 : 0), true) as any]}
           editMode={editMode}
           onTeamSelect={onTeamSelect}
           onScoreUpdate={onScoreUpdate}
@@ -137,7 +143,7 @@ const PlacementGames: React.FC<PlacementGamesProps> = ({
       {ninthPlaceGame && (
         <BracketSection
           title={ninthPlaceTitle}
-          matchups={[createPlacementMatchup(ninthPlaceGame, true) as any]}
+          matchups={[createPlacementMatchup(ninthPlaceGame, (thirdPlaceGame ? 1 : 0) + (fifthPlaceGame ? 1 : 0) + (seventhPlaceGame ? 1 : 0), true) as any]}
           editMode={editMode}
           onTeamSelect={onTeamSelect}
           onScoreUpdate={onScoreUpdate}
