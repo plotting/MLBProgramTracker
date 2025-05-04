@@ -41,12 +41,13 @@ const PlayoffSemifinals: React.FC<PlayoffSemifinalsProps> = ({
     };
   });
 
-  // Update the counter in the parent component only once when semiFinals change
+  // Update the counter in the parent component only once when semiFinals or matchupCounter changes
   useEffect(() => {
     if (semiFinals.length > 0) {
-      onMatchupCounterUpdate(matchupCounter + semiFinals.length);
+      const newCounter = matchupCounter + semiFinals.length;
+      onMatchupCounterUpdate(newCounter);
     }
-  }, [semiFinals, matchupCounter, onMatchupCounterUpdate]);
+  }, [semiFinals.length, matchupCounter, onMatchupCounterUpdate]);
 
   return (
     <BracketSection

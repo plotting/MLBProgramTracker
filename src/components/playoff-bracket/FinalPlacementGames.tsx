@@ -44,12 +44,19 @@ const FinalPlacementGames: React.FC<FinalPlacementGamesProps> = ({
   };
 
   // Update parent counter when finished rendering, but only once
+  // Fixed by adding proper dependency array with stable values
   useEffect(() => {
     if (gamesToShow > 0) {
-      onMatchupCounterUpdate(matchupCounter + gamesToShow);
+      const newCounter = matchupCounter + gamesToShow;
+      onMatchupCounterUpdate(newCounter);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array means this runs once on mount
+  }, [
+    !!thirdPlaceGame, 
+    !!seventhPlaceGame, 
+    !!ninthPlaceGame, 
+    matchupCounter, 
+    onMatchupCounterUpdate
+  ]);
 
   let currentMatchupId = matchupCounter;
 

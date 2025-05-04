@@ -69,11 +69,21 @@ const PlacementGames: React.FC<PlacementGamesProps> = ({
   };
 
   // Update the counter in the parent component only once
+  // Fixed by adding proper dependency array with stable values
   useEffect(() => {
     if (gamesToShow > 0) {
-      onMatchupCounterUpdate(matchupCounter + gamesToShow);
+      const newCounter = matchupCounter + gamesToShow;
+      onMatchupCounterUpdate(newCounter);
     }
-  }, [gamesToShow, matchupCounter, onMatchupCounterUpdate]);
+  }, [
+    // We need to include these specific dependencies to ensure the effect only runs when needed
+    !!thirdPlaceGame, 
+    !!fifthPlaceGame, 
+    !!seventhPlaceGame, 
+    !!ninthPlaceGame,
+    matchupCounter, 
+    onMatchupCounterUpdate
+  ]);
   
   if (showOnlyFifthPlace) {
     return (

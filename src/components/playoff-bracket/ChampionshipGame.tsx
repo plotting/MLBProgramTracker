@@ -38,11 +38,12 @@ const ChampionshipGame: React.FC<ChampionshipGameProps> = ({
     isConsolation: false
   };
 
-  // Update the counter in the parent component only once when component mounts
+  // Update the counter in the parent component only once
+  // Fixed by using a proper dependency array to ensure it runs only once
   useEffect(() => {
-    onMatchupCounterUpdate(matchupCounter + 1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array means this runs once on mount
+    const newCounter = matchupCounter + 1;
+    onMatchupCounterUpdate(newCounter);
+  }, [matchupCounter, onMatchupCounterUpdate]);
 
   return (
     <BracketSection

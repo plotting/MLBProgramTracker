@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { MatchupScoresView, Team } from "@/types/database";
 import Matchup from "./Matchup";
 
@@ -30,9 +30,13 @@ const ToiletBowlRound: React.FC<ToiletBowlRoundProps> = ({
   let localMatchupCounter = matchupCounter;
 
   // Update parent counter when finished rendering
-  React.useEffect(() => {
-    onMatchupCounterUpdate(localMatchupCounter);
-  }, [localMatchupCounter, onMatchupCounterUpdate]);
+  // Fixed by adding a proper dependency array
+  useEffect(() => {
+    if (toiletRoundMatchups.length > 0) {
+      const newCounter = matchupCounter + toiletRoundMatchups.length;
+      onMatchupCounterUpdate(newCounter);
+    }
+  }, [toiletRoundMatchups.length, matchupCounter, onMatchupCounterUpdate]);
 
   if (!toiletRoundMatchups || toiletRoundMatchups.length === 0) {
     return null;
@@ -46,7 +50,7 @@ const ToiletBowlRound: React.FC<ToiletBowlRoundProps> = ({
             {title}
           </div>
           <Matchup
-            matchupId={localMatchupCounter++}
+            matchupId={matchupCounter + index}
             homeTeam={
               matchup.home_team_id ? 
                 teamSeeds.get(matchup.home_team_id) ? 
