@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { MatchupScoresView } from "@/types/database";
 import WeekLabels from "./WeekLabels";
@@ -178,7 +179,7 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
                 onScoreUpdate={onScoreUpdate}
                 teams={teams}
                 ninthPlaceTitle={ninthPlaceTitle}
-                fifthPlaceTitle="5th Place Game (Brian vs Marshall)"
+                fifthPlaceTitle="5th Place Game"
                 seventhPlaceTitle="7th Place Game"
               />
             )}
@@ -195,7 +196,7 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
         </div>
         
         {/* Consolation Bracket */}
-        <div className="grid grid-cols-3 gap-8">
+        <div className="grid grid-cols-2 gap-8">
           {/* Week 15 */}
           <div>
             <h4 className="text-center text-sm font-medium mb-4">Week {playoffStartWeek}</h4>
@@ -230,7 +231,7 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
               onScoreUpdate={onScoreUpdate}
               teams={teams}
               ninthPlaceTitle={ninthPlaceTitle}
-              fifthPlaceTitle="5th Place Game (Brian vs Marshall)"
+              fifthPlaceTitle="5th Place Game"
               seventhPlaceTitle="7th Place Game"
             />
             
@@ -270,11 +271,6 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
                 })}
               </div>
             )}
-          </div>
-          
-          {/* Week 17 placeholder column - empty */}
-          <div>
-            <h4 className="text-center text-sm font-medium mb-4">Week {champWeek}</h4>
           </div>
         </div>
       </div>
