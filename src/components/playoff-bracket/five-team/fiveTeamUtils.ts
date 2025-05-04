@@ -128,4 +128,3 @@ export const identifyPlacementGames = (
 
   return { fifthPlaceGame, seventhPlaceGame, ninthPlaceGame };
 };
-

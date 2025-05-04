@@ -4,7 +4,7 @@ import BracketSection from "./BracketSection";
 import { MatchupScoresView, Team } from "@/types/database";
 
 interface ChampionshipGameProps {
-  championship: MatchupScoresView | undefined;
+  championship: MatchupScoresView;
   teamSeeds: Map<number, number>;
   matchupCounter: number;
   onMatchupCounterUpdate: (value: number) => void;
@@ -24,8 +24,9 @@ const ChampionshipGame: React.FC<ChampionshipGameProps> = ({
   onScoreUpdate,
   teams = [],
 }) => {
-  const championshipMatchups = championship ? [{
-    matchupId: matchupCounter++,
+  // Create championship matchup object for BracketSection
+  const championshipMatchup = {
+    matchupId: matchupCounter,
     homeTeam: championship.home_team_name,
     homeTeamId: championship.home_team_id,
     homeSeed: championship.home_team_id ? teamSeeds.get(championship.home_team_id) : undefined,
@@ -35,21 +36,17 @@ const ChampionshipGame: React.FC<ChampionshipGameProps> = ({
     awaySeed: championship.away_team_id ? teamSeeds.get(championship.away_team_id) : undefined,
     awayScore: championship.away_score,
     isConsolation: false
-  }] : [];
+  };
 
   // Update the counter in the parent component
   React.useEffect(() => {
-    onMatchupCounterUpdate(matchupCounter);
+    onMatchupCounterUpdate(matchupCounter + 1);
   }, [matchupCounter, onMatchupCounterUpdate]);
-
-  if (!championship) {
-    return null;
-  }
 
   return (
     <BracketSection
       title="Championship"
-      matchups={championshipMatchups}
+      matchups={[championshipMatchup]}
       editMode={editMode}
       onTeamSelect={onTeamSelect}
       onScoreUpdate={onScoreUpdate}
