@@ -50,11 +50,9 @@ const ConsolationBracket: React.FC<ConsolationBracketProps> = ({
   });
 
   // Update the counter in the parent component only when weekFifteenConsolation changes
-  // Fixed by using proper dependency array
   useEffect(() => {
     if (weekFifteenConsolation.length > 0) {
-      const newCounter = matchupCounter + weekFifteenConsolation.length;
-      onMatchupCounterUpdate(newCounter);
+      onMatchupCounterUpdate(matchupCounter + weekFifteenConsolation.length);
     }
   }, [weekFifteenConsolation.length, matchupCounter, onMatchupCounterUpdate]);
 

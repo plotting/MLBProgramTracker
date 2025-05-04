@@ -41,12 +41,10 @@ const PlayoffWildcard: React.FC<PlayoffWildcardProps> = ({
     };
   });
 
-  // Update the counter in the parent component only once when wildcardGames or matchupCounter changes
-  // The key fix: Add proper dependency array and avoid conditional updates
+  // Update the counter in the parent component only once when wildcardGames changes
   useEffect(() => {
     if (wildcardGames.length > 0) {
-      const newCounter = matchupCounter + wildcardGames.length;
-      onMatchupCounterUpdate(newCounter);
+      onMatchupCounterUpdate(matchupCounter + wildcardGames.length);
     }
   }, [wildcardGames.length, matchupCounter, onMatchupCounterUpdate]);
 

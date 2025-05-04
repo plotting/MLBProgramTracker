@@ -39,10 +39,8 @@ const ChampionshipGame: React.FC<ChampionshipGameProps> = ({
   };
 
   // Update the counter in the parent component only once
-  // Fixed by using a proper dependency array to ensure it runs only once
   useEffect(() => {
-    const newCounter = matchupCounter + 1;
-    onMatchupCounterUpdate(newCounter);
+    onMatchupCounterUpdate(matchupCounter + 1);
   }, [matchupCounter, onMatchupCounterUpdate]);
 
   return (

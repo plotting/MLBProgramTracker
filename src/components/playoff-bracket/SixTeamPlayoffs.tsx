@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { MatchupScoresView } from "@/types/database";
 import WeekLabels from "./WeekLabels";
 import type { Team } from "@/types/database";
@@ -32,6 +32,7 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
   seasonNumber = 11
 }) => {
   const [matchupCounter, setMatchupCounter] = useState(0);
+  const [otherConsolationMatchupIds, setOtherConsolationMatchupIds] = useState<number[]>([]);
   
   // Get playoff week numbers based on season
   const { playoffStartWeek, champWeek, displayWeeks, isLoserAdvancesFormat } = getPlayoffWeeks(seasonNumber);
@@ -117,6 +118,19 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
   const ninthPlaceTitle = isLoserAdvancesFormat ? "9th Place Game (Toilet Bowl)" : "9th Place Game";
   const consolationTitle = isLoserAdvancesFormat ? "Consolation Bracket (Loser Advances)" : "Consolation Bracket";
   const toiletBowlRoundTitle = isLoserAdvancesFormat ? "Toilet Bowl Round 1: Loser advances" : "Consolation Round 1";
+
+  // Generate IDs for other consolation matchups - THIS REPLACES THE INLINE SETTER CALLS
+  useEffect(() => {
+    if (otherWeekSixteenConsolation.length > 0) {
+      // Generate an array of IDs for other consolation matchups
+      const nextAvailableId = matchupCounter;
+      const newIds = Array.from({ length: otherWeekSixteenConsolation.length }, 
+        (_, index) => nextAvailableId + index);
+      
+      setOtherConsolationMatchupIds(newIds);
+      setMatchupCounter(nextAvailableId + otherWeekSixteenConsolation.length);
+    }
+  }, [otherWeekSixteenConsolation.length, matchupCounter]);
 
   return (
     <div className="overflow-auto">
@@ -239,36 +253,32 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
             {otherWeekSixteenConsolation.length > 0 && (
               <div className="mt-12">
                 <h4 className="text-center text-sm font-medium mb-4">Other Consolation Games</h4>
-                {otherWeekSixteenConsolation.map((matchup, index) => {
-                  const id = matchupCounter;
-                  setMatchupCounter(id + 1);
-                  return (
-                    <div key={`other-consolation-${index}`} className="mb-12">
-                      <div className="mx-auto w-[240px]">
-                        <BracketSection
-                          title="Consolation Matchup"
-                          matchups={[{
-                            matchupId: id,
-                            homeTeam: matchup.home_team_name,
-                            homeTeamId: matchup.home_team_id,
-                            homeSeed: matchup.home_team_id ? teamSeeds.get(matchup.home_team_id) : undefined,
-                            homeScore: matchup.home_score,
-                            awayTeam: matchup.away_team_name,
-                            awayTeamId: matchup.away_team_id,
-                            awaySeed: matchup.away_team_id ? teamSeeds.get(matchup.away_team_id) : undefined,
-                            awayScore: matchup.away_score,
-                            isConsolation: true
-                          }]}
-                          editMode={editMode}
-                          onTeamSelect={onTeamSelect}
-                          onScoreUpdate={onScoreUpdate}
-                          teams={teams}
-                          titleClassName="font-medium"
-                        />
-                      </div>
+                {otherWeekSixteenConsolation.map((matchup, index) => (
+                  <div key={`other-consolation-${index}`} className="mb-12">
+                    <div className="mx-auto w-[240px]">
+                      <BracketSection
+                        title="Consolation Matchup"
+                        matchups={[{
+                          matchupId: otherConsolationMatchupIds[index] || matchupCounter + index,
+                          homeTeam: matchup.home_team_name,
+                          homeTeamId: matchup.home_team_id,
+                          homeSeed: matchup.home_team_id ? teamSeeds.get(matchup.home_team_id) : undefined,
+                          homeScore: matchup.home_score,
+                          awayTeam: matchup.away_team_name,
+                          awayTeamId: matchup.away_team_id,
+                          awaySeed: matchup.away_team_id ? teamSeeds.get(matchup.away_team_id) : undefined,
+                          awayScore: matchup.away_score,
+                          isConsolation: true
+                        }]}
+                        editMode={editMode}
+                        onTeamSelect={onTeamSelect}
+                        onScoreUpdate={onScoreUpdate}
+                        teams={teams}
+                        titleClassName="font-medium"
+                      />
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
               </div>
             )}
           </div>

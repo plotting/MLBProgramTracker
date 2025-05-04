@@ -26,11 +26,7 @@ const ToiletBowlRound: React.FC<ToiletBowlRoundProps> = ({
   teams = [],
   title
 }) => {
-  // Create a local variable to track matchup IDs
-  let localMatchupCounter = matchupCounter;
-
   // Update parent counter when finished rendering
-  // Fixed by adding a proper dependency array
   useEffect(() => {
     if (toiletRoundMatchups.length > 0) {
       const newCounter = matchupCounter + toiletRoundMatchups.length;
@@ -44,39 +40,47 @@ const ToiletBowlRound: React.FC<ToiletBowlRoundProps> = ({
 
   return (
     <div className="space-y-12">
-      {toiletRoundMatchups.map((matchup, index) => (
-        <div key={`toilet-round-${index}`} className="mx-auto w-[240px]">
-          <div className="text-sm text-center text-muted-foreground mb-2">
-            {title}
+      {toiletRoundMatchups.map((matchup, index) => {
+        // Determine title based on matchup
+        const matchTitle = matchup.home_score !== null && matchup.away_score !== null && 
+            (matchup.home_score > matchup.away_score ? matchup.home_team_id : matchup.away_team_id) ?
+            "7th Place Game" :
+            "9th Place Game (Toilet Bowl)";
+
+        return (
+          <div key={`toilet-round-${index}`} className="mx-auto w-[240px]">
+            <div className="text-sm text-center text-muted-foreground mb-2">
+              {matchTitle}
+            </div>
+            <Matchup
+              matchupId={matchupCounter + index}
+              homeTeam={
+                matchup.home_team_id ? 
+                  teamSeeds.get(matchup.home_team_id) ? 
+                    `(${teamSeeds.get(matchup.home_team_id)}) ${matchup.home_team_name}` : 
+                    matchup.home_team_name : 
+                  ""
+              }
+              homeTeamId={matchup.home_team_id}
+              homeScore={matchup.home_score}
+              awayTeam={
+                matchup.away_team_id ? 
+                  teamSeeds.get(matchup.away_team_id) ? 
+                    `(${teamSeeds.get(matchup.away_team_id)}) ${matchup.away_team_name}` : 
+                    matchup.away_team_name : 
+                  ""
+              }
+              awayTeamId={matchup.away_team_id}
+              awayScore={matchup.away_score}
+              isConsolation
+              editMode={editMode}
+              onTeamSelect={onTeamSelect}
+              onScoreUpdate={onScoreUpdate}
+              teams={teams}
+            />
           </div>
-          <Matchup
-            matchupId={matchupCounter + index}
-            homeTeam={
-              matchup.home_team_id ? 
-                teamSeeds.get(matchup.home_team_id) ? 
-                  `(${teamSeeds.get(matchup.home_team_id)}) ${matchup.home_team_name}` : 
-                  matchup.home_team_name : 
-                ""
-            }
-            homeTeamId={matchup.home_team_id}
-            homeScore={matchup.home_score}
-            awayTeam={
-              matchup.away_team_id ? 
-                teamSeeds.get(matchup.away_team_id) ? 
-                  `(${teamSeeds.get(matchup.away_team_id)}) ${matchup.away_team_name}` : 
-                  matchup.away_team_name : 
-                ""
-            }
-            awayTeamId={matchup.away_team_id}
-            awayScore={matchup.away_score}
-            isConsolation
-            editMode={editMode}
-            onTeamSelect={onTeamSelect}
-            onScoreUpdate={onScoreUpdate}
-            teams={teams}
-          />
-        </div>
-      ))}
+        )
+      })}
     </div>
   );
 };
