@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { MatchupScoresView } from "@/types/database";
 import WeekLabels from "./WeekLabels";
@@ -8,6 +9,7 @@ import PlayoffSemifinals from "./PlayoffSemifinals";
 import PlacementGames from "./PlacementGames";
 import ConsolationBracket from "./ConsolationBracket";
 import ChampionshipGame from "./ChampionshipGame";
+import BracketSection from "./BracketSection";
 import { getPlayoffMatchups, identifyPlacementGames, getConsolationMatchups, getWeekFifteenConsolation } from "./five-team/fiveTeamUtils";
 
 interface SixTeamPlayoffsProps {
