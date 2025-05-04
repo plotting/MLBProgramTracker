@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { MatchupScoresView } from "@/types/database";
 import WeekLabels from "./WeekLabels";
@@ -178,6 +177,9 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
                 onTeamSelect={onTeamSelect}
                 onScoreUpdate={onScoreUpdate}
                 teams={teams}
+                ninthPlaceTitle={ninthPlaceTitle}
+                fifthPlaceTitle="5th Place Game (Brian vs Marshall)"
+                seventhPlaceTitle="7th Place Game"
               />
             )}
           </div>
@@ -228,6 +230,8 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
               onScoreUpdate={onScoreUpdate}
               teams={teams}
               ninthPlaceTitle={ninthPlaceTitle}
+              fifthPlaceTitle="5th Place Game (Brian vs Marshall)"
+              seventhPlaceTitle="7th Place Game"
             />
             
             {/* Any other consolation games that weren't specifically identified */}
