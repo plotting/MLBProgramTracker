@@ -101,9 +101,15 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
   // Find specific placement games for week 16 consolation matchups
   const fifthPlaceGame = weekSixteenConsolation.find(matchup => {
     // Look for Brian vs Marshall specifically for seasons 11-12
-    if (seasonNumber === 11 || seasonNumber === 12) {
+    if (seasonNumber === 11) {
       return (matchup.home_team_name?.includes("Brian") && matchup.away_team_name?.includes("Marshall")) ||
              (matchup.away_team_name?.includes("Brian") && matchup.home_team_name?.includes("Marshall"));
+    } else if (seasonNumber === 12) {
+      // For season 12, identify by team names if possible
+      return (matchup.home_team_name?.includes("Brian") && matchup.away_team_name?.includes("Marshall")) ||
+             (matchup.away_team_name?.includes("Brian") && matchup.home_team_name?.includes("Marshall")) ||
+             // Or fallback to the first consolation game
+             weekSixteenConsolation.indexOf(matchup) === 0;
     }
     
     // For other seasons, fallback to first consolation game
@@ -116,13 +122,16 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
       // Season 11 specific match
       return (matchup.home_team_name?.includes("Nate") || matchup.away_team_name?.includes("Nate"));
     } else if (seasonNumber === 12) {
-      // Season 12 specific match between seeds 6 & 7 (Aron & CJ)
-      return (matchup.home_team_name?.includes("Aron") && matchup.away_team_name?.includes("CJ")) ||
-             (matchup.away_team_name?.includes("Aron") && matchup.home_team_name?.includes("CJ"));
+      // Season 12 specific match between Aron (seed 6) & CJ (seed 7)
+      const isAronVsCJ = (matchup.home_team_name?.includes("Aron") || matchup.away_team_name?.includes("Aron")) &&
+                         (matchup.home_team_name?.includes("CJ") || matchup.away_team_name?.includes("CJ"));
+                         
+      // Make sure this isn't the same as fifth place game
+      return isAronVsCJ && matchup !== fifthPlaceGame;
     }
     
     // For other seasons, find a likely 7th place game
-    return weekSixteenConsolation.length > 1;
+    return weekSixteenConsolation.length > 1 && matchup !== fifthPlaceGame;
   });
   
   // For 9th place game (toilet bowl), use the remaining game for seasons 11-12
@@ -131,8 +140,11 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
       // Season 11 specific match
       return (matchup.home_team_name?.includes("Melissa") || matchup.away_team_name?.includes("Melissa"));
     } else if (seasonNumber === 12) {
-      // Season 12 specific match with seed 8 (Thom)
-      return (matchup.home_team_name?.includes("Thom") || matchup.away_team_name?.includes("Thom"));
+      // Season 12 specific match with Thom (seed 8)
+      const hasThom = matchup.home_team_name?.includes("Thom") || matchup.away_team_name?.includes("Thom");
+      
+      // Make sure this isn't the same as fifth place or seventh place game
+      return hasThom && matchup !== fifthPlaceGame && matchup !== seventhPlaceGame;
     }
     
     // For other seasons, find a likely toilet bowl game
@@ -152,7 +164,7 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
   const consolationTitle = isLoserAdvancesFormat ? "Consolation Bracket (Loser Advances)" : "Consolation Bracket";
   const toiletBowlRoundTitle = isLoserAdvancesFormat ? "Toilet Bowl Round 1: Loser advances" : "Consolation Round 1";
 
-  // Generate IDs for all matchups using useEffect to avoid state updates during render
+  // Generate IDs for all matchups using useMemo to avoid state updates during render
   const otherConsolationMatchupIds = React.useMemo(() => {
     if (otherWeekSixteenConsolation.length === 0) return [];
     

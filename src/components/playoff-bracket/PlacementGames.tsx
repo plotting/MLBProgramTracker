@@ -46,11 +46,14 @@ const PlacementGames: React.FC<PlacementGamesProps> = ({
   dividerText = ""
 }) => {
   // Count how many games we'll show
-  let gamesToShow = 0;
-  if (thirdPlaceGame) gamesToShow++;
-  if (fifthPlaceGame) gamesToShow++;
-  if (seventhPlaceGame) gamesToShow++;
-  if (ninthPlaceGame) gamesToShow++;
+  const gamesToShow = React.useMemo(() => {
+    let count = 0;
+    if (thirdPlaceGame) count++;
+    if (fifthPlaceGame) count++;
+    if (seventhPlaceGame) count++;
+    if (ninthPlaceGame) count++;
+    return count;
+  }, [!!thirdPlaceGame, !!fifthPlaceGame, !!seventhPlaceGame, !!ninthPlaceGame]);
   
   // Create the placement game matchups
   const createPlacementMatchup = (matchup: MatchupScoresView | undefined, index: number, isConsolation: boolean = false) => {
@@ -95,14 +98,7 @@ const PlacementGames: React.FC<PlacementGamesProps> = ({
     if (gamesToShow > 0) {
       onMatchupCounterUpdate(matchupCounter + gamesToShow);
     }
-  }, [
-    !!thirdPlaceGame, 
-    !!fifthPlaceGame, 
-    !!seventhPlaceGame, 
-    !!ninthPlaceGame, 
-    matchupCounter, 
-    onMatchupCounterUpdate
-  ]);
+  }, [gamesToShow, matchupCounter, onMatchupCounterUpdate]);
   
   if (showOnlyFifthPlace) {
     return (
