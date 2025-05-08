@@ -99,52 +99,50 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
   );
   
   // Find specific placement games for week 16 consolation matchups
+  // The placement games are identified based on the image provided by the user
   const fifthPlaceGame = weekSixteenConsolation.find(matchup => {
-    // Look for Brian vs Marshall specifically for seasons 11-12
-    if (seasonNumber === 11) {
+    // Look for Marshall vs Aron for season 12
+    if (seasonNumber === 12) {
+      return (matchup.home_team_name?.includes("Marshall") || matchup.away_team_name?.includes("Marshall")) && 
+             (matchup.home_team_name?.includes("Aron") || matchup.away_team_name?.includes("Aron"));
+    } else if (seasonNumber === 11) {
+      // For season 11, look for Brian vs Marshall
       return (matchup.home_team_name?.includes("Brian") && matchup.away_team_name?.includes("Marshall")) ||
              (matchup.away_team_name?.includes("Brian") && matchup.home_team_name?.includes("Marshall"));
-    } else if (seasonNumber === 12) {
-      // For season 12, identify by team names if possible
-      return (matchup.home_team_name?.includes("Brian") && matchup.away_team_name?.includes("Marshall")) ||
-             (matchup.away_team_name?.includes("Brian") && matchup.home_team_name?.includes("Marshall")) ||
-             // Or fallback to the first consolation game
-             weekSixteenConsolation.indexOf(matchup) === 0;
     }
     
     // For other seasons, fallback to first consolation game
     return weekSixteenConsolation.length > 0;
   });
   
-  // For 7th place game, use a specific matchup for seasons 11-12
+  // For 7th place game, use Nate vs Melissa for season 12
   const seventhPlaceGame = weekSixteenConsolation.find(matchup => {
-    if (seasonNumber === 11) {
+    if (seasonNumber === 12) {
+      return (matchup.home_team_name?.includes("Nate") || matchup.away_team_name?.includes("Nate")) &&
+             (matchup.home_team_name?.includes("Melissa") || matchup.away_team_name?.includes("Melissa")) &&
+             matchup !== fifthPlaceGame;
+    } else if (seasonNumber === 11) {
       // Season 11 specific match
-      return (matchup.home_team_name?.includes("Nate") || matchup.away_team_name?.includes("Nate"));
-    } else if (seasonNumber === 12) {
-      // Season 12 specific match between Aron (seed 6) & CJ (seed 7)
-      const isAronVsCJ = (matchup.home_team_name?.includes("Aron") || matchup.away_team_name?.includes("Aron")) &&
-                         (matchup.home_team_name?.includes("CJ") || matchup.away_team_name?.includes("CJ"));
-                         
-      // Make sure this isn't the same as fifth place game
-      return isAronVsCJ && matchup !== fifthPlaceGame;
+      return (matchup.home_team_name?.includes("Nate") || matchup.away_team_name?.includes("Nate")) &&
+             matchup !== fifthPlaceGame;
     }
     
     // For other seasons, find a likely 7th place game
     return weekSixteenConsolation.length > 1 && matchup !== fifthPlaceGame;
   });
   
-  // For 9th place game (toilet bowl), use the remaining game for seasons 11-12
+  // For 9th place game (toilet bowl), use CJ vs Thom for season 12
   const ninthPlaceGame = weekSixteenConsolation.find(matchup => {
-    if (seasonNumber === 11) {
+    if (seasonNumber === 12) {
+      return (matchup.home_team_name?.includes("CJ") || matchup.away_team_name?.includes("CJ")) &&
+             (matchup.home_team_name?.includes("Thom") || matchup.away_team_name?.includes("Thom")) &&
+             matchup !== fifthPlaceGame &&
+             matchup !== seventhPlaceGame;
+    } else if (seasonNumber === 11) {
       // Season 11 specific match
-      return (matchup.home_team_name?.includes("Melissa") || matchup.away_team_name?.includes("Melissa"));
-    } else if (seasonNumber === 12) {
-      // Season 12 specific match with Thom (seed 8)
-      const hasThom = matchup.home_team_name?.includes("Thom") || matchup.away_team_name?.includes("Thom");
-      
-      // Make sure this isn't the same as fifth place or seventh place game
-      return hasThom && matchup !== fifthPlaceGame && matchup !== seventhPlaceGame;
+      return (matchup.home_team_name?.includes("Melissa") || matchup.away_team_name?.includes("Melissa")) &&
+             matchup !== fifthPlaceGame &&
+             matchup !== seventhPlaceGame;
     }
     
     // For other seasons, find a likely toilet bowl game
@@ -269,7 +267,7 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
           </div>
         </div>
         
-        {/* Consolation Bracket Divider - Only if we don't have it already */}
+        {/* Consolation Bracket - Only show divider if not already showing it with 5th place game */}
         {!(seasonNumber === 11 || seasonNumber === 12) && (
           <div className="w-full my-8">
             <div className="flex items-center justify-center">
@@ -303,8 +301,8 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
           <div>
             <h4 className="text-center text-sm font-medium mb-4">Week {playoffStartWeek + 1}</h4>
             
-            {/* Placement Games - Only show 7th and 9th for seasons 11-12 since 5th is already shown */}
-            {(seasonNumber === 11 || seasonNumber === 12) ? (
+            {/* 7th Place and 9th Place Games for seasons 11-12 since 5th is already shown */}
+            {(seasonNumber === 11 || seasonNumber === 12) && (
               <>
                 {/* 7th Place Game */}
                 {seventhPlaceGame && (
@@ -338,23 +336,6 @@ const SixTeamPlayoffs: React.FC<SixTeamPlayoffsProps> = ({
                   </div>
                 )}
               </>
-            ) : (
-              /* Show all placement games for other seasons */
-              <PlacementGames
-                fifthPlaceGame={fifthPlaceGame}
-                seventhPlaceGame={seventhPlaceGame}
-                ninthPlaceGame={ninthPlaceGame}
-                teamSeeds={teamSeeds}
-                matchupCounter={matchupCounter}
-                onMatchupCounterUpdate={setMatchupCounter}
-                editMode={editMode}
-                onTeamSelect={onTeamSelect}
-                onScoreUpdate={onScoreUpdate}
-                teams={teams}
-                ninthPlaceTitle={ninthPlaceTitle}
-                fifthPlaceTitle="5th Place Game"
-                seventhPlaceTitle="7th Place Game"
-              />
             )}
           </div>
         </div>
