@@ -69,7 +69,28 @@ const PlacementGames: React.FC<PlacementGamesProps> = ({
     };
   };
 
-  // Update the counter in the parent component using a stable dependency array
+  // Calculate indices for matchups beforehand to avoid recalculation during render
+  const indices = React.useMemo(() => {
+    const result = { third: 0, fifth: 0, seventh: 0, ninth: 0 };
+    let counter = 0;
+    
+    if (thirdPlaceGame) {
+      result.third = counter++;
+    }
+    if (fifthPlaceGame) {
+      result.fifth = counter++;
+    }
+    if (seventhPlaceGame) {
+      result.seventh = counter++;
+    }
+    if (ninthPlaceGame) {
+      result.ninth = counter++;
+    }
+    
+    return result;
+  }, [!!thirdPlaceGame, !!fifthPlaceGame, !!seventhPlaceGame, !!ninthPlaceGame]);
+
+  // Update the counter in the parent component without causing re-renders
   useEffect(() => {
     if (gamesToShow > 0) {
       onMatchupCounterUpdate(matchupCounter + gamesToShow);
@@ -78,7 +99,7 @@ const PlacementGames: React.FC<PlacementGamesProps> = ({
     !!thirdPlaceGame, 
     !!fifthPlaceGame, 
     !!seventhPlaceGame, 
-    !!ninthPlaceGame,
+    !!ninthPlaceGame, 
     matchupCounter, 
     onMatchupCounterUpdate
   ]);
@@ -88,7 +109,7 @@ const PlacementGames: React.FC<PlacementGamesProps> = ({
       fifthPlaceGame && (
         <BracketSection
           title={fifthPlaceTitle}
-          matchups={[createPlacementMatchup(fifthPlaceGame, 0, true) as any]}
+          matchups={[createPlacementMatchup(fifthPlaceGame, indices.fifth, true) as any]}
           editMode={editMode}
           onTeamSelect={onTeamSelect}
           onScoreUpdate={onScoreUpdate}
@@ -106,59 +127,59 @@ const PlacementGames: React.FC<PlacementGamesProps> = ({
       {thirdPlaceGame && (
         <BracketSection
           title={thirdPlaceTitle}
-          matchups={[createPlacementMatchup(thirdPlaceGame, 0) as any]}
+          matchups={[createPlacementMatchup(thirdPlaceGame, indices.third) as any]}
           editMode={editMode}
           onTeamSelect={onTeamSelect}
           onScoreUpdate={onScoreUpdate}
           teams={teams}
           className="mb-12"
           titleClassName="font-medium"
-          showDivider={showDivider}
-          dividerText={dividerText}
+          showDivider={showDivider && indices.third === 0}
+          dividerText={showDivider && indices.third === 0 ? dividerText : ""}
         />
       )}
       
       {fifthPlaceGame && (
         <BracketSection
           title={fifthPlaceTitle}
-          matchups={[createPlacementMatchup(fifthPlaceGame, thirdPlaceGame ? 1 : 0, true) as any]}
+          matchups={[createPlacementMatchup(fifthPlaceGame, indices.fifth, true) as any]}
           editMode={editMode}
           onTeamSelect={onTeamSelect}
           onScoreUpdate={onScoreUpdate}
           teams={teams}
           className="mb-12"
           titleClassName="font-medium"
-          showDivider={showDivider}
-          dividerText={dividerText}
+          showDivider={showDivider && !thirdPlaceGame && indices.fifth === 0}
+          dividerText={showDivider && !thirdPlaceGame && indices.fifth === 0 ? dividerText : ""}
         />
       )}
       
       {seventhPlaceGame && (
         <BracketSection
           title={seventhPlaceTitle}
-          matchups={[createPlacementMatchup(seventhPlaceGame, thirdPlaceGame && fifthPlaceGame ? 2 : (thirdPlaceGame || fifthPlaceGame ? 1 : 0), true) as any]}
+          matchups={[createPlacementMatchup(seventhPlaceGame, indices.seventh, true) as any]}
           editMode={editMode}
           onTeamSelect={onTeamSelect}
           onScoreUpdate={onScoreUpdate}
           teams={teams}
           className="mb-12"
           titleClassName="font-medium"
-          showDivider={showDivider}
-          dividerText={dividerText}
+          showDivider={showDivider && !thirdPlaceGame && !fifthPlaceGame && indices.seventh === 0}
+          dividerText={showDivider && !thirdPlaceGame && !fifthPlaceGame && indices.seventh === 0 ? dividerText : ""}
         />
       )}
       
       {ninthPlaceGame && (
         <BracketSection
           title={ninthPlaceTitle}
-          matchups={[createPlacementMatchup(ninthPlaceGame, (thirdPlaceGame ? 1 : 0) + (fifthPlaceGame ? 1 : 0) + (seventhPlaceGame ? 1 : 0), true) as any]}
+          matchups={[createPlacementMatchup(ninthPlaceGame, indices.ninth, true) as any]}
           editMode={editMode}
           onTeamSelect={onTeamSelect}
           onScoreUpdate={onScoreUpdate}
           teams={teams}
           titleClassName="font-medium"
-          showDivider={showDivider}
-          dividerText={dividerText}
+          showDivider={showDivider && !thirdPlaceGame && !fifthPlaceGame && !seventhPlaceGame && indices.ninth === 0}
+          dividerText={showDivider && !thirdPlaceGame && !fifthPlaceGame && !seventhPlaceGame && indices.ninth === 0 ? dividerText : ""}
         />
       )}
     </>
