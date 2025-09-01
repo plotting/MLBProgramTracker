@@ -99,7 +99,13 @@ const StrengthOfSchedule = ({ seasonId }: StrengthOfScheduleProps) => {
       priorRecordsMap.set(record.team_id!, { wins, losses, ties, winPct });
     });
 
-    const preseasonSOS: Record<number, { avgWinPct: number; totalGames: number }> = {};
+    const preseasonSOS: Record<number, { 
+      avgWinPct: number; 
+      totalGames: number;
+      combinedWins: number;
+      combinedLosses: number;
+      combinedTies: number;
+    }> = {};
 
     teams.forEach(team => {
       const teamMatches = currentMatchups.filter(m => 
@@ -108,6 +114,9 @@ const StrengthOfSchedule = ({ seasonId }: StrengthOfScheduleProps) => {
 
       let totalWinPct = 0;
       let gameCount = 0;
+      let combinedWins = 0;
+      let combinedLosses = 0;
+      let combinedTies = 0;
 
       teamMatches.forEach(match => {
         const opponentId = match.home_team_id === team.id ? match.away_team_id : match.home_team_id;
@@ -116,12 +125,18 @@ const StrengthOfSchedule = ({ seasonId }: StrengthOfScheduleProps) => {
         if (opponentRecord) {
           totalWinPct += opponentRecord.winPct;
           gameCount++;
+          combinedWins += opponentRecord.wins;
+          combinedLosses += opponentRecord.losses;
+          combinedTies += opponentRecord.ties;
         }
       });
 
       preseasonSOS[team.id] = {
         avgWinPct: gameCount > 0 ? (totalWinPct / gameCount) * 100 : 0,
-        totalGames: gameCount
+        totalGames: gameCount,
+        combinedWins,
+        combinedLosses,
+        combinedTies
       };
     });
 
@@ -184,7 +199,13 @@ const StrengthOfSchedule = ({ seasonId }: StrengthOfScheduleProps) => {
     });
 
     // Now calculate SOS based on current season schedule using everyone records
-    const everyoneSOS: Record<number, { avgWinPct: number; totalGames: number }> = {};
+    const everyoneSOS: Record<number, { 
+      avgWinPct: number; 
+      totalGames: number;
+      combinedWins: number;
+      combinedLosses: number;
+      combinedTies: number;
+    }> = {};
 
     teams.forEach(team => {
       const teamMatches = currentMatchups.filter(m => 
@@ -193,6 +214,9 @@ const StrengthOfSchedule = ({ seasonId }: StrengthOfScheduleProps) => {
 
       let totalWinPct = 0;
       let gameCount = 0;
+      let combinedWins = 0;
+      let combinedLosses = 0;
+      let combinedTies = 0;
 
       teamMatches.forEach(match => {
         const opponentId = match.home_team_id === team.id ? match.away_team_id : match.home_team_id;
@@ -201,12 +225,18 @@ const StrengthOfSchedule = ({ seasonId }: StrengthOfScheduleProps) => {
         if (opponentRecord) {
           totalWinPct += opponentRecord.winPct;
           gameCount++;
+          combinedWins += opponentRecord.wins;
+          combinedLosses += opponentRecord.losses;
+          combinedTies += opponentRecord.ties;
         }
       });
 
       everyoneSOS[team.id] = {
         avgWinPct: gameCount > 0 ? (totalWinPct / gameCount) * 100 : 0,
-        totalGames: gameCount
+        totalGames: gameCount,
+        combinedWins,
+        combinedLosses,
+        combinedTies
       };
     });
 
@@ -231,6 +261,7 @@ const StrengthOfSchedule = ({ seasonId }: StrengthOfScheduleProps) => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Team</TableHead>
+                  <TableHead>Combined Opponents Record</TableHead>
                   <TableHead>Opponents' Avg Win %</TableHead>
                   <TableHead>Games</TableHead>
                 </TableRow>
@@ -253,6 +284,10 @@ const StrengthOfSchedule = ({ seasonId }: StrengthOfScheduleProps) => {
                         >
                           {team.name}
                         </Link>
+                      </TableCell>
+                      <TableCell>
+                        {sos.combinedWins}-{sos.combinedLosses}
+                        {sos.combinedTies > 0 ? `-${sos.combinedTies}` : ""}
                       </TableCell>
                       <TableCell>
                         {sos.avgWinPct.toFixed(1)}%
@@ -282,6 +317,7 @@ const StrengthOfSchedule = ({ seasonId }: StrengthOfScheduleProps) => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Team</TableHead>
+                  <TableHead>Combined Opponents Record</TableHead>
                   <TableHead>Opponents' Avg Win %</TableHead>
                   <TableHead>Games</TableHead>
                 </TableRow>
@@ -304,6 +340,10 @@ const StrengthOfSchedule = ({ seasonId }: StrengthOfScheduleProps) => {
                         >
                           {team.name}
                         </Link>
+                      </TableCell>
+                      <TableCell>
+                        {sos.combinedWins}-{sos.combinedLosses}
+                        {sos.combinedTies > 0 ? `-${sos.combinedTies}` : ""}
                       </TableCell>
                       <TableCell>
                         {sos.avgWinPct.toFixed(1)}%
