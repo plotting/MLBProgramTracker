@@ -8,6 +8,7 @@ import StandingsTable from "@/components/standings/StandingsTable";
 import SeasonHeader from "@/components/seasons/SeasonHeader";
 import ScheduleSwapTable from "@/components/schedule/ScheduleSwapTable";
 import TeamComparison from "@/components/seasons/TeamComparison";
+import StrengthOfSchedule from "@/components/seasons/StrengthOfSchedule";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Seasons = () => {
@@ -65,12 +66,21 @@ const Seasons = () => {
         </TabsContent>
 
         <TabsContent value="schedule">
-          <Card className="mb-8">
-            <div className="p-6">
-              <h2 className="text-2xl font-bold mb-4">Schedule Analysis</h2>
-              <ScheduleSwapTable seasonId={seasonNumber} />
-            </div>
-          </Card>
+          <div className="space-y-8">
+            <Card>
+              <div className="p-6">
+                <h2 className="text-2xl font-bold mb-4">Schedule Analysis</h2>
+                <ScheduleSwapTable seasonId={seasonNumber} />
+              </div>
+            </Card>
+            
+            <Card>
+              <div className="p-6">
+                <h2 className="text-2xl font-bold mb-4">Strength of Schedule</h2>
+                <StrengthOfSchedule seasonId={seasonNumber} />
+              </div>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
