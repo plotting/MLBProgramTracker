@@ -2,12 +2,21 @@
 import { Card } from "@/components/ui/card";
 import type { TeamRecordsView } from "@/types/database";
 
+interface ConsolationRecords {
+  wins: number;
+  losses: number;
+  ties: number;
+  pointsFor: number;
+  pointsAgainst: number;
+}
+
 interface TeamStatsCardsProps {
   teamRecords: TeamRecordsView | null;
+  consolationRecords: ConsolationRecords | null;
   isLoading: boolean;
 }
 
-const TeamStatsCards = ({ teamRecords, isLoading }: TeamStatsCardsProps) => {
+const TeamStatsCards = ({ teamRecords, consolationRecords, isLoading }: TeamStatsCardsProps) => {
   if (isLoading) {
     return (
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
@@ -33,19 +42,27 @@ const TeamStatsCards = ({ teamRecords, isLoading }: TeamStatsCardsProps) => {
   const playoffPointsFor = teamRecords?.playoff_points_for || 0;
   const playoffPointsAgainst = teamRecords?.playoff_points_against || 0;
   
-  const totalWins = regularSeasonWins + playoffWins;
-  const totalLosses = regularSeasonLosses + playoffLosses;
-  const totalTies = regularSeasonTies + playoffTies;
-  const totalPointsFor = regularSeasonPointsFor + playoffPointsFor;
-  const totalPointsAgainst = regularSeasonPointsAgainst + playoffPointsAgainst;
+  const consolationWins = consolationRecords?.wins || 0;
+  const consolationLosses = consolationRecords?.losses || 0;
+  const consolationTies = consolationRecords?.ties || 0;
+  const consolationPointsFor = consolationRecords?.pointsFor || 0;
+  const consolationPointsAgainst = consolationRecords?.pointsAgainst || 0;
+  
+  const totalWins = regularSeasonWins + playoffWins + consolationWins;
+  const totalLosses = regularSeasonLosses + playoffLosses + consolationLosses;
+  const totalTies = regularSeasonTies + playoffTies + consolationTies;
+  const totalPointsFor = regularSeasonPointsFor + playoffPointsFor + consolationPointsFor;
+  const totalPointsAgainst = regularSeasonPointsAgainst + playoffPointsAgainst + consolationPointsAgainst;
   
   const totalGames = totalWins + totalLosses + totalTies;
   const regularSeasonGames = regularSeasonWins + regularSeasonLosses + regularSeasonTies;
   const playoffGames = playoffWins + playoffLosses + playoffTies;
+  const consolationGames = consolationWins + consolationLosses + consolationTies;
   
   const avgPoints = totalGames > 0 ? totalPointsFor / totalGames : 0;
   const regularSeasonAvgPoints = regularSeasonGames > 0 ? regularSeasonPointsFor / regularSeasonGames : 0;
   const playoffAvgPoints = playoffGames > 0 ? playoffPointsFor / playoffGames : 0;
+  const consolationAvgPoints = consolationGames > 0 ? consolationPointsFor / consolationGames : 0;
 
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
@@ -62,6 +79,12 @@ const TeamStatsCards = ({ teamRecords, isLoading }: TeamStatsCardsProps) => {
             <p className="text-sm font-medium">Playoffs:</p>
             <p className="text-xl font-bold">
               {playoffWins}-{playoffLosses}{playoffTies > 0 ? `-${playoffTies}` : ''}
+            </p>
+          </div>
+          <div className="flex justify-between items-center mt-2">
+            <p className="text-sm font-medium">Consolation:</p>
+            <p className="text-xl font-bold">
+              {consolationWins}-{consolationLosses}{consolationTies > 0 ? `-${consolationTies}` : ''}
             </p>
           </div>
           <div className="flex justify-between items-center mt-2 pt-2 border-t border-border">
@@ -87,6 +110,12 @@ const TeamStatsCards = ({ teamRecords, isLoading }: TeamStatsCardsProps) => {
               {playoffPointsFor.toFixed(1)}
             </p>
           </div>
+          <div className="flex justify-between items-center mt-2">
+            <p className="text-sm font-medium">Consolation:</p>
+            <p className="text-xl font-bold">
+              {consolationPointsFor.toFixed(1)}
+            </p>
+          </div>
           <div className="flex justify-between items-center mt-2 pt-2 border-t border-border">
             <p className="text-sm font-medium">Total:</p>
             <p className="text-xl font-bold">
@@ -110,6 +139,12 @@ const TeamStatsCards = ({ teamRecords, isLoading }: TeamStatsCardsProps) => {
               {playoffPointsAgainst.toFixed(1)}
             </p>
           </div>
+          <div className="flex justify-between items-center mt-2">
+            <p className="text-sm font-medium">Consolation:</p>
+            <p className="text-xl font-bold">
+              {consolationPointsAgainst.toFixed(1)}
+            </p>
+          </div>
           <div className="flex justify-between items-center mt-2 pt-2 border-t border-border">
             <p className="text-sm font-medium">Total:</p>
             <p className="text-xl font-bold">
@@ -131,6 +166,12 @@ const TeamStatsCards = ({ teamRecords, isLoading }: TeamStatsCardsProps) => {
             <p className="text-sm font-medium">Playoffs:</p>
             <p className="text-xl font-bold">
               {playoffAvgPoints.toFixed(1)}
+            </p>
+          </div>
+          <div className="flex justify-between items-center mt-2">
+            <p className="text-sm font-medium">Consolation:</p>
+            <p className="text-xl font-bold">
+              {consolationAvgPoints.toFixed(1)}
             </p>
           </div>
           <div className="flex justify-between items-center mt-2 pt-2 border-t border-border">

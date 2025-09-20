@@ -88,7 +88,77 @@ const TeamPage = () => {
     retry: 1,
   });
 
-  const isPageLoading = isLoading || recordsLoading;
+  const { data: consolationRecords, isLoading: consolationLoading } = useQuery({
+    queryKey: ['consolation-records', id, selectedSeason],
+    queryFn: async () => {
+      if (!id) throw new Error('No team ID provided');
+      
+      if (selectedSeason === 'career') {
+        // For career view, aggregate consolation data from all seasons
+        const { data, error } = await supabase
+          .from('matchup_scores_view')
+          .select('*')
+          .eq('is_consolation', true)
+          .or(`home_team_id.eq.${parseInt(id)},away_team_id.eq.${parseInt(id)}`);
+
+        if (error) throw error;
+        
+        let wins = 0, losses = 0, ties = 0, pointsFor = 0, pointsAgainst = 0;
+        
+        data?.forEach(matchup => {
+          if (matchup.home_team_id === parseInt(id)) {
+            pointsFor += matchup.home_score || 0;
+            pointsAgainst += matchup.away_score || 0;
+            if ((matchup.home_score || 0) > (matchup.away_score || 0)) wins++;
+            else if ((matchup.home_score || 0) < (matchup.away_score || 0)) losses++;
+            else ties++;
+          } else if (matchup.away_team_id === parseInt(id)) {
+            pointsFor += matchup.away_score || 0;
+            pointsAgainst += matchup.home_score || 0;
+            if ((matchup.away_score || 0) > (matchup.home_score || 0)) wins++;
+            else if ((matchup.away_score || 0) < (matchup.home_score || 0)) losses++;
+            else ties++;
+          }
+        });
+        
+        return { wins, losses, ties, pointsFor, pointsAgainst };
+      } else {
+        // For specific season, get consolation data for that season
+        const { data, error } = await supabase
+          .from('matchup_scores_view')
+          .select('*')
+          .eq('season_id', parseInt(selectedSeason))
+          .eq('is_consolation', true)
+          .or(`home_team_id.eq.${parseInt(id)},away_team_id.eq.${parseInt(id)}`);
+
+        if (error) throw error;
+        
+        let wins = 0, losses = 0, ties = 0, pointsFor = 0, pointsAgainst = 0;
+        
+        data?.forEach(matchup => {
+          if (matchup.home_team_id === parseInt(id)) {
+            pointsFor += matchup.home_score || 0;
+            pointsAgainst += matchup.away_score || 0;
+            if ((matchup.home_score || 0) > (matchup.away_score || 0)) wins++;
+            else if ((matchup.home_score || 0) < (matchup.away_score || 0)) losses++;
+            else ties++;
+          } else if (matchup.away_team_id === parseInt(id)) {
+            pointsFor += matchup.away_score || 0;
+            pointsAgainst += matchup.home_score || 0;
+            if ((matchup.away_score || 0) > (matchup.home_score || 0)) wins++;
+            else if ((matchup.away_score || 0) < (matchup.home_score || 0)) losses++;
+            else ties++;
+          }
+        });
+        
+        return { wins, losses, ties, pointsFor, pointsAgainst };
+      }
+    },
+    enabled: !!id && !!team,
+    retry: 1,
+  });
+
+  const isPageLoading = isLoading || recordsLoading || consolationLoading;
   
   if (isPageLoading) {
     return (
@@ -121,7 +191,11 @@ const TeamPage = () => {
         setSelectedSeason={setSelectedSeason} 
       />
 
-      <TeamStatsCards teamRecords={teamRecords} isLoading={recordsLoading} />
+      <TeamStatsCards 
+        teamRecords={teamRecords} 
+        consolationRecords={consolationRecords} 
+        isLoading={recordsLoading || consolationLoading} 
+      />
 
       <div className="grid grid-cols-1 gap-6 mt-6">
         {selectedSeason !== 'career' && (
