@@ -101,25 +101,25 @@ const TeamStatsCards = ({ teamRecords, consolationRecords, isLoading }: TeamStat
           <div className="flex justify-between items-center">
             <p className="text-sm font-medium">Regular Season:</p>
             <p className="text-xl font-bold">
-              {regularSeasonPointsFor.toFixed(1)}
+              {regularSeasonPointsFor.toFixed(2)}
             </p>
           </div>
           <div className="flex justify-between items-center mt-2">
             <p className="text-sm font-medium">Playoffs:</p>
             <p className="text-xl font-bold">
-              {playoffPointsFor.toFixed(1)}
+              {playoffPointsFor.toFixed(2)}
             </p>
           </div>
           <div className="flex justify-between items-center mt-2">
             <p className="text-sm font-medium">Consolation:</p>
             <p className="text-xl font-bold">
-              {consolationPointsFor.toFixed(1)}
+              {consolationPointsFor.toFixed(2)}
             </p>
           </div>
           <div className="flex justify-between items-center mt-2 pt-2 border-t border-border">
             <p className="text-sm font-medium">Total:</p>
             <p className="text-xl font-bold">
-              {totalPointsFor.toFixed(1)}
+              {totalPointsFor.toFixed(2)}
             </p>
           </div>
         </div>
@@ -130,25 +130,25 @@ const TeamStatsCards = ({ teamRecords, consolationRecords, isLoading }: TeamStat
           <div className="flex justify-between items-center">
             <p className="text-sm font-medium">Regular Season:</p>
             <p className="text-xl font-bold">
-              {regularSeasonPointsAgainst.toFixed(1)}
+              {regularSeasonPointsAgainst.toFixed(2)}
             </p>
           </div>
           <div className="flex justify-between items-center mt-2">
             <p className="text-sm font-medium">Playoffs:</p>
             <p className="text-xl font-bold">
-              {playoffPointsAgainst.toFixed(1)}
+              {playoffPointsAgainst.toFixed(2)}
             </p>
           </div>
           <div className="flex justify-between items-center mt-2">
             <p className="text-sm font-medium">Consolation:</p>
             <p className="text-xl font-bold">
-              {consolationPointsAgainst.toFixed(1)}
+              {consolationPointsAgainst.toFixed(2)}
             </p>
           </div>
           <div className="flex justify-between items-center mt-2 pt-2 border-t border-border">
             <p className="text-sm font-medium">Total:</p>
             <p className="text-xl font-bold">
-              {totalPointsAgainst.toFixed(1)}
+              {totalPointsAgainst.toFixed(2)}
             </p>
           </div>
         </div>
@@ -159,25 +159,25 @@ const TeamStatsCards = ({ teamRecords, consolationRecords, isLoading }: TeamStat
           <div className="flex justify-between items-center">
             <p className="text-sm font-medium">Regular Season:</p>
             <p className="text-xl font-bold">
-              {regularSeasonAvgPoints.toFixed(1)}
+              {regularSeasonAvgPoints.toFixed(2)}
             </p>
           </div>
           <div className="flex justify-between items-center mt-2">
             <p className="text-sm font-medium">Playoffs:</p>
             <p className="text-xl font-bold">
-              {playoffAvgPoints.toFixed(1)}
+              {playoffAvgPoints.toFixed(2)}
             </p>
           </div>
           <div className="flex justify-between items-center mt-2">
             <p className="text-sm font-medium">Consolation:</p>
             <p className="text-xl font-bold">
-              {consolationAvgPoints.toFixed(1)}
+              {consolationAvgPoints.toFixed(2)}
             </p>
           </div>
           <div className="flex justify-between items-center mt-2 pt-2 border-t border-border">
             <p className="text-sm font-medium">Total:</p>
             <p className="text-xl font-bold">
-              {avgPoints.toFixed(1)}
+              {avgPoints.toFixed(2)}
             </p>
           </div>
         </div>
