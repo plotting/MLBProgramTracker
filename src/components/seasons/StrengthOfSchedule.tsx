@@ -28,7 +28,7 @@ const StrengthOfSchedule = ({ seasonId }: StrengthOfScheduleProps) => {
       const { data, error } = await supabase
         .from('teams')
         .select('*')
-        .order('name');
+        .order('id');
       if (error) throw error;
       return data as Team[];
     },
