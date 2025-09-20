@@ -36,17 +36,18 @@ const TeamStatsCards = ({ teamRecords, consolationRecords, isLoading }: TeamStat
   const regularSeasonPointsFor = teamRecords?.regular_season_points_for || 0;
   const regularSeasonPointsAgainst = teamRecords?.regular_season_points_against || 0;
   
-  const playoffWins = teamRecords?.playoff_wins || 0;
-  const playoffLosses = teamRecords?.playoff_losses || 0;
-  const playoffTies = teamRecords?.playoff_ties || 0;
-  const playoffPointsFor = teamRecords?.playoff_points_for || 0;
-  const playoffPointsAgainst = teamRecords?.playoff_points_against || 0;
-  
   const consolationWins = consolationRecords?.wins || 0;
   const consolationLosses = consolationRecords?.losses || 0;
   const consolationTies = consolationRecords?.ties || 0;
   const consolationPointsFor = consolationRecords?.pointsFor || 0;
   const consolationPointsAgainst = consolationRecords?.pointsAgainst || 0;
+  
+  // Playoff stats excluding consolation games (since consolation is shown separately)
+  const playoffWins = (teamRecords?.playoff_wins || 0) - consolationWins;
+  const playoffLosses = (teamRecords?.playoff_losses || 0) - consolationLosses;
+  const playoffTies = (teamRecords?.playoff_ties || 0) - consolationTies;
+  const playoffPointsFor = (teamRecords?.playoff_points_for || 0) - consolationPointsFor;
+  const playoffPointsAgainst = (teamRecords?.playoff_points_against || 0) - consolationPointsAgainst;
   
   const totalWins = regularSeasonWins + playoffWins + consolationWins;
   const totalLosses = regularSeasonLosses + playoffLosses + consolationLosses;
