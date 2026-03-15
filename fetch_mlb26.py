@@ -806,13 +806,43 @@ def extract_program_xp(html_body: str) -> tuple:
     return (None, None)
 
 
-def fetch_inventory(cookies: dict) -> list[str]:
+def _parse_positions(item: dict) -> tuple[str, list[str]]:
+    """Extract (primary_pos, all_positions) from an inventory item dict."""
+    pos = str(item.get("position") or item.get("primary_position") or
+              item.get("display_position") or item.get("pos") or "").strip().upper()
+    # secondary / all positions list
+    sec_raw = (item.get("secondary_positions") or item.get("positions") or
+               item.get("eligible_positions") or [])
+    if isinstance(sec_raw, str):
+        sec_raw = [s.strip() for s in sec_raw.split(",") if s.strip()]
+    positions = []
+    for p in ([pos] if pos else []) + list(sec_raw):
+        p = str(p).strip().upper()
+        if p and p not in positions:
+            positions.append(p)
+    return pos, positions
+
+
+def fetch_inventory(cookies: dict) -> list[dict]:
     """
-    Fetch the user's MLB player card names from their inventory.
-    Tries the Inertia JSON API, then HTML scraping.
-    Returns a sorted list of unique player name strings.
+    Fetch the user's MLB player card names (and positions) from their inventory.
+    Returns a sorted list of dicts: [{name, pos, positions}, ...]
     """
-    player_names: set[str] = set()
+    player_cards: dict[str, dict] = {}   # name -> {name, pos, positions}
+
+    def _add_card(item: dict) -> None:
+        name = str(item.get("name") or item.get("player_name") or
+                   item.get("display_name") or item.get("full_name") or "").strip()
+        if not name or not (2 < len(name) < 60):
+            return
+        parts = name.split()
+        if len(parts) < 2 or not parts[0][0].isupper():
+            return
+        pos, positions = _parse_positions(item)
+        if name not in player_cards:
+            player_cards[name] = {"name": name, "pos": pos, "positions": positions}
+        elif not player_cards[name]["pos"] and pos:
+            player_cards[name].update({"pos": pos, "positions": positions})
 
     # Strategy 1: Inertia JSON API
     hdrs = make_headers(cookies, inertia=True)
@@ -821,7 +851,6 @@ def fetch_inventory(cookies: dict) -> list[str]:
         try:
             data  = json.loads(body)
             props = data.get("props", data)
-            # Different possible keys the API might use
             items = (props.get("items") or props.get("inventory") or
                      props.get("cards") or props.get("collection_items") or [])
             if isinstance(items, list):
@@ -829,18 +858,14 @@ def fetch_inventory(cookies: dict) -> list[str]:
                     if not isinstance(item, dict):
                         continue
                     itype = str(item.get("type") or item.get("item_type") or "").lower()
-                    # Skip non-player items (equipment, stadiums, etc.)
                     if itype and "mlb_card" not in itype and "player" not in itype:
                         continue
-                    name = (item.get("name") or item.get("player_name") or
-                            item.get("display_name") or "")
-                    if isinstance(name, str) and 2 < len(name.strip()) < 60:
-                        player_names.add(name.strip())
+                    _add_card(item)
         except Exception:
             pass
 
     # Strategy 2: HTML scraping of /inventory (Inertia data-page JSON)
-    if not player_names:
+    if not player_cards:
         hdrs_html = make_headers(cookies)
         body, status = get(f"{BASE}/inventory", hdrs_html)
         if status == 200 and body:
@@ -850,35 +875,29 @@ def fetch_inventory(cookies: dict) -> list[str]:
                     page_data = json.loads(html_module.unescape(m_data.group(1)))
                     props = page_data.get("props", {})
 
-                    # Save inventory JSON for debugging if no items found yet
+                    # Always save for debugging so we can inspect the real structure
                     _inv_dbg = os.path.join(SCRIPT_DIR, "debug_inventory.json")
                     with open(_inv_dbg, "w", encoding="utf-8") as _f:
                         json.dump(props, _f, indent=2)
 
-                    # Recursively hunt for any list of objects with name-like fields
-                    def _harvest_names(obj, depth=0):
+                    # Recursively harvest player card objects from anywhere in the tree
+                    def _harvest_cards(obj, depth=0):
                         if depth > 8 or not obj:
                             return
                         if isinstance(obj, dict):
-                            name = (obj.get("name") or obj.get("player_name") or
-                                    obj.get("display_name") or obj.get("full_name") or "")
-                            if isinstance(name, str) and 2 < len(name.strip()) < 60:
-                                # Only add if it looks like a real player name (First Last)
-                                parts = name.strip().split()
-                                if len(parts) >= 2 and parts[0][0].isupper():
-                                    player_names.add(name.strip())
+                            _add_card(obj)
                             for v in obj.values():
-                                _harvest_names(v, depth + 1)
+                                _harvest_cards(v, depth + 1)
                         elif isinstance(obj, list):
                             for item in obj[:500]:
-                                _harvest_names(item, depth + 1)
+                                _harvest_cards(item, depth + 1)
 
-                    _harvest_names(props)
+                    _harvest_cards(props)
                 except Exception:
                     pass
 
-    # Strategy 3: Try the squad/roster endpoint for active team players
-    if not player_names:
+    # Strategy 3: Squad/roster endpoint
+    if not player_cards:
         body, status = get(f"{BASE}/squads", make_headers(cookies, inertia=True))
         if status == 200 and body:
             try:
@@ -888,16 +907,14 @@ def fetch_inventory(cookies: dict) -> list[str]:
                     items = props.get(key) or []
                     if isinstance(items, list) and items:
                         for item in items:
-                            if not isinstance(item, dict):
-                                continue
-                            name = item.get("name") or item.get("player_name") or ""
-                            if isinstance(name, str) and 2 < len(name.strip()) < 60:
-                                player_names.add(name.strip())
-                        break
+                            if isinstance(item, dict):
+                                _add_card(item)
+                        if player_cards:
+                            break
             except Exception:
                 pass
 
-    return sorted(player_names)
+    return sorted(player_cards.values(), key=lambda c: c["name"])
 
 
 def normalize_team(text: str) -> str | None:

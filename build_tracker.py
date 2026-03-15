@@ -629,6 +629,39 @@ function selectHome() {
   renderHome();
 }
 
+// Build a name→card lookup from inventory (supports both old string[] and new {name,pos}[])
+const invMap = new Map();
+for (const entry of (D.inventory || [])) {
+  if (typeof entry === 'string') {
+    invMap.set(entry, {pos: '', positions: []});
+  } else if (entry && entry.name) {
+    invMap.set(entry.name, entry);
+    // Also index by last name for fuzzy lookup
+    const last = entry.name.split(' ').pop();
+    if (last && !invMap.has(last)) invMap.set(last, entry);
+  }
+}
+function _cardInfo(name) {
+  if (invMap.has(name)) return invMap.get(name);
+  // Fuzzy: try last name
+  const last = name.split(' ').pop();
+  return invMap.get(last) || null;
+}
+function _posBadge(name) {
+  const card = _cardInfo(name);
+  if (!card || !card.positions || !card.positions.length) return '';
+  const primary = card.positions[0];
+  const secondary = card.positions.slice(1);
+  let html = '<span style="font-size:9px;background:#1e3a5f;color:#7dd3fc;'
+    + 'padding:1px 5px;border-radius:3px;font-weight:700;margin-left:4px">'
+    + primary + '</span>';
+  if (secondary.length) {
+    html += '<span style="font-size:9px;color:#475569;margin-left:3px">'
+      + secondary.join('/') + '</span>';
+  }
+  return html;
+}
+
 function _buildLineupLists() {
   // Use in lineup: has active (incomplete) non-Moment missions
   const useInLineup = [];
@@ -670,10 +703,12 @@ function renderHome() {
   const showRecent = recentlyCompleted.length > 0;
   const recentShow = recentlyCompleted.slice(-10).reverse();
 
-  // Helper: render a lineup player row
+  // Helper: render a lineup player row (with position badge if available)
   function lineupRow(name, pct, color) {
     return '<div class="home-player-row">'
-      + '<span class="home-player-name" style="color:#e2e8f0">&#9733; ' + name + '</span>'
+      + '<span class="home-player-name" style="color:#e2e8f0;display:flex;align-items:center;flex-wrap:wrap;gap:2px">'
+      +   '&#9733; ' + name + _posBadge(name)
+      + '</span>'
       + '<div class="home-player-bar"><div style="width:' + pct + '%;height:100%;background:' + color + ';border-radius:2px"></div></div>'
       + '<span class="home-player-pct" style="color:' + color + '">' + pct + '%</span>'
       + '</div>';
@@ -709,7 +744,7 @@ function renderHome() {
       const pct = best.pct;
       const c = progColor(pct);
       repeatHtml += '<div class="home-player-row">'
-        + '<span class="home-player-name" style="color:#e2e8f0">&#9654; ' + name + '</span>'
+        + '<span class="home-player-name" style="color:#e2e8f0;display:flex;align-items:center;flex-wrap:wrap;gap:2px">&#9654; ' + name + _posBadge(name) + '</span>'
         + '<div style="flex:1;min-width:60px">'
         +   '<div style="font-size:10px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px">'
         +     best.t.replace(/^REPEATABLE:\\s*/i, '')
@@ -1178,7 +1213,7 @@ function renderInvList() {
         const pct   = best.pct;
         const color = pct >= 75 ? '#3b9edd' : pct >= 50 ? '#f59e0b' : '#ef4444';
         html += '<div class="inv-player auto-player">'
-          + '<span class="inv-player-name" style="color:#e2e8f0">&#9733; ' + name + '</span>'
+          + '<span class="inv-player-name" style="color:#e2e8f0;display:flex;align-items:center;flex-wrap:wrap;gap:2px">&#9733; ' + name + _posBadge(name) + '</span>'
           + '<div style="flex:1;min-width:0;overflow:hidden">'
           +   '<div style="font-size:11px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
           +     best.t
@@ -1200,7 +1235,7 @@ function renderInvList() {
         const pct   = best.pct;
         const color = progColor(pct);
         html += '<div class="inv-player auto-player">'
-          + '<span class="inv-player-name" style="color:#e2e8f0">&#9654; ' + name + '</span>'
+          + '<span class="inv-player-name" style="color:#e2e8f0;display:flex;align-items:center;flex-wrap:wrap;gap:2px">&#9654; ' + name + _posBadge(name) + '</span>'
           + '<div style="flex:1;min-width:0;overflow:hidden">'
           +   '<div style="font-size:11px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
           +     best.t.replace(/^REPEATABLE:\\s*/i, '')
