@@ -753,6 +753,59 @@ def extract_missions_from_html(html_body: str) -> list[dict]:
     return missions
 
 
+def extract_program_xp(html_body: str) -> tuple:
+    """
+    Try to extract (xp_earned, xp_total) from a program page.
+    Looks in the Inertia data-page JSON first, then falls back to HTML text.
+    Returns (None, None) if not found.
+    """
+    # Strategy 1: Inertia JSON — recursively find xp-like numeric fields
+    m_data = re.search(r'data-page=["\']({.*?})["\']', html_body, re.DOTALL)
+    if m_data:
+        try:
+            page_data = json.loads(html_module.unescape(m_data.group(1)))
+            props = page_data.get("props", page_data)
+            earned = total = None
+
+            def _scan(obj, depth=0):
+                nonlocal earned, total
+                if depth > 8 or not obj:
+                    return
+                if isinstance(obj, dict):
+                    for k, v in obj.items():
+                        kl = k.lower()
+                        if isinstance(v, (int, float)) and v >= 0:
+                            if kl in ("xp_earned", "earned_xp", "user_xp",
+                                      "earned", "current_xp", "xp_progress"):
+                                earned = int(v)
+                            elif kl in ("total_xp", "max_xp", "xp_total",
+                                        "xp_max", "total_earned"):
+                                total = int(v)
+                        _scan(v, depth + 1)
+                elif isinstance(obj, list):
+                    for item in obj[:50]:
+                        _scan(item, depth + 1)
+
+            _scan(props)
+            if earned is not None:
+                return (earned, total)
+        except Exception:
+            pass
+
+    # Strategy 2: HTML text — "75 Earned" or "75 XP Earned" pattern
+    m_earned = re.search(r'\b(\d+)\s+(?:XP\s+)?Earned\b', html_body, re.IGNORECASE)
+    if m_earned:
+        earned = int(m_earned.group(1))
+        # Try to find a milestone max (look for the highest milestone XP value)
+        milestones = re.findall(r'\b(\d+)\s*XP\b', html_body)
+        total = max((int(x) for x in milestones if int(x) <= 10000), default=None)
+        if total and total > earned:
+            return (earned, total)
+        return (earned, None)
+
+    return (None, None)
+
+
 def fetch_inventory(cookies: dict) -> list[str]:
     """
     Fetch the user's MLB player card names from their inventory.
@@ -963,8 +1016,10 @@ def main():
             print()
 
         missions = extract_missions_from_html(p_body)
+        xp_earned, xp_total = extract_program_xp(p_body)
         if debug and i == 1:
             print(f"  [debug] Missions found from first page: {len(missions)}")
+            print(f"  [debug] XP: {xp_earned} / {xp_total}")
 
         # Identify program name / team from page <h1>
         h1 = ""
@@ -994,13 +1049,21 @@ def main():
             if prog_key not in other_prog_raw:
                 other_prog_raw[prog_key] = {"group": group, "missions": []}
             other_prog_raw[prog_key]["missions"].extend(missions)
+            # Store XP path data if found and not already set
+            if xp_earned is not None and "xp_earned" not in other_prog_raw[prog_key]:
+                other_prog_raw[prog_key]["xp_earned"] = xp_earned
+            if xp_total is not None and "xp_total" not in other_prog_raw[prog_key]:
+                other_prog_raw[prog_key]["xp_total"] = xp_total
 
     # 5. Deduplicate and sort
     def dedup_sort(lst):
+        # Key by (title, first-60-chars-of-description) so same-titled missions
+        # with different eligible players (e.g. two REPEATABLE entries) are kept.
         seen, out = set(), []
         for m in sorted(lst, key=lambda x: -x["pct"]):
-            if m["t"] and m["t"] not in seen:
-                seen.add(m["t"]); out.append(m)
+            key = (m["t"], (m.get("d") or "")[:60])
+            if m["t"] and key not in seen:
+                seen.add(key); out.append(m)
         return out
 
     for team in team_missions:
@@ -1019,12 +1082,17 @@ def main():
     op_for_html = {}
     for prog_name, pdata in other_prog_raw.items():
         group = pdata["group"]
-        op_for_html[prog_name] = {
+        entry = {
             "color":    PROG_GROUP_COLORS.get(group, "#8b5cf6"),
             "icon":     make_prog_icon(prog_name),
             "group":    group,
             "missions": pdata["missions"],
         }
+        if "xp_earned" in pdata:
+            entry["xp_earned"] = pdata["xp_earned"]
+        if "xp_total" in pdata:
+            entry["xp_total"] = pdata["xp_total"]
+        op_for_html[prog_name] = entry
 
     # 7. Fetch player inventory
     print("\nFetching player inventory...")

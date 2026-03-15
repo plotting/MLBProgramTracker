@@ -864,21 +864,32 @@ function selectOtherProg(progName) {
   }
 
   const done    = missions.filter(function(m) { return m.pct >= 100; }).length;
-  const pct     = missions.length ? Math.round(done / missions.length * 100) : 0;
+  // Prefer scraped XP path data (actual game progress) over mission-count ratio
+  const xpEarned = meta.xp_earned != null ? meta.xp_earned : null;
+  const xpTotal  = meta.xp_total  != null ? meta.xp_total  : null;
+  const pct = xpEarned != null && xpTotal
+    ? Math.round(xpEarned / xpTotal * 100)
+    : (missions.length ? Math.round(done / missions.length * 100) : 0);
+  const ringLabel = xpEarned != null
+    ? ('<span class="rn">' + xpEarned + '</span><span class="rl">' + (xpTotal ? 'of ' + xpTotal : 'XP') + '</span>')
+    : ('<span class="rn">' + pct + '%</span><span class="rl">done</span>');
+  const subLabel = xpEarned != null
+    ? (done + ' / ' + missions.length + ' missions \u2022 ' + xpEarned + (xpTotal ? ' / ' + xpTotal : '') + ' XP')
+    : (done + ' / ' + missions.length + ' missions complete');
   const R = 30, circ = Math.round(2 * Math.PI * R);
   const offset  = Math.round(circ * (1 - pct / 100));
 
   content.innerHTML =
     '<div class="team-banner" style="--c1:' + (meta.color || '#1e3a5f') + ';--c2:#0d1b2e">' +
       '<div class="banner-info"><h1>' + progName + '</h1>' +
-      '<p>' + done + ' / ' + missions.length + ' missions complete</p></div>' +
+      '<p>' + subLabel + '</p></div>' +
       '<div class="ring-wrap">' +
       '<svg width="70" height="70" viewBox="0 0 70 70">' +
       '<circle cx="35" cy="35" r="' + R + '" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="5"/>' +
       '<circle cx="35" cy="35" r="' + R + '" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="5"' +
       ' stroke-dasharray="' + circ + '" stroke-dashoffset="' + offset + '" stroke-linecap="round"/>' +
       '</svg>' +
-      '<div class="ring-label"><span class="rn">' + pct + '%</span><span class="rl">done</span></div>' +
+      '<div class="ring-label">' + ringLabel + '</div>' +
       '</div></div>' +
       '<div id="mission-area"></div>';
 
