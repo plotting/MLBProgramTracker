@@ -576,15 +576,18 @@ function buildAutoInventory() {
     }
   }
 
-  // Pass 5: inventory-driven — for each card name in the fetched inventory,
+  // Pass 5: inventory-driven — for each card in the fetched inventory,
   // if not already tracked, scan ALL missions (including pct=0) for their name.
-  // This catches newly-acquired players whose stat missions haven't started yet.
+  // D.inventory entries can be either plain strings or {name,pos,positions} dicts.
   const inventory = D.inventory || [];
-  for (const invName of inventory) {
-    if (!invName || _isExcluded(invName)) continue;
-    const parts = invName.trim().split(/\\s+/);
+  for (const invEntry of inventory) {
+    // Normalise: handle both string and {name,...} object formats
+    const fullName = (typeof invEntry === 'string'
+      ? invEntry
+      : (invEntry && invEntry.name) || '').trim();
+    if (!fullName || _isExcluded(fullName)) continue;
+    const parts = fullName.split(/\s+/);
     if (parts.length < 2) continue;              // skip single-word entries
-    const fullName = invName.trim();
     const lastName = parts[parts.length - 1];
     if (activePlayerMap.has(fullName)) continue; // already tracked
     for (const m of allMissionsFlat) {
@@ -627,6 +630,7 @@ function selectHome() {
   const hb = document.getElementById('home-btn');
   if (hb) hb.classList.add('active');
   renderHome();
+  window.scrollTo(0, 0);
 }
 
 // Build a name→card lookup from inventory (supports both old string[] and new {name,pos}[])
@@ -677,10 +681,15 @@ function _buildLineupLists() {
     if (!activePlayerMap.has(name) && !repeatableMap.has(name)) safeToRemove.push(name);
   }
 
-  // Repeatable contributors: eligible for an active REPEATABLE, not already in lineup
+  // Repeatable contributors: eligible for an active REPEATABLE, not already in lineup.
+  // If we have inventory data, only include players the user actually owns — otherwise
+  // fall back to showing all eligible players (so the panel is never empty on first run).
+  const hasInventory = invMap.size > 0;
   const repeatableContribs = [];
   for (const [name, missions] of repeatableMap) {
     if (activePlayerMap.has(name)) continue;  // already shown in "Use in Lineup"
+    // Ownership gate: skip players we know we don't own (only when inventory is loaded)
+    if (hasInventory && !_cardInfo(name)) continue;
     const best = missions.slice().sort(function(a, b) { return b.pct - a.pct; })[0];
     repeatableContribs.push({name, best});
   }

@@ -910,7 +910,8 @@ def fetch_inventory(cookies: dict) -> list[dict]:
             pos = re.sub(r'<[^>]+>', '', cells[3]).strip().upper()
             # Team cell (optional)
             team = re.sub(r'<[^>]+>', '', cells[4]).strip() if len(cells) > 4 else ''
-            if name and pos and re.match(r'^[A-Z][a-zA-Z]', pos):
+            # Allow standard positions including 1B/2B/3B (start with digit)
+            if name and pos and re.match(r'^[A-Z1-9]', pos):
                 _add_card({"name": name, "pos": pos, "positions": [pos]})
 
     # Strategy 1: public /apis/mlb_cards endpoint (used by prior Show versions)
@@ -950,7 +951,7 @@ def fetch_inventory(cookies: dict) -> list[dict]:
     # Request with ownership=my_cards filter to skip the thousands of unowned cards.
     hdrs_html = make_headers(cookies)
     owned_found = 0
-    for page in range(1, 6):   # up to 5 pages of owned cards
+    for page in range(1, 21):   # up to 20 pages (~500 owned cards)
         url = f"{BASE}/inventory?type=mlb_card&ownership=my_cards&page={page}"
         body, status = get(url, hdrs_html)
         if page == 1 and body:
@@ -961,15 +962,15 @@ def fetch_inventory(cookies: dict) -> list[dict]:
             break
         before = len(player_cards)
         _parse_inv_table(body)
-        new_cards = len(player_cards) - before
-        owned_found += new_cards
-        # Stop paginating if this page added nothing (end of results)
-        if new_cards == 0:
-            break
-        # Check if there's a next page link
-        if not re.search(r'page=' + str(page + 1), body):
+        new_this_page = len(player_cards) - before
+        owned_found += new_this_page
+        # Stop when a page adds no new cards — we've exhausted the owned inventory.
+        # Don't rely on JS-rendered pagination links; just stop on an empty page.
+        if new_this_page == 0 and page > 1:
             break
         time.sleep(0.25)
+    if owned_found:
+        print(f"  [inventory] HTML table: {owned_found} owned player cards found")
 
     # Strategy 4: Squad/roster endpoint as final fallback
     if not player_cards:
@@ -1145,13 +1146,15 @@ def main():
         is_xp_path     = bool(re.search(r'xp.*(path|reward)|1st inning', h1_lower, re.I))
         is_multi       = bool(re.search(r'multiplayer|ranked.*season', h1_lower, re.I))
 
-        # Always dump the XP-path page for diagnostics so we can inspect its structure
-        # if XP extraction is still returning None.
-        if is_xp_path and xp_earned is None:
-            _xp_dbg = os.path.join(SCRIPT_DIR, "debug_xp_path.html")
+        # Dump raw page for any Other-Program where XP extraction returns None so we
+        # can inspect the actual Inertia JSON field names.  Written once per run
+        # (first program that fails) so it doesn't spam the folder.
+        if xp_earned is None and not team and not os.path.exists(
+                os.path.join(SCRIPT_DIR, "debug_prog_xp.html")):
+            _xp_dbg = os.path.join(SCRIPT_DIR, "debug_prog_xp.html")
             with open(_xp_dbg, "w", encoding="utf-8", errors="replace") as _f:
                 _f.write(p_body[:150000])
-            print(f"  [info] XP not found — raw page saved to debug_xp_path.html")
+            print(f"  [info] XP not found for '{h1[:40]}' — page saved to debug_prog_xp.html")
 
         label = h1[:45] or f"prog {prog_id}"
         print(f"  [{i:3}/{total}] {len(missions):3} missions  {label}")
