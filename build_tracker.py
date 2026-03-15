@@ -254,7 +254,7 @@ body { font-family: "Segoe UI", Arial, sans-serif; background: var(--bg); color:
 .home-banner { padding: 18px 22px; margin-bottom: 18px; border-radius: 10px; background: linear-gradient(135deg, #0d1d35 0%, #080d18 100%); border: 1px solid var(--border); display: flex; align-items: flex-end; gap: 20px; }
 .home-banner h1 { font-size: 22px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #fff; }
 .home-banner p  { font-size: 11px; color: var(--muted); margin-top: 2px; }
-.home-lineup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 22px; }
+.home-lineup-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 22px; }
 .home-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
 .home-card-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px; }
 .home-player-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid rgba(30,53,84,0.6); }
@@ -410,10 +410,12 @@ const LINEUP_EXCL = new Set([
 ]);
 
 // Two dedicated module-level maps used by renderHome + renderInvList
-// activePlayerMap: name → [missions where pct < 100]  (USE in lineup)
-// doneOnlyMap:     names that only have done missions  (SAFE to remove)
+// activePlayerMap:  name → [non-Moment missions where 0 < pct < 100]  (USE in lineup)
+// donePlayerMap:    name → [missions where pct >= 100]                 (owned player)
+// repeatableMap:    name → [active REPEATABLE missions they're eligible for]
 const activePlayerMap = new Map();
-const donePlayerMap   = new Map();  // all known done missions, keyed by full name
+const donePlayerMap   = new Map();
+const repeatableMap   = new Map();
 
 function extractOwnerFromMission(m) {
   // 1. "Firstname Lastname - Country" WBC-style title → name before the dash
@@ -431,6 +433,21 @@ function extractOwnerFromMission(m) {
 function _isExcluded(name) {
   const last = name.split(' ').pop().toLowerCase().replace(/\\.$/, '');
   return LINEUP_EXCL.has(last) || LINEUP_EXCL.has(name.toLowerCase());
+}
+
+// Returns true for "Firstname Lastname - Country" WBC/Classic Moment titles.
+// These are played in Moments mode — they identify ownership but don't need lineup use.
+function _isCountryMoment(m) {
+  return /^[A-Z][A-Za-z\u00C0-\u024F'-]+(?: [A-Z][A-Za-z\u00C0-\u024F'-]+)+ - [A-Z][a-z]/.test(m.t);
+}
+
+// Parse "Eligible players include X, Y, and Z" from REPEATABLE descriptions
+function _repeatablePlayers(m) {
+  const src = m.d || '';
+  const hit = src.match(/eligible players include\\s+(.+?)(?:\\.\\s*Where|\\s*$)/i);
+  if (!hit) return [];
+  return hit[1].split(/,\\s*(?:and\\s+)?|\\s+and\\s+/).map(function(s){ return s.trim(); })
+    .filter(function(s){ return /^[A-Z]/.test(s) && !_isExcluded(s); });
 }
 
 function _addTo(map, name, m) {
@@ -471,14 +488,34 @@ if (prevPct) {
 function buildAutoInventory() {
   activePlayerMap.clear();
   donePlayerMap.clear();
+  repeatableMap.clear();
 
-  // Pass 1: scan all missions with pct > 0; bucket into active vs done
+  // Pass 1: scan all missions with pct > 0; bucket into active vs done.
+  // Country Moments ("Name - Country") are played in Moments mode — they prove
+  // ownership but must NOT drive "Use in Lineup" recommendations.
   for (const m of allMissionsFlat) {
     if (m.pct <= 0) continue;
+    const isCM = _isCountryMoment(m);
     const name = extractOwnerFromMission(m);
     if (!name || _isExcluded(name)) continue;
-    if (m.pct >= 100) _addTo(donePlayerMap, name, m);
-    else              _addTo(activePlayerMap, name, m);
+    if (m.pct >= 100) {
+      _addTo(donePlayerMap, name, m);           // owned regardless of moment/stat
+    } else if (!isCM) {
+      _addTo(activePlayerMap, name, m);         // only stat missions drive lineup
+    }
+    // isCM && pct < 100: we know the player is owned (moment started) but don't
+    // add to activePlayerMap — they don't need a lineup slot for a Moment mission.
+  }
+
+  // Pass 1b: REPEATABLE missions — parse eligible player names from descriptions.
+  // If a REPEATABLE has any progress, those players contribute XP to it.
+  for (const m of allMissionsFlat) {
+    const isRep = m.t.startsWith('REPEATABLE') || (m.d || '').startsWith('REPEATABLE');
+    if (!isRep || m.pct <= 0 || m.pct >= 100) continue;
+    for (const pname of _repeatablePlayers(m)) {
+      if (!repeatableMap.has(pname)) repeatableMap.set(pname, []);
+      repeatableMap.get(pname).push(m);
+    }
   }
 
   // Pass 2: within each map, merge last-name-only keys into their full-name key
@@ -526,14 +563,15 @@ function buildAutoInventory() {
 
   // Pass 4: for players we know are owned (appear in donePlayerMap with no active
   // missions yet), scan ALL missions — even pct=0 — to find pending incomplete work.
-  // e.g. "Adrian Almeida" done WBC mission + 0% "5 IP w/ Almeida" → should use him
+  // e.g. "Adrian Almeida" done WBC mission + 0% "5 IP w/ Almeida" → should use him.
+  // Skip Country Moments — those never require a lineup slot.
   for (const knownName of donePlayerMap.keys()) {
     if (activePlayerMap.has(knownName)) continue;
     for (const m of allMissionsFlat) {
       if (m.pct >= 100) continue;
+      if (_isCountryMoment(m)) continue;        // Moments don't need lineup
       const nm = extractOwnerFromMission(m);
       if (!nm) continue;
-      // Match exact name OR last-name suffix
       const matched = nm === knownName ||
         (!nm.includes(' ') && knownName.endsWith(' ' + nm));
       if (matched) _addTo(activePlayerMap, knownName, m);
@@ -571,7 +609,7 @@ function selectHome() {
 }
 
 function _buildLineupLists() {
-  // Use in lineup: has active (incomplete) missions
+  // Use in lineup: has active (incomplete) non-Moment missions
   const useInLineup = [];
   for (const [name, missions] of activePlayerMap) {
     const sorted = missions.slice().sort(function(a, b) { return b.pct - a.pct; });
@@ -579,17 +617,27 @@ function _buildLineupLists() {
   }
   useInLineup.sort(function(a, b) { return b.best.pct - a.best.pct; });
 
-  // Safe to remove: in donePlayerMap but NOT in activePlayerMap
+  // Safe to remove: in donePlayerMap but NOT in activePlayerMap or repeatableMap
   const safeToRemove = [];
   for (const name of donePlayerMap.keys()) {
-    if (!activePlayerMap.has(name)) safeToRemove.push(name);
+    if (!activePlayerMap.has(name) && !repeatableMap.has(name)) safeToRemove.push(name);
   }
-  return {useInLineup, safeToRemove};
+
+  // Repeatable contributors: eligible for an active REPEATABLE, not already in lineup
+  const repeatableContribs = [];
+  for (const [name, missions] of repeatableMap) {
+    if (activePlayerMap.has(name)) continue;  // already shown in "Use in Lineup"
+    const best = missions.slice().sort(function(a, b) { return b.pct - a.pct; })[0];
+    repeatableContribs.push({name, best});
+  }
+  repeatableContribs.sort(function(a, b) { return b.best.pct - a.best.pct; });
+
+  return {useInLineup, safeToRemove, repeatableContribs};
 }
 
 function renderHome() {
   const content = document.getElementById('content');
-  const {useInLineup, safeToRemove} = _buildLineupLists();
+  const {useInLineup, safeToRemove, repeatableContribs} = _buildLineupLists();
 
   // 10 closest incomplete missions (across all programs), pct > 0
   const closest = allMissionsFlat
@@ -634,6 +682,28 @@ function renderHome() {
     removeHtml = '<div class="home-empty">None yet</div>';
   }
 
+  let repeatHtml = '';
+  if (repeatableContribs.length) {
+    for (const {name, best} of repeatableContribs) {
+      const pct = best.pct;
+      const c = progColor(pct);
+      repeatHtml += '<div class="home-player-row">'
+        + '<span class="home-player-name" style="color:#e2e8f0">&#9654; ' + name + '</span>'
+        + '<div style="flex:1;min-width:60px">'
+        +   '<div style="font-size:10px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px">'
+        +     best.t.replace(/^REPEATABLE:\\s*/i, '')
+        +   '</div>'
+        +   '<div style="display:flex;align-items:center;gap:4px">'
+        +     '<div class="home-player-bar"><div style="width:' + pct + '%;height:100%;background:' + c + ';border-radius:2px"></div></div>'
+        +     '<span class="home-player-pct" style="color:' + c + '">' + pct + '%</span>'
+        +   '</div>'
+        + '</div>'
+        + '</div>';
+    }
+  } else {
+    repeatHtml = '<div class="home-empty">None detected</div>';
+  }
+
   // Mission section HTML
   let closestHtml = '';
   if (closest.length) {
@@ -666,6 +736,10 @@ function renderHome() {
     +   '<div class="home-card">'
     +     '<div class="home-card-title" style="color:#22c55e">&#9654; Use in Lineup</div>'
     +     useHtml
+    +   '</div>'
+    +   '<div class="home-card">'
+    +     '<div class="home-card-title" style="color:#a78bfa">&#9733; Repeatable XP</div>'
+    +     repeatHtml
     +   '</div>'
     +   '<div class="home-card">'
     +     '<div class="home-card-title" style="color:#64748b">&#10003; Safe to Remove</div>'
@@ -1062,9 +1136,9 @@ function renderInvList() {
   let html = '';
 
   // ── Auto-detected section (uses activePlayerMap / donePlayerMap) ───────
-  const hasAuto = activePlayerMap.size > 0 || donePlayerMap.size > 0;
+  const hasAuto = activePlayerMap.size > 0 || donePlayerMap.size > 0 || repeatableMap.size > 0;
   if (hasAuto) {
-    const {useInLineup, safeToRemove} = _buildLineupLists();
+    const {useInLineup, safeToRemove, repeatableContribs} = _buildLineupLists();
 
     if (useInLineup.length) {
       html += '<div class="inv-section-hdr" style="color:#22c55e">&#9654; Use in Lineup</div>';
@@ -1076,6 +1150,28 @@ function renderInvList() {
           + '<div style="flex:1;min-width:0;overflow:hidden">'
           +   '<div style="font-size:11px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
           +     best.t
+          +   '</div>'
+          +   '<div style="display:flex;align-items:center;gap:6px;margin-top:2px">'
+          +     '<div style="flex:1;height:4px;background:#1e3554;border-radius:2px">'
+          +       '<div style="width:' + pct + '%;height:100%;background:' + color + ';border-radius:2px"></div>'
+          +     '</div>'
+          +     '<span style="font-size:11px;color:' + color + ';white-space:nowrap">' + pct + '%</span>'
+          +   '</div>'
+          + '</div>'
+          + '</div>';
+      }
+    }
+
+    if (repeatableContribs.length) {
+      html += '<div class="inv-section-hdr" style="color:#a78bfa;margin-top:10px">&#9733; Repeatable XP Contributors</div>';
+      for (const {name, best} of repeatableContribs) {
+        const pct   = best.pct;
+        const color = progColor(pct);
+        html += '<div class="inv-player auto-player">'
+          + '<span class="inv-player-name" style="color:#e2e8f0">&#9654; ' + name + '</span>'
+          + '<div style="flex:1;min-width:0;overflow:hidden">'
+          +   '<div style="font-size:11px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
+          +     best.t.replace(/^REPEATABLE:\\s*/i, '')
           +   '</div>'
           +   '<div style="display:flex;align-items:center;gap:6px;margin-top:2px">'
           +     '<div style="flex:1;height:4px;background:#1e3554;border-radius:2px">'
