@@ -775,12 +775,27 @@ def extract_program_xp(html_body: str) -> tuple:
                     for k, v in obj.items():
                         kl = k.lower()
                         if isinstance(v, (int, float)) and v >= 0:
+                            # Exact known field names
                             if kl in ("xp_earned", "earned_xp", "user_xp",
-                                      "earned", "current_xp", "xp_progress"):
-                                earned = int(v)
+                                      "current_xp", "xp_progress", "xp",
+                                      "progress", "user_progress", "points",
+                                      "earned_points", "current_points"):
+                                if earned is None:
+                                    earned = int(v)
                             elif kl in ("total_xp", "max_xp", "xp_total",
-                                        "xp_max", "total_earned"):
-                                total = int(v)
+                                        "xp_max", "total_earned", "goal_xp",
+                                        "required_xp", "target_xp", "max_points",
+                                        "total_points", "goal", "goal_points"):
+                                if total is None:
+                                    total = int(v)
+                            # Fuzzy: any key containing both "xp"/"point" and "earn"/"current"/"progress"
+                            elif "xp" in kl or "point" in kl:
+                                if any(w in kl for w in ("earn", "current", "progress", "user")):
+                                    if earned is None:
+                                        earned = int(v)
+                                elif any(w in kl for w in ("total", "max", "goal", "required", "target")):
+                                    if total is None:
+                                        total = int(v)
                         _scan(v, depth + 1)
                 elif isinstance(obj, list):
                     for item in obj[:50]:
@@ -792,11 +807,41 @@ def extract_program_xp(html_body: str) -> tuple:
         except Exception:
             pass
 
-    # Strategy 2: HTML text — "75 Earned" or "75 XP Earned" pattern
+    # Strategy 2: "75 / 100 XP" or "75 of 100 XP" — the format visible on the XP path page
+    m_slash = re.search(
+        r'\b(\d{1,6})\s*(?:/|of)\s*(\d{1,6})\s*XP\b',
+        html_body, re.IGNORECASE)
+    if m_slash:
+        return (int(m_slash.group(1)), int(m_slash.group(2)))
+
+    # Strategy 3: "XP: 75 / 100" variant
+    m_xp_colon = re.search(
+        r'\bXP[:\s]+(\d{1,6})\s*(?:/|of)\s*(\d{1,6})\b',
+        html_body, re.IGNORECASE)
+    if m_xp_colon:
+        return (int(m_xp_colon.group(1)), int(m_xp_colon.group(2)))
+
+    # Strategy 4: meter tag near an "XP" label — <meter value="75" max="100">
+    for m_meter in re.finditer(
+            r'<meter[^>]+>', html_body, re.IGNORECASE):
+        tag = m_meter.group(0)
+        mv = re.search(r'\bvalue=["\']?(\d+)', tag)
+        mm = re.search(r'\bmax=["\']?(\d+)', tag)
+        if mv and mm:
+            val, mx = int(mv.group(1)), int(mm.group(1))
+            # Sanity: XP path values are typically 0-500+ range
+            if 0 <= val <= mx <= 100000 and mx > 10:
+                # Check nearby HTML for an "XP" label (within 300 chars)
+                start = max(0, m_meter.start() - 150)
+                end   = min(len(html_body), m_meter.end() + 150)
+                nearby = html_body[start:end]
+                if re.search(r'\bXP\b', nearby, re.IGNORECASE):
+                    return (val, mx)
+
+    # Strategy 5: "75 Earned" or "75 XP Earned" plain text pattern
     m_earned = re.search(r'\b(\d+)\s+(?:XP\s+)?Earned\b', html_body, re.IGNORECASE)
     if m_earned:
         earned = int(m_earned.group(1))
-        # Try to find a milestone max (look for the highest milestone XP value)
         milestones = re.findall(r'\b(\d+)\s*XP\b', html_body)
         total = max((int(x) for x in milestones if int(x) <= 10000), default=None)
         if total and total > earned:
@@ -1099,6 +1144,14 @@ def main():
         prog_type      = "Color Storm" if is_color_storm else "My Journey"
         is_xp_path     = bool(re.search(r'xp.*(path|reward)|1st inning', h1_lower, re.I))
         is_multi       = bool(re.search(r'multiplayer|ranked.*season', h1_lower, re.I))
+
+        # Always dump the XP-path page for diagnostics so we can inspect its structure
+        # if XP extraction is still returning None.
+        if is_xp_path and xp_earned is None:
+            _xp_dbg = os.path.join(SCRIPT_DIR, "debug_xp_path.html")
+            with open(_xp_dbg, "w", encoding="utf-8", errors="replace") as _f:
+                _f.write(p_body[:150000])
+            print(f"  [info] XP not found — raw page saved to debug_xp_path.html")
 
         label = h1[:45] or f"prog {prog_id}"
         print(f"  [{i:3}/{total}] {len(missions):3} missions  {label}")
