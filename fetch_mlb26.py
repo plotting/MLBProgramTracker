@@ -844,67 +844,89 @@ def fetch_inventory(cookies: dict) -> list[dict]:
         elif not player_cards[name]["pos"] and pos:
             player_cards[name].update({"pos": pos, "positions": positions})
 
-    # Strategy 1: Inertia JSON API
-    hdrs = make_headers(cookies, inertia=True)
-    body, status = get(f"{BASE}/inventory", hdrs)
-    if status == 200 and body:
-        try:
-            data  = json.loads(body)
-            props = data.get("props", data)
-            items = (props.get("items") or props.get("inventory") or
-                     props.get("cards") or props.get("collection_items") or [])
-            if isinstance(items, list):
-                for item in items:
-                    if not isinstance(item, dict):
-                        continue
-                    itype = str(item.get("type") or item.get("item_type") or "").lower()
-                    if itype and "mlb_card" not in itype and "player" not in itype:
-                        continue
-                    _add_card(item)
-        except Exception:
-            pass
+    def _parse_inv_table(html_body: str) -> None:
+        """Parse the HTML inventory table and add owned player cards."""
+        # Rows: <tr> with cells for Qty | Player | Overall | Pos | Team | Series | ...
+        for row in re.finditer(r'<tr[^>]*>(.*?)</tr>', html_body, re.DOTALL | re.IGNORECASE):
+            cells = re.findall(r'<td[^>]*>(.*?)</td>', row.group(1), re.DOTALL | re.IGNORECASE)
+            if len(cells) < 4:
+                continue
+            # Qty cell — skip cards the user doesn't own (0x)
+            qty_text = re.sub(r'<[^>]+>', '', cells[0]).strip()
+            m_qty = re.search(r'(\d+)', qty_text)
+            if not m_qty or int(m_qty.group(1)) == 0:
+                continue
+            # Player name (strip all tags; name may be in a link inside the cell)
+            name = html_module.unescape(re.sub(r'<[^>]+>', ' ', cells[1])).strip()
+            name = re.sub(r'\s+', ' ', name).strip()
+            # Overall rating cell
+            overall = re.sub(r'<[^>]+>', '', cells[2]).strip()
+            # Position cell
+            pos = re.sub(r'<[^>]+>', '', cells[3]).strip().upper()
+            # Team cell (optional)
+            team = re.sub(r'<[^>]+>', '', cells[4]).strip() if len(cells) > 4 else ''
+            if name and pos and re.match(r'^[A-Z][a-zA-Z]', pos):
+                _add_card({"name": name, "pos": pos, "positions": [pos]})
 
-    # Strategy 2: HTML scraping of /inventory (Inertia data-page JSON)
+    # Strategy 1: public /apis/mlb_cards endpoint (used by prior Show versions)
+    for api_path in ("/apis/mlb_cards.json", "/apis/items.json", "/apis/owned_cards.json"):
+        body, status = get(f"{BASE}{api_path}", make_headers(cookies))
+        if status == 200 and body:
+            try:
+                data = json.loads(body)
+                items = data if isinstance(data, list) else (
+                    data.get("mlb_cards") or data.get("items") or data.get("cards") or [])
+                for item in (items if isinstance(items, list) else []):
+                    if isinstance(item, dict):
+                        _add_card(item)
+                if player_cards:
+                    break
+            except Exception:
+                pass
+
+    # Strategy 2: Inertia JSON API at /inventory
     if not player_cards:
-        hdrs_html = make_headers(cookies)
-        body, status = get(f"{BASE}/inventory", hdrs_html)
-        # Dump raw HTML so we can inspect it if parsing fails
-        if body:
+        body, status = get(f"{BASE}/inventory", make_headers(cookies, inertia=True))
+        if status == 200 and body:
+            try:
+                data  = json.loads(body)
+                props = data.get("props", data)
+                items = (props.get("items") or props.get("inventory") or
+                         props.get("cards") or props.get("collection_items") or [])
+                if isinstance(items, list):
+                    for item in items:
+                        if isinstance(item, dict):
+                            _add_card(item)
+            except Exception:
+                pass
+
+    # Strategy 3: HTML table scrape of /inventory — always runs to get owned cards.
+    # The inventory page is a traditional HTML table (not SPA), paginated.
+    # Request with ownership=my_cards filter to skip the thousands of unowned cards.
+    hdrs_html = make_headers(cookies)
+    owned_found = 0
+    for page in range(1, 6):   # up to 5 pages of owned cards
+        url = f"{BASE}/inventory?type=mlb_card&ownership=my_cards&page={page}"
+        body, status = get(url, hdrs_html)
+        if page == 1 and body:
             _raw_path = os.path.join(SCRIPT_DIR, "debug_inventory_raw.html")
             with open(_raw_path, "w", encoding="utf-8", errors="replace") as _f:
                 _f.write(body[:100000])
-        if status == 200 and body:
-            # Try multiple attribute patterns (single-quote, double-quote, escaped)
-            m_data = (re.search(r'data-page=["\']({.*?})["\']', body, re.DOTALL) or
-                      re.search(r'data-page="({.+?})"(?=\s|>)', body, re.DOTALL) or
-                      re.search(r"data-page='({.+?})'(?=\s|>)", body, re.DOTALL))
-            if m_data:
-                try:
-                    page_data = json.loads(html_module.unescape(m_data.group(1)))
-                    props = page_data.get("props", {})
+        if status != 200 or not body:
+            break
+        before = len(player_cards)
+        _parse_inv_table(body)
+        new_cards = len(player_cards) - before
+        owned_found += new_cards
+        # Stop paginating if this page added nothing (end of results)
+        if new_cards == 0:
+            break
+        # Check if there's a next page link
+        if not re.search(r'page=' + str(page + 1), body):
+            break
+        time.sleep(0.25)
 
-                    # Save parsed props for debugging
-                    _inv_dbg = os.path.join(SCRIPT_DIR, "debug_inventory.json")
-                    with open(_inv_dbg, "w", encoding="utf-8") as _f:
-                        json.dump(props, _f, indent=2)
-
-                    # Recursively harvest player card objects from anywhere in the tree
-                    def _harvest_cards(obj, depth=0):
-                        if depth > 8 or not obj:
-                            return
-                        if isinstance(obj, dict):
-                            _add_card(obj)
-                            for v in obj.values():
-                                _harvest_cards(v, depth + 1)
-                        elif isinstance(obj, list):
-                            for item in obj[:500]:
-                                _harvest_cards(item, depth + 1)
-
-                    _harvest_cards(props)
-                except Exception:
-                    pass
-
-    # Strategy 3: Squad/roster endpoint
+    # Strategy 4: Squad/roster endpoint as final fallback
     if not player_cards:
         body, status = get(f"{BASE}/squads", make_headers(cookies, inertia=True))
         if status == 200 and body:
