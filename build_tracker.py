@@ -419,7 +419,7 @@ const repeatableMap   = new Map();
 
 function extractOwnerFromMission(m) {
   // 1. "Firstname Lastname - Country" WBC-style title → name before the dash
-  const cp = m.t.match(/^([A-Z][A-Za-z\\u00C0-\\u024F'-]+(?: [A-Z][A-Za-z\\u00C0-\\u024F'-]+)+)\\s*-\\s*[A-Z][a-z]/);
+  const cp = m.t.match(/^([A-Z][A-Za-z\\u00C0-\\u024F'-]+(?: [A-Z][A-Za-z\\u00C0-\\u024F'-]+)+)\\.?\\s*-\\s*[A-Z][a-z]/);
   if (cp) return cp[1];
   // 2. "with Name" in description (e.g. "Record 10 Ks with Seth Lugo")
   const dp = (m.d || '').match(/\\bwith\\s+([A-Z][A-Za-z\\u00C0-\\u024F'-]+(?: [A-Z][A-Za-z\\u00C0-\\u024F'-]+){1,3})/);
@@ -438,7 +438,8 @@ function _isExcluded(name) {
 // Returns true for "Firstname Lastname - Country" WBC/Classic Moment titles.
 // These are played in Moments mode — they identify ownership but don't need lineup use.
 function _isCountryMoment(m) {
-  return /^[A-Z][A-Za-z\u00C0-\u024F'-]+(?: [A-Z][A-Za-z\u00C0-\u024F'-]+)+ - [A-Z][a-z]/.test(m.t);
+  // Allow optional trailing "." (handles "Dante Bichette Jr. - Brazil")
+  return /^[A-Z][A-Za-z\\u00C0-\\u024F'-]+(?: [A-Z][A-Za-z\\u00C0-\\u024F'-]+)+\\.?\\s*-\\s*[A-Z][a-z]/.test(m.t);
 }
 
 // Parse "Eligible players include X, Y, and Z" from REPEATABLE descriptions
@@ -572,6 +573,29 @@ function buildAutoInventory() {
       const matched = nm === knownName ||
         (!nm.includes(' ') && knownName.endsWith(' ' + nm));
       if (matched) _addTo(activePlayerMap, knownName, m);
+    }
+  }
+
+  // Pass 5: inventory-driven — for each card name in the fetched inventory,
+  // if not already tracked, scan ALL missions (including pct=0) for their name.
+  // This catches newly-acquired players whose stat missions haven't started yet.
+  const inventory = D.inventory || [];
+  for (const invName of inventory) {
+    if (!invName || _isExcluded(invName)) continue;
+    const parts = invName.trim().split(/\\s+/);
+    if (parts.length < 2) continue;              // skip single-word entries
+    const fullName = invName.trim();
+    const lastName = parts[parts.length - 1];
+    if (activePlayerMap.has(fullName)) continue; // already tracked
+    for (const m of allMissionsFlat) {
+      if (m.pct >= 100) continue;
+      if (_isCountryMoment(m)) continue;
+      const nm = extractOwnerFromMission(m);
+      if (!nm) continue;
+      const matched = nm === fullName ||
+        nm === lastName ||
+        fullName.endsWith(' ' + nm);
+      if (matched) { _addTo(activePlayerMap, fullName, m); break; }
     }
   }
 }
@@ -1014,7 +1038,7 @@ function buildCard(m) {
   const matched  = getMatchedPlayer(m.t);
   const color    = progColor(m.pct);
   // WBC/country moment: "Name - Country" title — badge stays even when complete
-  const isCountryMoment = /^[A-Z][A-Za-z\u00C0-\u024F'-]+(?: [A-Z][A-Za-z\u00C0-\u024F'-]+)+ - [A-Z][a-z]/.test(m.t);
+  const isCountryMoment = /^[A-Z][A-Za-z\\u00C0-\\u024F'-]+(?: [A-Z][A-Za-z\\u00C0-\\u024F'-]+)+\\.?\\s*-\\s*[A-Z][a-z]/.test(m.t);
   // Other moment types: only badge when incomplete (description gone once done)
   const isMoment = isCountryMoment || (!isDone && (
     (m.d && m.d.toLowerCase().includes('moment')) ||

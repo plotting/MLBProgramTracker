@@ -839,22 +839,41 @@ def fetch_inventory(cookies: dict) -> list[str]:
         except Exception:
             pass
 
-    # Strategy 2: HTML scraping of /inventory
+    # Strategy 2: HTML scraping of /inventory (Inertia data-page JSON)
     if not player_names:
         hdrs_html = make_headers(cookies)
         body, status = get(f"{BASE}/inventory", hdrs_html)
         if status == 200 and body:
-            # Look for JSON data embedded in the page (Inertia page data)
             m_data = re.search(r'data-page=["\']({.*?})["\']', body, re.DOTALL)
             if m_data:
                 try:
                     page_data = json.loads(html_module.unescape(m_data.group(1)))
                     props = page_data.get("props", {})
-                    items = (props.get("items") or props.get("inventory") or [])
-                    for item in (items if isinstance(items, list) else []):
-                        name = item.get("name") or item.get("player_name") or ""
-                        if isinstance(name, str) and 2 < len(name.strip()) < 60:
-                            player_names.add(name.strip())
+
+                    # Save inventory JSON for debugging if no items found yet
+                    _inv_dbg = os.path.join(SCRIPT_DIR, "debug_inventory.json")
+                    with open(_inv_dbg, "w", encoding="utf-8") as _f:
+                        json.dump(props, _f, indent=2)
+
+                    # Recursively hunt for any list of objects with name-like fields
+                    def _harvest_names(obj, depth=0):
+                        if depth > 8 or not obj:
+                            return
+                        if isinstance(obj, dict):
+                            name = (obj.get("name") or obj.get("player_name") or
+                                    obj.get("display_name") or obj.get("full_name") or "")
+                            if isinstance(name, str) and 2 < len(name.strip()) < 60:
+                                # Only add if it looks like a real player name (First Last)
+                                parts = name.strip().split()
+                                if len(parts) >= 2 and parts[0][0].isupper():
+                                    player_names.add(name.strip())
+                            for v in obj.values():
+                                _harvest_names(v, depth + 1)
+                        elif isinstance(obj, list):
+                            for item in obj[:500]:
+                                _harvest_names(item, depth + 1)
+
+                    _harvest_names(props)
                 except Exception:
                     pass
 
