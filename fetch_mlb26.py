@@ -868,14 +868,22 @@ def fetch_inventory(cookies: dict) -> list[dict]:
     if not player_cards:
         hdrs_html = make_headers(cookies)
         body, status = get(f"{BASE}/inventory", hdrs_html)
+        # Dump raw HTML so we can inspect it if parsing fails
+        if body:
+            _raw_path = os.path.join(SCRIPT_DIR, "debug_inventory_raw.html")
+            with open(_raw_path, "w", encoding="utf-8", errors="replace") as _f:
+                _f.write(body[:100000])
         if status == 200 and body:
-            m_data = re.search(r'data-page=["\']({.*?})["\']', body, re.DOTALL)
+            # Try multiple attribute patterns (single-quote, double-quote, escaped)
+            m_data = (re.search(r'data-page=["\']({.*?})["\']', body, re.DOTALL) or
+                      re.search(r'data-page="({.+?})"(?=\s|>)', body, re.DOTALL) or
+                      re.search(r"data-page='({.+?})'(?=\s|>)", body, re.DOTALL))
             if m_data:
                 try:
                     page_data = json.loads(html_module.unescape(m_data.group(1)))
                     props = page_data.get("props", {})
 
-                    # Always save for debugging so we can inspect the real structure
+                    # Save parsed props for debugging
                     _inv_dbg = os.path.join(SCRIPT_DIR, "debug_inventory.json")
                     with open(_inv_dbg, "w", encoding="utf-8") as _f:
                         json.dump(props, _f, indent=2)
