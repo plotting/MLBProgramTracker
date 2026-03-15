@@ -495,16 +495,13 @@ function buildAutoInventory() {
   // ownership but must NOT drive "Use in Lineup" recommendations.
   for (const m of allMissionsFlat) {
     if (m.pct <= 0) continue;
-    const isCM = _isCountryMoment(m);
+    // Country Moments ("Name - Country") are mini-games played with a provided card —
+    // completing one does NOT mean you own that player card. Ignore entirely.
+    if (_isCountryMoment(m)) continue;
     const name = extractOwnerFromMission(m);
     if (!name || _isExcluded(name)) continue;
-    if (m.pct >= 100) {
-      _addTo(donePlayerMap, name, m);           // owned regardless of moment/stat
-    } else if (!isCM) {
-      _addTo(activePlayerMap, name, m);         // only stat missions drive lineup
-    }
-    // isCM && pct < 100: we know the player is owned (moment started) but don't
-    // add to activePlayerMap — they don't need a lineup slot for a Moment mission.
+    if (m.pct >= 100) _addTo(donePlayerMap, name, m);
+    else              _addTo(activePlayerMap, name, m);
   }
 
   // Pass 1b: REPEATABLE missions — parse eligible player names from descriptions.
