@@ -571,7 +571,8 @@ function buildAutoInventory() {
       const nm = extractOwnerFromMission(m);
       if (!nm) continue;
       const matched = nm === knownName ||
-        (!nm.includes(' ') && knownName.endsWith(' ' + nm));
+        (!nm.includes(' ') && knownName.endsWith(' ' + nm)) ||
+        nm.endsWith(' ' + knownName);   // handles series-prefix: "Jolt Adam Jones" vs "Adam Jones"
       if (matched) _addTo(activePlayerMap, knownName, m);
     }
   }
@@ -597,7 +598,8 @@ function buildAutoInventory() {
       if (!nm) continue;
       const matched = nm === fullName ||
         nm === lastName ||
-        fullName.endsWith(' ' + nm);
+        fullName.endsWith(' ' + nm) ||
+        nm.endsWith(' ' + fullName);   // handles series-prefix: "Jolt Adam Jones" vs "Adam Jones"
       if (matched) { _addTo(activePlayerMap, fullName, m); break; }
     }
   }
@@ -669,23 +671,20 @@ function _posBadge(name) {
 function _buildLineupLists() {
   const hasInventory = invMap.size > 0;
 
-  // Classify players with active stat missions:
-  //  doubleDip  — also eligible for an active REPEATABLE (double value)
-  //  useInLineup — stat missions only
-  // When inventory is loaded, gate both lists on ownership.
+  // All players with active stat missions go into useInLineup.
+  // isRepeat=true means they're also eligible for an active REPEATABLE (double value).
+  // When inventory is loaded, gate on ownership.
   const useInLineup = [];
-  const doubleDip   = [];
   for (const [name, missions] of activePlayerMap) {
     if (hasInventory && !_cardInfo(name)) continue;  // not owned — skip
     const sorted = missions.slice().sort(function(a, b) { return b.pct - a.pct; });
-    if (repeatableMap.has(name)) {
-      doubleDip.push({name, best: sorted[0]});
-    } else {
-      useInLineup.push({name, best: sorted[0]});
-    }
+    useInLineup.push({name, best: sorted[0], isRepeat: repeatableMap.has(name)});
   }
-  useInLineup.sort(function(a, b) { return b.best.pct - a.best.pct; });
-  doubleDip.sort(function(a, b) { return b.best.pct - a.best.pct; });
+  // Sort: double-dippers first (highest combined value), then by mission progress
+  useInLineup.sort(function(a, b) {
+    if (a.isRepeat !== b.isRepeat) return a.isRepeat ? -1 : 1;
+    return b.best.pct - a.best.pct;
+  });
 
   // Safe to remove: all missions done, no active work, no repeatable remaining
   const safeToRemove = [];
@@ -697,19 +696,19 @@ function _buildLineupLists() {
   // Gate on ownership when inventory is loaded.
   const repeatableOnly = [];
   for (const [name, missions] of repeatableMap) {
-    if (activePlayerMap.has(name)) continue;  // already in doubleDip
+    if (activePlayerMap.has(name)) continue;  // already in useInLineup
     if (hasInventory && !_cardInfo(name)) continue;
     const best = missions.slice().sort(function(a, b) { return b.pct - a.pct; })[0];
     repeatableOnly.push({name, best});
   }
   repeatableOnly.sort(function(a, b) { return b.best.pct - a.best.pct; });
 
-  return {useInLineup, doubleDip, safeToRemove, repeatableOnly};
+  return {useInLineup, safeToRemove, repeatableOnly};
 }
 
 function renderHome() {
   const content = document.getElementById('content');
-  const {useInLineup, doubleDip, safeToRemove, repeatableOnly} = _buildLineupLists();
+  const {useInLineup, safeToRemove, repeatableOnly} = _buildLineupLists();
 
   // 10 closest incomplete missions (across all programs), pct > 0
   const closest = allMissionsFlat
@@ -721,24 +720,37 @@ function renderHome() {
   const showRecent = recentlyCompleted.length > 0;
   const recentShow = recentlyCompleted.slice(-10).reverse();
 
-  // Helper: render a lineup player row (with position badge if available)
-  function lineupRow(name, pct, color) {
+  // Render a lineup player row — shows name, position badge, optional REP badge,
+  // mission goal title, and progress bar.
+  function lineupRow(name, pct, color, goalTitle, isRepeatAlso) {
+    const repBadge = isRepeatAlso
+      ? '<span style="font-size:8px;background:#5b21b6;color:#ddd6fe;padding:1px 5px;'
+        + 'border-radius:2px;font-weight:700;margin-left:4px;vertical-align:middle">REP</span>'
+      : '';
     return '<div class="home-player-row">'
       + '<span class="home-player-name" style="color:#e2e8f0;display:flex;align-items:center;flex-wrap:wrap;gap:2px">'
-      +   '&#9733; ' + name + _posBadge(name)
+      +   '&#9733; ' + name + _posBadge(name) + repBadge
       + '</span>'
-      + '<div class="home-player-bar"><div style="width:' + pct + '%;height:100%;background:' + color + ';border-radius:2px"></div></div>'
-      + '<span class="home-player-pct" style="color:' + color + '">' + pct + '%</span>'
+      + '<div style="flex:1;min-width:60px">'
+      +   (goalTitle
+            ? '<div style="font-size:10px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px">'
+              + goalTitle + '</div>'
+            : '')
+      +   '<div style="display:flex;align-items:center;gap:4px">'
+      +     '<div class="home-player-bar"><div style="width:' + pct + '%;height:100%;background:' + color + ';border-radius:2px"></div></div>'
+      +     '<span class="home-player-pct" style="color:' + color + '">' + pct + '%</span>'
+      +   '</div>'
+      + '</div>'
       + '</div>';
   }
 
-  // Lineup card HTML
+  // Lineup card HTML — all owned players with active stat missions
   let useHtml = '';
   if (useInLineup.length) {
-    for (const {name, best} of useInLineup) {
+    for (const {name, best, isRepeat} of useInLineup) {
       const pct = best.pct;
-      const c = progColor(pct);
-      useHtml += lineupRow(name, pct, c);
+      const c   = progColor(pct);
+      useHtml += lineupRow(name, pct, c, best.t, isRepeat);
     }
   } else {
     useHtml = '<div class="home-empty">No active missions detected</div>';
@@ -775,28 +787,9 @@ function renderHome() {
   }
 
   let repeatHtml = '';
-  if (doubleDip.length || repeatableOnly.length) {
-    // ── Section 1: Double-dip players (stat mission + repeatable) ──────────
-    if (doubleDip.length) {
-      repeatHtml +=
-        '<div style="font-size:10px;font-weight:700;color:#fbbf24;text-transform:uppercase;'
-        + 'letter-spacing:.05em;padding:4px 0 3px;border-bottom:1px solid rgba(251,191,36,.2);margin-bottom:4px">'
-        + '&#9889; Counts for open stat mission too</div>';
-      for (const {name, best} of doubleDip) {
-        repeatHtml += repRow(name, best);
-      }
-    }
-    // ── Section 2: Repeatable-only players ─────────────────────────────────
-    if (repeatableOnly.length) {
-      if (doubleDip.length) {
-        repeatHtml +=
-          '<div style="font-size:10px;font-weight:700;color:#a78bfa;text-transform:uppercase;'
-          + 'letter-spacing:.05em;padding:6px 0 3px;border-bottom:1px solid rgba(167,139,250,.2);margin-bottom:4px">'
-          + '&#9733; Repeatable XP only</div>';
-      }
-      for (const {name, best} of repeatableOnly) {
-        repeatHtml += repRow(name, best);
-      }
+  if (repeatableOnly.length) {
+    for (const {name, best} of repeatableOnly) {
+      repeatHtml += repRow(name, best);
     }
   } else {
     repeatHtml = '<div class="home-empty">None detected</div>';

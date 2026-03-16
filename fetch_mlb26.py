@@ -853,18 +853,25 @@ def extract_program_xp(html_body: str) -> tuple:
 
 def _parse_positions(item: dict) -> tuple[str, list[str]]:
     """Extract (primary_pos, all_positions) from an inventory item dict."""
-    pos = str(item.get("position") or item.get("primary_position") or
-              item.get("display_position") or item.get("pos") or "").strip().upper()
-    # secondary / all positions list
+    raw_pos = str(item.get("position") or item.get("primary_position") or
+                  item.get("display_position") or item.get("pos") or "").strip().upper()
+    # Handle slash-separated positions like "1B/DH" or "OF/DH/1B"
+    slash_parts = [p.strip() for p in raw_pos.split("/") if p.strip()]
+    pos = slash_parts[0] if slash_parts else raw_pos
+
+    # secondary / all positions list from API fields
     sec_raw = (item.get("secondary_positions") or item.get("positions") or
                item.get("eligible_positions") or [])
     if isinstance(sec_raw, str):
-        sec_raw = [s.strip() for s in sec_raw.split(",") if s.strip()]
+        sec_raw = [s.strip() for s in sec_raw.replace("/", ",").split(",") if s.strip()]
     positions = []
-    for p in ([pos] if pos else []) + list(sec_raw):
+    # start with slash-decoded primary parts, then add explicit secondary fields
+    for p in slash_parts + list(sec_raw):
         p = str(p).strip().upper()
         if p and p not in positions:
             positions.append(p)
+    if not positions and pos:
+        positions = [pos]
     return pos, positions
 
 
@@ -928,7 +935,14 @@ def fetch_inventory(cookies: dict) -> list[dict]:
         try:
             data = json.loads(body)
             inv_total_pages = int(data.get("total_pages", 1))
-            for item in (data.get("inventory") or []):
+            items_this_page  = data.get("inventory") or []
+            # Dump first page once so we can inspect all available fields
+            if inv_page == 1:
+                _api_dbg = os.path.join(SCRIPT_DIR, "debug_inventory_api.json")
+                with open(_api_dbg, "w", encoding="utf-8") as _f:
+                    json.dump({"total_pages": inv_total_pages,
+                               "sample_items": items_this_page[:5]}, _f, indent=2)
+            for item in items_this_page:
                 if not isinstance(item, dict):
                     continue
                 # Skip unowned cards (quantity == "0")
