@@ -8,6 +8,7 @@ The script automatically reads your Chrome session from the browser
 Fetches all program missions and rebuilds the HTML tracker.
 """
 
+from __future__ import annotations
 import json, sys, os, re, time, shutil, sqlite3, tempfile, html as html_module, datetime
 import urllib.request, urllib.error, urllib.parse, ctypes, ctypes.wintypes, base64, subprocess
 

@@ -1351,5 +1351,4 @@ out_path = os.path.join(SCRIPT_DIR, 'MLB Team Affinity Tracker.html')
 with open(out_path, 'w', encoding='utf-8') as f:
     f.write(html)
 
-import os
-print('Done! Size:', os.path.getsize('C:/Users/jeffr/Claude/MLB Team Affinity Tracker.html'), 'bytes')
+print('Done! Size:', os.path.getsize(out_path), 'bytes')
