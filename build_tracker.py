@@ -667,40 +667,49 @@ function _posBadge(name) {
 }
 
 function _buildLineupLists() {
-  // Use in lineup: has active (incomplete) non-Moment missions
+  const hasInventory = invMap.size > 0;
+
+  // Classify players with active stat missions:
+  //  doubleDip  — also eligible for an active REPEATABLE (double value)
+  //  useInLineup — stat missions only
+  // When inventory is loaded, gate both lists on ownership.
   const useInLineup = [];
+  const doubleDip   = [];
   for (const [name, missions] of activePlayerMap) {
+    if (hasInventory && !_cardInfo(name)) continue;  // not owned — skip
     const sorted = missions.slice().sort(function(a, b) { return b.pct - a.pct; });
-    useInLineup.push({name, best: sorted[0]});
+    if (repeatableMap.has(name)) {
+      doubleDip.push({name, best: sorted[0]});
+    } else {
+      useInLineup.push({name, best: sorted[0]});
+    }
   }
   useInLineup.sort(function(a, b) { return b.best.pct - a.best.pct; });
+  doubleDip.sort(function(a, b) { return b.best.pct - a.best.pct; });
 
-  // Safe to remove: in donePlayerMap but NOT in activePlayerMap or repeatableMap
+  // Safe to remove: all missions done, no active work, no repeatable remaining
   const safeToRemove = [];
   for (const name of donePlayerMap.keys()) {
     if (!activePlayerMap.has(name) && !repeatableMap.has(name)) safeToRemove.push(name);
   }
 
-  // Repeatable contributors: eligible for an active REPEATABLE, not already in lineup.
-  // If we have inventory data, only include players the user actually owns — otherwise
-  // fall back to showing all eligible players (so the panel is never empty on first run).
-  const hasInventory = invMap.size > 0;
-  const repeatableContribs = [];
+  // Repeatable-only: eligible for REPEATABLE but no active stat mission.
+  // Gate on ownership when inventory is loaded.
+  const repeatableOnly = [];
   for (const [name, missions] of repeatableMap) {
-    if (activePlayerMap.has(name)) continue;  // already shown in "Use in Lineup"
-    // Ownership gate: skip players we know we don't own (only when inventory is loaded)
+    if (activePlayerMap.has(name)) continue;  // already in doubleDip
     if (hasInventory && !_cardInfo(name)) continue;
     const best = missions.slice().sort(function(a, b) { return b.pct - a.pct; })[0];
-    repeatableContribs.push({name, best});
+    repeatableOnly.push({name, best});
   }
-  repeatableContribs.sort(function(a, b) { return b.best.pct - a.best.pct; });
+  repeatableOnly.sort(function(a, b) { return b.best.pct - a.best.pct; });
 
-  return {useInLineup, safeToRemove, repeatableContribs};
+  return {useInLineup, doubleDip, safeToRemove, repeatableOnly};
 }
 
 function renderHome() {
   const content = document.getElementById('content');
-  const {useInLineup, safeToRemove, repeatableContribs} = _buildLineupLists();
+  const {useInLineup, doubleDip, safeToRemove, repeatableOnly} = _buildLineupLists();
 
   // 10 closest incomplete missions (across all programs), pct > 0
   const closest = allMissionsFlat
@@ -747,23 +756,47 @@ function renderHome() {
     removeHtml = '<div class="home-empty">None yet</div>';
   }
 
+  // Helper: render one repeatable-contrib row
+  function repRow(name, best) {
+    const pct = best.pct;
+    const c   = progColor(pct);
+    return '<div class="home-player-row">'
+      + '<span class="home-player-name" style="color:#e2e8f0;display:flex;align-items:center;flex-wrap:wrap;gap:2px">&#9654; ' + name + _posBadge(name) + '</span>'
+      + '<div style="flex:1;min-width:60px">'
+      +   '<div style="font-size:10px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px">'
+      +     best.t.replace(/^REPEATABLE:\s*/i, '')
+      +   '</div>'
+      +   '<div style="display:flex;align-items:center;gap:4px">'
+      +     '<div class="home-player-bar"><div style="width:' + pct + '%;height:100%;background:' + c + ';border-radius:2px"></div></div>'
+      +     '<span class="home-player-pct" style="color:' + c + '">' + pct + '%</span>'
+      +   '</div>'
+      + '</div>'
+      + '</div>';
+  }
+
   let repeatHtml = '';
-  if (repeatableContribs.length) {
-    for (const {name, best} of repeatableContribs) {
-      const pct = best.pct;
-      const c = progColor(pct);
-      repeatHtml += '<div class="home-player-row">'
-        + '<span class="home-player-name" style="color:#e2e8f0;display:flex;align-items:center;flex-wrap:wrap;gap:2px">&#9654; ' + name + _posBadge(name) + '</span>'
-        + '<div style="flex:1;min-width:60px">'
-        +   '<div style="font-size:10px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px">'
-        +     best.t.replace(/^REPEATABLE:\\s*/i, '')
-        +   '</div>'
-        +   '<div style="display:flex;align-items:center;gap:4px">'
-        +     '<div class="home-player-bar"><div style="width:' + pct + '%;height:100%;background:' + c + ';border-radius:2px"></div></div>'
-        +     '<span class="home-player-pct" style="color:' + c + '">' + pct + '%</span>'
-        +   '</div>'
-        + '</div>'
-        + '</div>';
+  if (doubleDip.length || repeatableOnly.length) {
+    // ── Section 1: Double-dip players (stat mission + repeatable) ──────────
+    if (doubleDip.length) {
+      repeatHtml +=
+        '<div style="font-size:10px;font-weight:700;color:#fbbf24;text-transform:uppercase;'
+        + 'letter-spacing:.05em;padding:4px 0 3px;border-bottom:1px solid rgba(251,191,36,.2);margin-bottom:4px">'
+        + '&#9889; Counts for open stat mission too</div>';
+      for (const {name, best} of doubleDip) {
+        repeatHtml += repRow(name, best);
+      }
+    }
+    // ── Section 2: Repeatable-only players ─────────────────────────────────
+    if (repeatableOnly.length) {
+      if (doubleDip.length) {
+        repeatHtml +=
+          '<div style="font-size:10px;font-weight:700;color:#a78bfa;text-transform:uppercase;'
+          + 'letter-spacing:.05em;padding:6px 0 3px;border-bottom:1px solid rgba(167,139,250,.2);margin-bottom:4px">'
+          + '&#9733; Repeatable XP only</div>';
+      }
+      for (const {name, best} of repeatableOnly) {
+        repeatHtml += repRow(name, best);
+      }
     }
   } else {
     repeatHtml = '<div class="home-empty">None detected</div>';

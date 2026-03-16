@@ -914,23 +914,63 @@ def fetch_inventory(cookies: dict) -> list[dict]:
             if name and pos and re.match(r'^[A-Z1-9]', pos):
                 _add_card({"name": name, "pos": pos, "positions": [pos]})
 
-    # Strategy 1: public /apis/mlb_cards endpoint (used by prior Show versions)
-    for api_path in ("/apis/mlb_cards.json", "/apis/items.json", "/apis/owned_cards.json"):
-        body, status = get(f"{BASE}{api_path}", make_headers(cookies))
-        if status == 200 and body:
-            try:
-                data = json.loads(body)
-                items = data if isinstance(data, list) else (
-                    data.get("mlb_cards") or data.get("items") or data.get("cards") or [])
-                for item in (items if isinstance(items, list) else []):
-                    if isinstance(item, dict):
-                        _add_card(item)
-                if player_cards:
-                    break
-            except Exception:
-                pass
+    # ── Strategy 1: Official /apis/inventory.json?type=mlb_card ──────────────
+    # Paginated JSON API — the canonical source for owned cards.
+    # Response: {page, per_page, total_pages, inventory: [{name, quantity, ...}]}
+    api_pages_fetched = 0
+    inv_total_pages = 1
+    inv_page = 1
+    while inv_page <= inv_total_pages:
+        url = f"{BASE}/apis/inventory.json?type=mlb_card&page={inv_page}"
+        body, status = get(url, make_headers(cookies))
+        if status != 200 or not body:
+            break
+        try:
+            data = json.loads(body)
+            inv_total_pages = int(data.get("total_pages", 1))
+            for item in (data.get("inventory") or []):
+                if not isinstance(item, dict):
+                    continue
+                # Skip unowned cards (quantity == "0")
+                if str(item.get("quantity", "0")) == "0":
+                    continue
+                _add_card(item)
+            api_pages_fetched = inv_page
+        except Exception:
+            break
+        if inv_page >= inv_total_pages:
+            break
+        inv_page += 1
+        time.sleep(0.25)
+    if player_cards:
+        print(f"  [inventory] API: {len(player_cards)} owned cards "
+              f"({api_pages_fetched}/{inv_total_pages} pages)")
 
-    # Strategy 2: Inertia JSON API at /inventory
+    # ── Strategy 2: HTML table — always run for position enrichment ───────────
+    # The /inventory page renders a table with Pos column.  Run up to 10 pages
+    # to add position data to entries already found by Strategy 1, or to discover
+    # cards that the API missed.  Save page 1 for diagnostics.
+    hdrs_html = make_headers(cookies)
+    for page in range(1, 11):
+        url = f"{BASE}/inventory?type=mlb_card&ownership=my_cards&page={page}"
+        body, status = get(url, hdrs_html)
+        if page == 1 and body:
+            _raw_path = os.path.join(SCRIPT_DIR, "debug_inventory_raw.html")
+            with open(_raw_path, "w", encoding="utf-8", errors="replace") as _f:
+                _f.write(body[:100000])
+        if status != 200 or not body:
+            break
+        before_len  = len(player_cards)
+        before_pos  = sum(1 for c in player_cards.values() if c.get("pos"))
+        _parse_inv_table(body)
+        new_names = len(player_cards) - before_len
+        new_pos   = sum(1 for c in player_cards.values() if c.get("pos")) - before_pos
+        # Stop when a page contributes neither new names nor new position data
+        if new_names == 0 and new_pos == 0 and page > 1:
+            break
+        time.sleep(0.25)
+
+    # ── Strategy 3: Inertia JSON fallback ─────────────────────────────────────
     if not player_cards:
         body, status = get(f"{BASE}/inventory", make_headers(cookies, inertia=True))
         if status == 200 and body:
@@ -945,32 +985,6 @@ def fetch_inventory(cookies: dict) -> list[dict]:
                             _add_card(item)
             except Exception:
                 pass
-
-    # Strategy 3: HTML table scrape of /inventory — always runs to get owned cards.
-    # The inventory page is a traditional HTML table (not SPA), paginated.
-    # Request with ownership=my_cards filter to skip the thousands of unowned cards.
-    hdrs_html = make_headers(cookies)
-    owned_found = 0
-    for page in range(1, 21):   # up to 20 pages (~500 owned cards)
-        url = f"{BASE}/inventory?type=mlb_card&ownership=my_cards&page={page}"
-        body, status = get(url, hdrs_html)
-        if page == 1 and body:
-            _raw_path = os.path.join(SCRIPT_DIR, "debug_inventory_raw.html")
-            with open(_raw_path, "w", encoding="utf-8", errors="replace") as _f:
-                _f.write(body[:100000])
-        if status != 200 or not body:
-            break
-        before = len(player_cards)
-        _parse_inv_table(body)
-        new_this_page = len(player_cards) - before
-        owned_found += new_this_page
-        # Stop when a page adds no new cards — we've exhausted the owned inventory.
-        # Don't rely on JS-rendered pagination links; just stop on an empty page.
-        if new_this_page == 0 and page > 1:
-            break
-        time.sleep(0.25)
-    if owned_found:
-        print(f"  [inventory] HTML table: {owned_found} owned player cards found")
 
     # Strategy 4: Squad/roster endpoint as final fallback
     if not player_cards:
