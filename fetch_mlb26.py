@@ -585,12 +585,46 @@ def expand_program_links(links: list[str], headers: dict) -> list[str]:
         if url not in seen:
             seen.add(url); expanded.append(url)
 
-    def _scrape_program_views(body):
-        views = []
-        for m in re.finditer(r'href=["\']([^"\']*program_view[^"\']*)["\']', body):
+    def _extract_links_from_body(body: str, keyword: str) -> list[str]:
+        """Find links containing keyword from both HTML hrefs and embedded Inertia JSON."""
+        found = []
+        seen_f: set[str] = set()
+
+        # HTML href scan
+        for m in re.finditer(r'href=["\']([^"\']*' + keyword + r'[^"\']*)["\']', body):
             raw = html_module.unescape(m.group(1))
-            views.append(BASE + raw if raw.startswith("/") else raw)
-        return views
+            url = BASE + raw if raw.startswith("/") else raw
+            if url not in seen_f:
+                seen_f.add(url); found.append(url)
+
+        # Inertia data-page JSON scan (site is an SPA — real links live in JSON, not hrefs)
+        dp = re.search(r'data-page=["\']({.*?})["\']', body, re.DOTALL)
+        if dp:
+            try:
+                page_data = json.loads(html_module.unescape(dp.group(1)))
+                def _harvest(obj, depth=0):
+                    if depth > 8 or not obj:
+                        return
+                    if isinstance(obj, dict):
+                        for key in ("url", "href", "path", "link", "route"):
+                            val = obj.get(key)
+                            if isinstance(val, str) and keyword in val:
+                                full = BASE + val if val.startswith("/") else val
+                                if full not in seen_f:
+                                    seen_f.add(full); found.append(full)
+                        for v in obj.values():
+                            _harvest(v, depth + 1)
+                    elif isinstance(obj, list):
+                        for item in obj[:300]:
+                            _harvest(item, depth + 1)
+                _harvest(page_data.get("props", page_data))
+            except Exception:
+                pass
+
+        return found
+
+    def _scrape_program_views(body: str) -> list[str]:
+        return _extract_links_from_body(body, "program_view")
 
     for url in links:
         path = urllib.parse.urlparse(url).path
@@ -604,40 +638,58 @@ def expand_program_links(links: list[str], headers: dict) -> list[str]:
             time.sleep(0.3)
 
         elif "team_affinity" in path and "team_affinity_by_team" not in path:
-            # League listing (AL or NL) — find both AL + NL pages then all team links
-            league_pages = [url]
-            body, status = get(url, headers)
-            if status == 200 and body:
-                # Find the other league link on this page
-                for m in re.finditer(r'href=["\']([^"\']*team_affinity\?[^"\']*league=[^"\']*)["\']', body):
-                    raw = html_module.unescape(m.group(1))
-                    other = BASE + raw if raw.startswith("/") else raw
-                    if other not in league_pages:
-                        league_pages.append(other)
-            # Fetch each league page and collect team links
-            team_links_all = []
-            for league_url in league_pages:
+            # League tile — must fetch BOTH AL and NL explicitly.
+            # The site is an Inertia SPA: the "other league" tab is rendered client-side
+            # so we can never find it via HTML href scanning.  Instead we derive both
+            # league URLs from the known URL pattern and try each one.
+            parsed    = urllib.parse.urlparse(url)
+            base_path = parsed.scheme + "://" + parsed.netloc + parsed.path
+
+            # Build explicit AL and NL URLs (also keep bare path as fallback)
+            league_urls: list[str] = []
+            for league in ("AL", "NL"):
+                lurl = f"{base_path}?league={league}"
+                if lurl not in league_urls:
+                    league_urls.append(lurl)
+            if base_path not in league_urls:
+                league_urls.insert(0, base_path)
+
+            # Collect all team links across both leagues
+            team_links_all: list[str] = []
+            print(f"  Fetching team affinity pages (AL + NL)...")
+            for league_url in league_urls:
                 lbody, lstatus = get(league_url, headers)
                 if lstatus == 200 and lbody:
-                    for m in re.finditer(r'href=["\']([^"\']*team_affinity_by_team[^"\']*)["\']', lbody):
-                        raw = html_module.unescape(m.group(1))
-                        turl = BASE + raw if raw.startswith("/") else raw
+                    for turl in _extract_links_from_body(lbody, "team_affinity_by_team"):
                         if turl not in team_links_all:
                             team_links_all.append(turl)
                 time.sleep(0.3)
-            for turl in team_links_all:
+
+            print(f"  Found {len(team_links_all)} teams — fetching program links...")
+            for idx, turl in enumerate(team_links_all, 1):
                 tbody, tstatus = get(turl, headers)
                 if tstatus == 200 and tbody:
-                    for pv in _scrape_program_views(tbody):
+                    pvs = _scrape_program_views(tbody)
+                    for pv in pvs:
                         _add(pv)
+                    # Print team name from URL for progress feedback
+                    team_slug = urllib.parse.parse_qs(
+                        urllib.parse.urlparse(turl).query
+                    ).get("team_id", [turl[-20:]])[0]
+                    print(f"    [{idx:2}/{len(team_links_all)}] {team_slug} → {len(pvs)} program(s)")
+                else:
+                    print(f"    [{idx:2}/{len(team_links_all)}] SKIP ({tstatus})")
                 time.sleep(0.3)
 
         elif "other_programs" in path:
             # Other programs listing
+            print(f"  Fetching other programs listing...")
             body, status = get(url, headers)
             if status == 200 and body:
-                for pv in _scrape_program_views(body):
+                pvs = _scrape_program_views(body)
+                for pv in pvs:
                     _add(pv)
+                print(f"  Found {len(pvs)} other program link(s)")
             time.sleep(0.3)
 
         else:
@@ -861,7 +913,9 @@ def _parse_positions(item: dict) -> tuple[str, list[str]]:
     pos = slash_parts[0] if slash_parts else raw_pos
 
     # secondary / all positions list from API fields
-    sec_raw = (item.get("secondary_positions") or item.get("positions") or
+    # Note: official inventory API uses "display_secondary_positions" (may be comma/slash string)
+    sec_raw = (item.get("display_secondary_positions") or
+               item.get("secondary_positions") or item.get("positions") or
                item.get("eligible_positions") or [])
     if isinstance(sec_raw, str):
         sec_raw = [s.strip() for s in sec_raw.replace("/", ",").split(",") if s.strip()]
