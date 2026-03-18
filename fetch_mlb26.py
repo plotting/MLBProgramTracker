@@ -933,9 +933,14 @@ def _parse_positions(item: dict) -> tuple[str, list[str]]:
 def fetch_inventory(cookies: dict) -> list[dict]:
     """
     Fetch the user's MLB player card names (and positions) from their inventory.
-    Returns a sorted list of dicts: [{name, pos, positions}, ...]
+    Returns a sorted list of dicts: [{name, pos, positions, series}, ...]
+
+    A player can appear multiple times with different series (e.g. "Adam Jones" with
+    series "Jolt" AND series "Live Series").  We key on (name, series) so every
+    distinct owned card is preserved — this lets the JS invMap build compound keys
+    like "Jolt Adam Jones" that series-specific missions can match against exactly.
     """
-    player_cards: dict[str, dict] = {}   # name -> {name, pos, positions}
+    player_cards: dict[tuple[str, str], dict] = {}   # (name, series) -> card dict
 
     def _add_card(item: dict) -> None:
         name = str(item.get("name") or item.get("player_name") or
@@ -948,16 +953,15 @@ def fetch_inventory(cookies: dict) -> list[dict]:
         pos, positions = _parse_positions(item)
         series = str(item.get("series") or item.get("card_series") or
                      item.get("series_name") or "").strip()
-        if name not in player_cards:
-            player_cards[name] = {"name": name, "pos": pos, "positions": positions,
-                                  "series": series}
+        key = (name, series)
+        if key not in player_cards:
+            player_cards[key] = {"name": name, "pos": pos, "positions": positions,
+                                 "series": series}
         else:
-            existing = player_cards[name]
+            # Already have this exact (name, series) combo — update pos if missing
+            existing = player_cards[key]
             if not existing.get("pos") and pos:
                 existing.update({"pos": pos, "positions": positions})
-            # Keep series if not yet set (API fills it; HTML table pass may not)
-            if not existing.get("series") and series:
-                existing["series"] = series
 
     def _parse_inv_table(html_body: str) -> None:
         """Parse the HTML inventory table and add owned player cards."""
