@@ -645,14 +645,21 @@ def expand_program_links(links: list[str], headers: dict) -> list[str]:
             parsed    = urllib.parse.urlparse(url)
             base_path = parsed.scheme + "://" + parsed.netloc + parsed.path
 
-            # Build explicit AL and NL URLs (also keep bare path as fallback)
+            # Build explicit AL and NL URLs preserving any existing query params
+            # (e.g. group_id=10015 must be kept — without it the server returns
+            #  an empty page with no team links).
+            existing_qs = urllib.parse.parse_qs(parsed.query, keep_blank_values=True)
             league_urls: list[str] = []
             for league in ("AL", "NL"):
-                lurl = f"{base_path}?league={league}"
+                qs = {k: v[0] for k, v in existing_qs.items()}
+                qs["league"] = league
+                lurl = base_path + "?" + urllib.parse.urlencode(qs)
                 if lurl not in league_urls:
                     league_urls.append(lurl)
-            if base_path not in league_urls:
-                league_urls.insert(0, base_path)
+            # Also keep the bare URL (with original params) as a fallback
+            bare = base_path + ("?" + parsed.query if parsed.query else "")
+            if bare not in league_urls:
+                league_urls.insert(0, bare)
 
             # Collect all team links across both leagues
             team_links_all: list[str] = []
