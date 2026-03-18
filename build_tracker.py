@@ -418,14 +418,15 @@ const donePlayerMap   = new Map();
 const repeatableMap   = new Map();
 
 function extractOwnerFromMission(m) {
+  const title = m.t || '';
   // 1. "Firstname Lastname - Country" WBC-style title → name before the dash
-  const cp = m.t.match(/^([A-Z][A-Za-z\\u00C0-\\u024F'-]+(?: [A-Z][A-Za-z\\u00C0-\\u024F'-]+)+)\\.?\\s*-\\s*[A-Z][a-z]/);
+  const cp = title.match(/^([A-Z][A-Za-z\\u00C0-\\u024F'-]+(?: [A-Z][A-Za-z\\u00C0-\\u024F'-]+)+)\\.?\\s*-\\s*[A-Z][a-z]/);
   if (cp) return cp[1];
   // 2. "with Name" in description (e.g. "Record 10 Ks with Seth Lugo")
   const dp = (m.d || '').match(/\\bwith\\s+([A-Z][A-Za-z\\u00C0-\\u024F'-]+(?: [A-Z][A-Za-z\\u00C0-\\u024F'-]+){1,3})/);
   if (dp) return dp[1];
   // 3. "w/ Name" at end of title, allowing optional trailing "Jr." / "Sr."
-  const tp = m.t.match(/\\bw\\/\\s*([A-Z][A-Za-z\\u00C0-\\u024F'-]+(?: [A-Z][A-Za-z\\u00C0-\\u024F'-]+)*(?:\\s+[JS]r\\.?)?)\\s*\\.?\\s*$/i);
+  const tp = title.match(/\\bw\\/\\s*([A-Z][A-Za-z\\u00C0-\\u024F'-]+(?: [A-Z][A-Za-z\\u00C0-\\u024F'-]+)*(?:\\s+[JS]r\\.?)?)\\s*\\.?\\s*$/i);
   if (tp) return tp[1].replace(/\\.\\s*$/, '').trim();
   return null;
 }
@@ -439,7 +440,7 @@ function _isExcluded(name) {
 // These are played in Moments mode — they identify ownership but don't need lineup use.
 function _isCountryMoment(m) {
   // Allow optional trailing "." (handles "Dante Bichette Jr. - Brazil")
-  return /^[A-Z][A-Za-z\\u00C0-\\u024F'-]+(?: [A-Z][A-Za-z\\u00C0-\\u024F'-]+)+\\.?\\s*-\\s*[A-Z][a-z]/.test(m.t);
+  return /^[A-Z][A-Za-z\\u00C0-\\u024F'-]+(?: [A-Z][A-Za-z\\u00C0-\\u024F'-]+)+\\.?\\s*-\\s*[A-Z][a-z]/.test(m.t || '');
 }
 
 // Parse "Eligible players include X, Y, and Z" from REPEATABLE descriptions

@@ -965,27 +965,27 @@ def fetch_inventory(cookies: dict) -> list[dict]:
 
     def _parse_inv_table(html_body: str) -> None:
         """Parse the HTML inventory table and add owned player cards."""
-        # Rows: <tr> with cells for Qty | Player | Overall | Pos | Team | Series | ...
+        # Table columns: Qty(0) | img(1) | Player(2) | Overall(3) | Pos(4) | Team(5) | Series(6) | ...
         for row in re.finditer(r'<tr[^>]*>(.*?)</tr>', html_body, re.DOTALL | re.IGNORECASE):
             cells = re.findall(r'<td[^>]*>(.*?)</td>', row.group(1), re.DOTALL | re.IGNORECASE)
-            if len(cells) < 4:
+            if len(cells) < 5:
                 continue
             # Qty cell — skip cards the user doesn't own (0x)
             qty_text = re.sub(r'<[^>]+>', '', cells[0]).strip()
             m_qty = re.search(r'(\d+)', qty_text)
             if not m_qty or int(m_qty.group(1)) == 0:
                 continue
-            # Player name (strip all tags; name may be in a link inside the cell)
-            name = html_module.unescape(re.sub(r'<[^>]+>', ' ', cells[1])).strip()
+            # Player name is in cells[2] (cells[1] is the thumbnail image cell)
+            name = html_module.unescape(re.sub(r'<[^>]+>', ' ', cells[2])).strip()
             name = re.sub(r'\s+', ' ', name).strip()
-            # Overall rating cell
-            overall = re.sub(r'<[^>]+>', '', cells[2]).strip()
-            # Position cell
-            pos = re.sub(r'<[^>]+>', '', cells[3]).strip().upper()
-            # Team cell (optional)
-            team = re.sub(r'<[^>]+>', '', cells[4]).strip() if len(cells) > 4 else ''
-            # Series column (column 5) if present
-            series_raw = re.sub(r'<[^>]+>', '', cells[5]).strip() if len(cells) > 5 else ''
+            # Overall rating cell (cells[3])
+            overall = re.sub(r'<[^>]+>', '', cells[3]).strip()
+            # Position cell (cells[4], not cells[3] which is Overall rating)
+            pos = re.sub(r'<[^>]+>', '', cells[4]).strip().upper()
+            # Team cell (cells[5])
+            team = re.sub(r'<[^>]+>', '', cells[5]).strip() if len(cells) > 5 else ''
+            # Series column (cells[6], not cells[5] which is Team)
+            series_raw = re.sub(r'<[^>]+>', '', cells[6]).strip() if len(cells) > 6 else ''
             # Allow standard positions including 1B/2B/3B (start with digit)
             if name and pos and re.match(r'^[A-Z1-9]', pos):
                 _add_card({"name": name, "pos": pos, "positions": [pos],
