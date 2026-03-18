@@ -570,10 +570,14 @@ function buildAutoInventory() {
       if (_isCountryMoment(m)) continue;        // Moments don't need lineup
       const nm = extractOwnerFromMission(m);
       if (!nm) continue;
-      const matched = nm === knownName ||
-        (!nm.includes(' ') && knownName.endsWith(' ' + nm)) ||
-        nm.endsWith(' ' + knownName);   // handles series-prefix: "Jolt Adam Jones" vs "Adam Jones"
-      if (matched) _addTo(activePlayerMap, knownName, m);
+      if (nm === knownName || (!nm.includes(' ') && knownName.endsWith(' ' + nm))) {
+        // Plain match or last-name match — use the known (owned) name as key
+        _addTo(activePlayerMap, knownName, m);
+      } else if (nm.endsWith(' ' + knownName)) {
+        // Series-prefix match: mission says "Jolt Adam Jones", known card is "Adam Jones"
+        // Key on nm so _cardInfo checks for the specific series card in invMap
+        _addTo(activePlayerMap, nm, m);
+      }
     }
   }
 
@@ -596,11 +600,14 @@ function buildAutoInventory() {
       if (_isCountryMoment(m)) continue;
       const nm = extractOwnerFromMission(m);
       if (!nm) continue;
-      const matched = nm === fullName ||
-        nm === lastName ||
-        fullName.endsWith(' ' + nm) ||
-        nm.endsWith(' ' + fullName);   // handles series-prefix: "Jolt Adam Jones" vs "Adam Jones"
-      if (matched) { _addTo(activePlayerMap, fullName, m); break; }
+      if (nm === fullName || nm === lastName || fullName.endsWith(' ' + nm)) {
+        // Plain / last-name match — card name is sufficient, use fullName as key
+        _addTo(activePlayerMap, fullName, m); break;
+      } else if (nm.endsWith(' ' + fullName)) {
+        // Series-prefix match: mission says "Jolt Adam Jones", card is "Adam Jones"
+        // Key on nm so _cardInfo checks invMap for the specific "Jolt Adam Jones" entry
+        _addTo(activePlayerMap, nm, m); break;
+      }
     }
   }
 }
@@ -636,22 +643,34 @@ function selectHome() {
 }
 
 // Build a name→card lookup from inventory (supports both old string[] and new {name,pos}[])
+// Indexed by: exact name, "Series Name" compound key, and last name (for 2-word names only).
 const invMap = new Map();
 for (const entry of (D.inventory || [])) {
   if (typeof entry === 'string') {
-    invMap.set(entry, {pos: '', positions: []});
+    invMap.set(entry, {pos: '', positions: [], series: ''});
   } else if (entry && entry.name) {
     invMap.set(entry.name, entry);
-    // Also index by last name for fuzzy lookup
+    // Index by "Series Name" so missions like "Jolt Adam Jones" resolve to the correct card
+    if (entry.series) {
+      const skey = entry.series + ' ' + entry.name;
+      if (!invMap.has(skey)) invMap.set(skey, entry);
+    }
+    // Also index by last name for simple "First Last" lookups only
     const last = entry.name.split(' ').pop();
     if (last && !invMap.has(last)) invMap.set(last, entry);
   }
 }
 function _cardInfo(name) {
   if (invMap.has(name)) return invMap.get(name);
-  // Fuzzy: try last name
-  const last = name.split(' ').pop();
-  return invMap.get(last) || null;
+  // Last-name fallback only for simple two-word names ("First Last").
+  // Series-prefixed names like "Jolt Adam Jones" must match exactly via the
+  // "Series Name" key above — last-name would be too greedy and match any card.
+  const parts = name.split(' ');
+  if (parts.length <= 2) {
+    const last = parts[parts.length - 1];
+    if (last && invMap.has(last)) return invMap.get(last);
+  }
+  return null;
 }
 function _posBadge(name) {
   const card = _cardInfo(name);

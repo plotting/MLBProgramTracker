@@ -946,10 +946,18 @@ def fetch_inventory(cookies: dict) -> list[dict]:
         if len(parts) < 2 or not parts[0][0].isupper():
             return
         pos, positions = _parse_positions(item)
+        series = str(item.get("series") or item.get("card_series") or
+                     item.get("series_name") or "").strip()
         if name not in player_cards:
-            player_cards[name] = {"name": name, "pos": pos, "positions": positions}
-        elif not player_cards[name]["pos"] and pos:
-            player_cards[name].update({"pos": pos, "positions": positions})
+            player_cards[name] = {"name": name, "pos": pos, "positions": positions,
+                                  "series": series}
+        else:
+            existing = player_cards[name]
+            if not existing.get("pos") and pos:
+                existing.update({"pos": pos, "positions": positions})
+            # Keep series if not yet set (API fills it; HTML table pass may not)
+            if not existing.get("series") and series:
+                existing["series"] = series
 
     def _parse_inv_table(html_body: str) -> None:
         """Parse the HTML inventory table and add owned player cards."""
@@ -972,9 +980,12 @@ def fetch_inventory(cookies: dict) -> list[dict]:
             pos = re.sub(r'<[^>]+>', '', cells[3]).strip().upper()
             # Team cell (optional)
             team = re.sub(r'<[^>]+>', '', cells[4]).strip() if len(cells) > 4 else ''
+            # Series column (column 5) if present
+            series_raw = re.sub(r'<[^>]+>', '', cells[5]).strip() if len(cells) > 5 else ''
             # Allow standard positions including 1B/2B/3B (start with digit)
             if name and pos and re.match(r'^[A-Z1-9]', pos):
-                _add_card({"name": name, "pos": pos, "positions": [pos]})
+                _add_card({"name": name, "pos": pos, "positions": [pos],
+                           "series": series_raw})
 
     # ── Strategy 1: Official /apis/inventory.json?type=mlb_card ──────────────
     # Paginated JSON API — the canonical source for owned cards.
