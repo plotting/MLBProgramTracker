@@ -727,7 +727,7 @@ def expand_program_links(links: list[str], headers: dict) -> list[str]:
                     urllib.parse.urlparse(turl).query
                 ).get("team_id", [turl[-20:]])[0]
                 status_str = f"{len(pvs)} program(s)" if tstatus == 200 else f"SKIP ({tstatus})"
-                print(f"    [{idx:2}/{len(team_links_all)}] {team_slug} → {status_str}")
+                print(f"    [{idx:2}/{len(team_links_all)}] {team_slug} -> {status_str}")
                 time.sleep(0.3)
 
         elif "other_programs" in path:
