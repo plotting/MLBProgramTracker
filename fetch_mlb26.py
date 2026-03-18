@@ -650,7 +650,7 @@ def expand_program_links(links: list[str], headers: dict) -> list[str]:
             #  an empty page with no team links).
             existing_qs = urllib.parse.parse_qs(parsed.query, keep_blank_values=True)
             league_urls: list[str] = []
-            for league in ("AL", "NL"):
+            for league in ("al", "nl"):  # server uses lowercase league values
                 qs = {k: v[0] for k, v in existing_qs.items()}
                 qs["league"] = league
                 lurl = base_path + "?" + urllib.parse.urlencode(qs)
