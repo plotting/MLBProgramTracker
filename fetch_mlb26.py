@@ -663,22 +663,64 @@ def expand_program_links(links: list[str], headers: dict) -> list[str]:
                     for turl in _extract_links_from_body(lbody, "team_affinity_by_team"):
                         if turl not in team_links_all:
                             team_links_all.append(turl)
+                # If HTML yielded nothing (SPA shell with no hrefs), retry with
+                # Inertia JSON headers — the server returns JSON containing team URLs.
+                if not team_links_all and lstatus == 200:
+                    inertia_hdrs = dict(headers)
+                    inertia_hdrs.update({
+                        "X-Inertia": "true",
+                        "X-Requested-With": "XMLHttpRequest",
+                        "Accept": "application/json",
+                    })
+                    ibody, istatus = get(league_url, inertia_hdrs)
+                    if istatus == 200 and ibody:
+                        try:
+                            idata = json.loads(ibody)
+                            def _hi_teams(obj: object, depth: int = 0) -> None:
+                                if depth > 8 or not obj:
+                                    return
+                                if isinstance(obj, dict):
+                                    for key in ("url", "href", "path", "link", "route"):
+                                        val = obj.get(key) or ""
+                                        if isinstance(val, str) and "team_affinity_by_team" in val:
+                                            full = (BASE + val) if val.startswith("/") else val
+                                            if full not in team_links_all:
+                                                team_links_all.append(full)
+                                    for v in obj.values():
+                                        _hi_teams(v, depth + 1)
+                                elif isinstance(obj, list):
+                                    for item in obj[:300]:
+                                        _hi_teams(item, depth + 1)
+                            _hi_teams(idata.get("props", idata))
+                        except Exception:
+                            pass
                 time.sleep(0.3)
 
             print(f"  Found {len(team_links_all)} teams — fetching program links...")
             for idx, turl in enumerate(team_links_all, 1):
                 tbody, tstatus = get(turl, headers)
+                pvs: list[str] = []
                 if tstatus == 200 and tbody:
                     pvs = _scrape_program_views(tbody)
-                    for pv in pvs:
-                        _add(pv)
-                    # Print team name from URL for progress feedback
-                    team_slug = urllib.parse.parse_qs(
-                        urllib.parse.urlparse(turl).query
-                    ).get("team_id", [turl[-20:]])[0]
-                    print(f"    [{idx:2}/{len(team_links_all)}] {team_slug} → {len(pvs)} program(s)")
-                else:
-                    print(f"    [{idx:2}/{len(team_links_all)}] SKIP ({tstatus})")
+                    # If HTML gave nothing, try Inertia JSON for this team page too
+                    if not pvs:
+                        inertia_hdrs = dict(headers)
+                        inertia_hdrs.update({
+                            "X-Inertia": "true",
+                            "X-Requested-With": "XMLHttpRequest",
+                            "Accept": "application/json",
+                        })
+                        tibody, tistatus = get(turl, inertia_hdrs)
+                        if tistatus == 200 and tibody:
+                            pvs = _extract_links_from_body(tibody, "program_view")
+                for pv in pvs:
+                    _add(pv)
+                # Print team name from URL for progress feedback
+                team_slug = urllib.parse.parse_qs(
+                    urllib.parse.urlparse(turl).query
+                ).get("team_id", [turl[-20:]])[0]
+                status_str = f"{len(pvs)} program(s)" if tstatus == 200 else f"SKIP ({tstatus})"
+                print(f"    [{idx:2}/{len(team_links_all)}] {team_slug} → {status_str}")
                 time.sleep(0.3)
 
         elif "other_programs" in path:
