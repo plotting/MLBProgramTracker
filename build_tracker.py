@@ -425,6 +425,9 @@ function extractOwnerFromMission(m) {
   // 2. "with Name" in description (e.g. "Record 10 Ks with Seth Lugo")
   const dp = (m.d || '').match(/\\bwith\\s+([A-Z][A-Za-z\\u00C0-\\u024F'-]+(?: [A-Z][A-Za-z\\u00C0-\\u024F'-]+){1,3})/);
   if (dp) return dp[1];
+  // 2b. digit-prefix series ("with 2nd Half Heroes Manny Ramirez" -> "Manny Ramirez")
+  const dpDigit = (m.d || '').match(/\\bwith\\s+\\d\\S*\\s+(?:\\S+\\s+)*([A-Z][A-Za-z\\u00C0-\\u024F'-]+\\s+[A-Z][A-Za-z\\u00C0-\\u024F'-]+)(?:\\s*\\.| |$)/);
+  if (dpDigit) return dpDigit[1];
   // 3. "w/ Name" at end of title, allowing optional trailing "Jr." / "Sr."
   const tp = title.match(/\\bw\\/\\s*([A-Z][A-Za-z\\u00C0-\\u024F'-]+(?: [A-Z][A-Za-z\\u00C0-\\u024F'-]+)*(?:\\s+[JS]r\\.?)?)\\s*\\.?\\s*$/i);
   if (tp) return tp[1].replace(/\\.\\s*$/, '').trim();
