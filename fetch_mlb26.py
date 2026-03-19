@@ -1063,36 +1063,28 @@ def fetch_inventory(cookies: dict) -> list[dict]:
     inv_total_pages   = 1
     inv_hdrs          = make_headers(cookies)
 
-    def _fetch_inv_api_page(page: int) -> list:
+    def _fetch_inv_api_page(page: int) -> tuple:
+        """Returns (items_list, total_pages). total_pages only reliable from page 1."""
         url = f"{BASE}/apis/inventory.json?type=mlb_card&page={page}"
         body, status = get(url, inv_hdrs)
         if status != 200 or not body:
-            return []
+            return [], 1
         try:
             data = json.loads(body)
-            return data.get("inventory") or []
+            return data.get("inventory") or [], int(data.get("total_pages", 1))
         except Exception:
-            return []
+            return [], 1
 
-    # Page 1: learn total_pages + seed the card dict
-    _p1_items = _fetch_inv_api_page(1)
-    if _p1_items:
-        # Re-fetch to also read total_pages from the raw JSON
-        _p1_url  = f"{BASE}/apis/inventory.json?type=mlb_card&page=1"
-        _p1_body, _ = get(_p1_url, inv_hdrs)
-        try:
-            _p1_data    = json.loads(_p1_body)
-            inv_total_pages = int(_p1_data.get("total_pages", 1))
-        except Exception:
-            pass
-        for item in _p1_items:
-            if isinstance(item, dict) and str(item.get("quantity", "0")) != "0":
-                _add_card(item)
+    # Page 1: learn total_pages + seed the card dict (single fetch — no double-call)
+    _p1_items, inv_total_pages = _fetch_inv_api_page(1)
+    for item in _p1_items:
+        if isinstance(item, dict) and str(item.get("quantity", "0")) != "0":
+            _add_card(item)
 
     # Pages 2..N in parallel
     if inv_total_pages > 1:
         with ThreadPoolExecutor(max_workers=MAX_FETCH_WORKERS) as _iex:
-            for _items in _iex.map(_fetch_inv_api_page, range(2, inv_total_pages + 1)):
+            for _items, _ in _iex.map(_fetch_inv_api_page, range(2, inv_total_pages + 1)):
                 for item in _items:
                     if isinstance(item, dict) and str(item.get("quantity", "0")) != "0":
                         _add_card(item)
@@ -1101,29 +1093,33 @@ def fetch_inventory(cookies: dict) -> list[dict]:
         print(f"  [inventory] API: {len(player_cards)} owned cards "
               f"({inv_total_pages} pages)")
 
-    # ── Strategy 2: HTML table — always run for position enrichment ───────────
-    # The /inventory page renders a table with Pos column.  Run up to 10 pages
-    # to add position data to entries already found by Strategy 1, or to discover
-    # cards that the API missed.  Save page 1 for diagnostics.
+    # ── Strategy 2: HTML table — run for position enrichment (parallel fetch) ──
+    # The /inventory page renders a table with Pos column.  Fetch up to 10 pages
+    # in parallel, then process them in order (with early-stop when no new data).
     hdrs_html = make_headers(cookies)
-    for page in range(1, 11):
+
+    def _fetch_inv_html(page: int) -> str | None:
         url = f"{BASE}/inventory?type=mlb_card&ownership=my_cards&page={page}"
         body, status = get(url, hdrs_html)
-        if page == 1 and body:
+        return body if status == 200 and body else None
+
+    with ThreadPoolExecutor(max_workers=MAX_FETCH_WORKERS) as _hex:
+        _html_bodies = list(_hex.map(_fetch_inv_html, range(1, 11)))
+
+    for page, body in enumerate(_html_bodies, 1):
+        if not body:
+            break
+        if page == 1:
             _raw_path = os.path.join(SCRIPT_DIR, "debug_inventory_raw.html")
             with open(_raw_path, "w", encoding="utf-8", errors="replace") as _f:
                 _f.write(body[:100000])
-        if status != 200 or not body:
-            break
-        before_len  = len(player_cards)
-        before_pos  = sum(1 for c in player_cards.values() if c.get("pos"))
+        before_len = len(player_cards)
+        before_pos = sum(1 for c in player_cards.values() if c.get("pos"))
         _parse_inv_table(body)
         new_names = len(player_cards) - before_len
         new_pos   = sum(1 for c in player_cards.values() if c.get("pos")) - before_pos
-        # Stop when a page contributes neither new names nor new position data
         if new_names == 0 and new_pos == 0 and page > 1:
             break
-        time.sleep(0.25)
 
     # ── Strategy 3: Inertia JSON fallback ─────────────────────────────────────
     if not player_cards:
@@ -1274,7 +1270,60 @@ def main():
     other_prog_raw: dict[str, dict]            = {}   # name -> {group, missions}
     total = len(links)
 
-    # Load program URL cache from previous run — skip fetching fully-complete programs
+    # ── Helpers ───────────────────────────────────────────────────────────────
+
+    def dedup_sort(lst: list) -> list:
+        """Deduplicate by (title, desc[:60]) and sort by pct descending."""
+        seen, out = set(), []
+        for m in sorted(lst, key=lambda x: -x["pct"]):
+            key = (m["t"], (m.get("d") or "")[:60])
+            if m["t"] and key not in seen:
+                seen.add(key); out.append(m)
+        return out
+
+    build_script = os.path.join(SCRIPT_DIR, "build_tracker.py")
+    html_out     = os.path.join(SCRIPT_DIR, "MLB Team Affinity Tracker.html")
+
+    def _flush_tracker(inventory_snap: list | None = None, label: str = "") -> None:
+        """Write mlb_data_live.json and rebuild the tracker HTML in-place."""
+        # Build deduped snapshots for output (don't mutate live dicts)
+        team_out = {t: {pt: dedup_sort(list(ms)) for pt, ms in progs.items()}
+                    for t, progs in team_missions.items()}
+        other_dedup = {k: {**v, "missions": dedup_sort(list(v["missions"]))}
+                       for k, v in other_prog_raw.items()}
+        op_html: dict = {}
+        for pn, pd in other_dedup.items():
+            g = pd["group"]
+            e: dict = {"color": PROG_GROUP_COLORS.get(g, "#8b5cf6"),
+                       "icon": make_prog_icon(pn), "group": g,
+                       "missions": pd["missions"]}
+            if "xp_earned" in pd: e["xp_earned"] = pd["xp_earned"]
+            if "xp_total"  in pd: e["xp_total"]  = pd["xp_total"]
+            op_html[pn] = e
+
+        data = {
+            "divisions":       DIVISIONS,
+            "colors":          TEAM_COLORS,
+            "missions":        team_out,
+            "other_programs":  op_html,
+            "inventory":       inventory_snap or [],
+            "data_source":     "live",
+            "data_date":       time.strftime("%Y-%m-%d %H:%M"),
+            "_prog_url_cache": {**prog_cache, **new_prog_cache},
+        }
+        try:
+            with open(OUT_JSON, "w", encoding="utf-8") as _f:
+                json.dump(data, _f, indent=2, ensure_ascii=True)
+        except Exception:
+            return
+
+        if os.path.exists(build_script):
+            subprocess.run([sys.executable, build_script, "--source", OUT_JSON],
+                           capture_output=True, cwd=SCRIPT_DIR)
+        if label:
+            print(f"  [update] {label}")
+
+    # ── Load program URL cache ─────────────────────────────────────────────────
     prog_cache: dict = {}
     if os.path.exists(OUT_JSON):
         try:
@@ -1288,18 +1337,31 @@ def main():
         except Exception:
             pass
 
+    # ── Start inventory fetch in background ───────────────────────────────────
+    # Runs concurrently while programs are fetched so there's no wait at the end.
+    _inv_result:  list = [None]
+    _inv_done     = threading.Event()
+
+    def _bg_inventory() -> None:
+        _inv_result[0] = fetch_inventory(cookies)
+        _inv_done.set()
+        print(f"\n  [inventory] {len(_inv_result[0])} player cards loaded")
+
+    print("\nFetching player inventory (background)...")
+    threading.Thread(target=_bg_inventory, daemon=True).start()
+
+    # ── Parallel program fetch with incremental tracker rebuilds ──────────────
     _prog_print_lock = threading.Lock()
-    _xp_dbg_written  = threading.Event()   # prevents duplicate debug file from parallel threads
+    _xp_dbg_written  = threading.Event()
     new_prog_cache:  dict = {}
 
     def _fetch_one_program(i_url: tuple) -> tuple:
         i, url = i_url
-        # Re-use cached result if program was 100% complete last run
         cached = prog_cache.get(url)
         if cached and cached.get("complete"):
             with _prog_print_lock:
                 print(f"  [{i:3}/{total}] {len(cached['missions']):3} missions  "
-                      f"{(cached.get('h1') or '')[:40]}  [cached - complete]")
+                      f"{(cached.get('h1') or '')[:40]}  [cached]")
             return (i, url, cached)
 
         p_body, p_status = get(url, headers)
@@ -1308,189 +1370,123 @@ def main():
                 print(f"  [{i:3}/{total}] SKIP ({p_status}) {url[-50:]}")
             return (i, url, None)
 
-        missions          = extract_missions_from_html(p_body)
-        xp_earned, xp_total = extract_program_xp(p_body)
-
-        h1    = ""
-        m_h1  = re.search(r'<h1[^>]*>(.*?)</h1>', p_body, re.DOTALL | re.IGNORECASE)
+        missions             = extract_missions_from_html(p_body)
+        xp_earned, xp_total  = extract_program_xp(p_body)
+        h1 = ""
+        m_h1 = re.search(r'<h1[^>]*>(.*?)</h1>', p_body, re.DOTALL | re.IGNORECASE)
         if m_h1:
             h1 = re.sub(r'<[^>]+>', '', m_h1.group(1)).strip()
-
         complete = bool(missions) and all(m.get("pct", 0) >= 1.0 for m in missions)
 
-        # Write XP debug file once for the first non-team program missing XP data
         if xp_earned is None and not normalize_team(h1) and not _xp_dbg_written.is_set():
             _xp_dbg_written.set()
-            _xp_dbg = os.path.join(SCRIPT_DIR, "debug_prog_xp.html")
             try:
-                with open(_xp_dbg, "w", encoding="utf-8", errors="replace") as _f:
+                with open(os.path.join(SCRIPT_DIR, "debug_prog_xp.html"),
+                          "w", encoding="utf-8", errors="replace") as _f:
                     _f.write(p_body[:150000])
                 with _prog_print_lock:
                     print(f"  [info] XP not found for '{h1[:40]}' — saved debug_prog_xp.html")
             except Exception:
                 pass
 
-        # Save raw body for --debug (first program only, once)
         if debug and i == 1:
             try:
                 dbg2 = os.path.join(SCRIPT_DIR, "debug_program_page.html")
                 with open(dbg2, "w", encoding="utf-8") as f:
                     f.write(p_body)
                 with _prog_print_lock:
-                    print(f"  [debug] Saved first program page -> {dbg2} "
-                          f"({len(p_body)} bytes, {len(missions)} missions, "
+                    print(f"  [debug] {dbg2} ({len(p_body)}b, {len(missions)} missions, "
                           f"XP {xp_earned}/{xp_total})")
             except Exception:
                 pass
 
-        prog_id   = parse_url_params(url).get("program_id", "?")
-        label     = h1[:40] or f"prog {prog_id}"
-        suffix    = "  [DONE]" if complete else ""
+        label  = (h1[:40] or f"prog {parse_url_params(url).get('program_id','?')}")
+        suffix = "  [DONE]" if complete else ""
         with _prog_print_lock:
             print(f"  [{i:3}/{total}] {len(missions):3} missions  {label}{suffix}")
 
-        return (i, url, {
-            "h1": h1, "missions": missions,
-            "xp_earned": xp_earned, "xp_total": xp_total,
-            "complete": complete,
-        })
+        return (i, url, {"h1": h1, "missions": missions,
+                         "xp_earned": xp_earned, "xp_total": xp_total,
+                         "complete": complete})
 
-    # Parallel fetch — submit all program URLs at once, collect results
-    fetch_results: list = [None] * (total + 1)   # 1-indexed slots
-    with ThreadPoolExecutor(max_workers=MAX_FETCH_WORKERS) as _pex:
-        _futs = {_pex.submit(_fetch_one_program, (i, url)): i
-                 for i, url in enumerate(links, 1)}
-        for _fut in as_completed(_futs):
-            i, url, result = _fut.result()
-            fetch_results[i] = (url, result)
-            if result:
-                new_prog_cache[url] = result   # accumulate for cache save
-
-    # Process results in original order so team_missions is deterministic
-    for slot in fetch_results[1:]:
-        if not slot:
-            continue
-        url, result = slot
-        if not result:
-            continue
-
+    def _absorb(result: dict) -> None:
+        """Merge one program result into team_missions / other_prog_raw."""
         h1        = result.get("h1", "")
         missions  = result.get("missions", [])
         xp_earned = result.get("xp_earned")
         xp_total  = result.get("xp_total")
-
-        team           = normalize_team(h1)
-        h1_lower       = h1.lower()
-        is_color_storm = bool(re.search(r'color\s*storm|#1 fan', h1_lower, re.I))
-        prog_type      = "Color Storm" if is_color_storm else "My Journey"
-        is_xp_path     = bool(re.search(r'xp.*(path|reward)|1st inning', h1_lower, re.I))
-        is_multi       = bool(re.search(r'multiplayer|ranked.*season', h1_lower, re.I))
-
+        team      = normalize_team(h1)
+        h1l       = h1.lower()
+        is_cs     = bool(re.search(r'color\s*storm|#1 fan', h1l, re.I))
+        prog_type = "Color Storm" if is_cs else "My Journey"
         if team:
             team_missions.setdefault(team, {}).setdefault(prog_type, []).extend(missions)
         else:
-            if is_xp_path:
+            if   re.search(r'xp.*(path|reward)|1st inning', h1l, re.I):
                 group, prog_key = "xp_path",    h1 or "1st Inning XP Path"
-            elif is_multi:
+            elif re.search(r'multiplayer|ranked.*season',   h1l, re.I):
                 group, prog_key = "multiplayer", h1 or "Multiplayer Program"
             else:
                 group, prog_key = "assorted",    h1 or "Assorted Programs"
             if prog_key not in other_prog_raw:
                 other_prog_raw[prog_key] = {"group": group, "missions": []}
             other_prog_raw[prog_key]["missions"].extend(missions)
-            # Store XP path data if found and not already set
             if xp_earned is not None and "xp_earned" not in other_prog_raw[prog_key]:
                 other_prog_raw[prog_key]["xp_earned"] = xp_earned
-            if xp_total is not None and "xp_total" not in other_prog_raw[prog_key]:
-                other_prog_raw[prog_key]["xp_total"] = xp_total
+            if xp_total  is not None and "xp_total"  not in other_prog_raw[prog_key]:
+                other_prog_raw[prog_key]["xp_total"]  = xp_total
 
-    # 5. Deduplicate and sort
-    def dedup_sort(lst):
-        # Key by (title, first-60-chars-of-description) so same-titled missions
-        # with different eligible players (e.g. two REPEATABLE entries) are kept.
-        seen, out = set(), []
-        for m in sorted(lst, key=lambda x: -x["pct"]):
-            key = (m["t"], (m.get("d") or "")[:60])
-            if m["t"] and key not in seen:
-                seen.add(key); out.append(m)
-        return out
+    # Submit all programs, process + flush incrementally as results arrive
+    FLUSH_SECS     = 8     # rebuild tracker at most this often during the run
+    completed      = 0
+    last_flush_t   = time.time()
+    print(f"\nFetching {total} programs...")
 
-    for team in team_missions:
-        for pt in team_missions[team]:
-            team_missions[team][pt] = dedup_sort(team_missions[team][pt])
-    for k in other_prog_raw:
-        other_prog_raw[k]["missions"] = dedup_sort(other_prog_raw[k]["missions"])
+    with ThreadPoolExecutor(max_workers=MAX_FETCH_WORKERS) as _pex:
+        _futs = {_pex.submit(_fetch_one_program, (i, url)): i
+                 for i, url in enumerate(links, 1)}
+        for _fut in as_completed(_futs):
+            i, url, result = _fut.result()
+            if result:
+                new_prog_cache[url] = result
+                _absorb(result)
+            completed += 1
+
+            # Incremental rebuild: first time after 5 completions, then every FLUSH_SECS
+            elapsed = time.time() - last_flush_t
+            if completed == 5 or (completed > 5 and elapsed >= FLUSH_SECS):
+                pct = int(completed / total * 100)
+                # Use current inventory if background thread already finished
+                snap = _inv_result[0] if _inv_done.is_set() else None
+                _flush_tracker(snap,
+                               f"Tracker refreshed ({completed}/{total} programs — {pct}%)")
+                last_flush_t = time.time()
+
+    # ── Wait for inventory, then final flush ──────────────────────────────────
+    if not _inv_done.is_set():
+        print("  Waiting for inventory to finish...")
+        _inv_done.wait()
+    inventory = _inv_result[0] or []
 
     print()
     team_total  = sum(sum(len(v) for v in t.values()) for t in team_missions.values())
     other_total = sum(len(v["missions"]) for v in other_prog_raw.values())
-    print(f"Team missions:   {team_total:4d} across {len(team_missions)} teams")
-    print(f"Other missions:  {other_total:4d} across {len(other_prog_raw)} programs")
+    print(f"Team missions:  {team_total:4d} across {len(team_missions)} teams")
+    print(f"Other missions: {other_total:4d} across {len(other_prog_raw)} programs")
+    print(f"Inventory:      {len(inventory):4d} player cards")
 
-    # 6. Build other_programs structure (one entry per individual program)
-    op_for_html = {}
-    for prog_name, pdata in other_prog_raw.items():
-        group = pdata["group"]
-        entry = {
-            "color":    PROG_GROUP_COLORS.get(group, "#8b5cf6"),
-            "icon":     make_prog_icon(prog_name),
-            "group":    group,
-            "missions": pdata["missions"],
-        }
-        if "xp_earned" in pdata:
-            entry["xp_earned"] = pdata["xp_earned"]
-        if "xp_total" in pdata:
-            entry["xp_total"] = pdata["xp_total"]
-        op_for_html[prog_name] = entry
+    print("\nFinal rebuild...")
+    _flush_tracker(inventory)
+    print(f"Saved: {OUT_JSON}")
 
-    # 7. Fetch player inventory
-    print("\nFetching player inventory...")
-    inventory = fetch_inventory(cookies)
-    print(f"  Found {len(inventory)} player cards")
-
-    # Merge new fetch results into the program cache (preserve old complete entries
-    # for any URLs that weren't re-fetched this run — e.g. already-complete programs
-    # whose slots were served from cache).
-    merged_cache = {**prog_cache, **new_prog_cache}
-
-    live_data = {
-        "divisions":        DIVISIONS,
-        "colors":           TEAM_COLORS,
-        "missions":         team_missions,
-        "other_programs":   op_for_html,
-        "inventory":        inventory,
-        "data_source":      "live",
-        "data_date":        time.strftime("%Y-%m-%d %H:%M"),
-        "_prog_url_cache":  merged_cache,   # URL -> {h1, missions, xp_*, complete}
-    }
-
-    with open(OUT_JSON, "w", encoding="utf-8") as f:
-        json.dump(live_data, f, indent=2, ensure_ascii=True)
-    print(f"\nSaved: {OUT_JSON}")
-
-    # 7. Rebuild HTML
-    print("Rebuilding tracker HTML...")
-    build_script = os.path.join(SCRIPT_DIR, "build_tracker.py")
-    if os.path.exists(build_script):
-        result = subprocess.run(
-            [sys.executable, build_script, "--source", OUT_JSON],
-            capture_output=True, text=True, cwd=SCRIPT_DIR
-        )
-        if result.returncode == 0:
-            print("  Done!", result.stdout.strip())
-        else:
-            print("  build_tracker error:", result.stderr[:300])
-    else:
-        print("  build_tracker.py not found – run it manually.")
-
-    print()
-    html_out = os.path.join(SCRIPT_DIR, "MLB Team Affinity Tracker.html")
+    # Open browser once — use new=0 so Chrome reuses the existing tab if possible
+    import webbrowser
+    url_str = "file:///" + html_out.replace("\\", "/")
     if "--no-browser" not in sys.argv:
         print(f"\nAll done!  Opening tracker...")
-        import webbrowser
-        webbrowser.open("file:///" + html_out.replace("\\", "/"))
+        webbrowser.open(url_str, new=0)
     else:
-        print(f"\nAll done!  Tracker saved to: {html_out}")
+        print(f"\nAll done!  Tracker: {html_out}")
 
 
 if __name__ == "__main__":
