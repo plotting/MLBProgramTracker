@@ -783,7 +783,8 @@ def extract_missions_from_html(html_body: str) -> list[dict]:
             r'class=["\'][^"\']*accordion-toggle-label[^"\']*["\'][^>]*>\s*(.*?)\s*</span>',
             blk, re.DOTALL | re.IGNORECASE
         )
-        title = html_module.unescape(re.sub(r'<[^>]+>', '', m_title.group(1))).strip() if m_title else ""
+        title = re.sub(r'\s{2,}', ' ',
+                       html_module.unescape(re.sub(r'<[^>]+>', '', m_title.group(1)))).strip() if m_title else ""
         if not title:
             continue
 
@@ -841,7 +842,8 @@ def extract_missions_from_html(html_body: str) -> list[dict]:
         m_meter = re.search(r'<meter[^>]+max=["\'](\d+)["\'][^>]+value=["\'](\d+)["\']', blk)
         if not m_title or not m_meter:
             continue
-        title = html_module.unescape(re.sub(r'<[^>]+>', '', m_title.group(1))).strip()
+        title = re.sub(r'\s{2,}', ' ',
+                       html_module.unescape(re.sub(r'<[^>]+>', '', m_title.group(1)))).strip()
         max_v, cur_v = m_meter.group(1), m_meter.group(2)
         try:
             pct = min(100.0, round(int(cur_v) / int(max_v) * 100, 1)) if int(max_v) > 0 else 0.0
@@ -940,14 +942,20 @@ def extract_program_xp(html_body: str) -> tuple:
                 if re.search(r'\bXP\b', nearby, re.IGNORECASE):
                     return (val, mx)
 
-    # Strategy 5: "75 Earned" or "75 XP Earned" plain text pattern
-    m_earned = re.search(r'\b(\d+)\s+(?:XP\s+)?Earned\b', html_body, re.IGNORECASE)
+    # Strategy 5: "50,000 Earned" / "54 Earned" XP reward-path pattern.
+    # The reward path section reads: "N[,NNN] Earned  M1 XP  M2 XP  ...  MAX XP"
+    # Use \d[\d,]* so comma-formatted numbers like 50,000 are captured whole.
+    m_earned = re.search(r'\b(\d[\d,]*)\s+(?:XP\s+)?Earned\b', html_body, re.IGNORECASE)
     if m_earned:
-        earned = int(m_earned.group(1))
-        milestones = re.findall(r'\b(\d+)\s*XP\b', html_body)
-        total = max((int(x) for x in milestones if int(x) <= 10000), default=None)
-        if total and total > earned:
-            return (earned, total)
+        earned = int(m_earned.group(1).replace(',', ''))
+        # Find XP milestones that appear AFTER the "Earned" marker (next 4 000 chars)
+        after_section = html_body[m_earned.end(): m_earned.end() + 4000]
+        milestones = [int(x.replace(',', ''))
+                      for x in re.findall(r'\b(\d[\d,]*)\s*XP\b', after_section)]
+        if milestones:
+            total = max(milestones)
+            if total > 0 and total >= earned:
+                return (earned, total)
         return (earned, None)
 
     return (None, None)

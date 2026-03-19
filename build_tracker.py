@@ -770,7 +770,14 @@ function renderHome() {
     for (const {name, best, isRepeat} of useInLineup) {
       const pct = best.pct;
       const c   = progColor(pct);
-      useHtml += lineupRow(name, pct, c, best.t, isRepeat);
+      // If the mission title is just "w/ Name" (no stat prefix), enrich it from
+      // the description: "Tally 500 Parallel XP with All-Star Keith Foulke" → "500 XP w/ Foulke"
+      let goalTitle = best.t || '';
+      if (/^\s*w\/\s/i.test(goalTitle)) {
+        const xpM = (best.d || '').match(/(\d[\d,]*)\s*(?:Parallel\s+)?XP/i);
+        if (xpM) goalTitle = xpM[1].replace(/,/g,'') + ' XP ' + goalTitle.trim();
+      }
+      useHtml += lineupRow(name, pct, c, goalTitle, isRepeat);
     }
   } else {
     useHtml = '<div class="home-empty">No active missions detected</div>';
