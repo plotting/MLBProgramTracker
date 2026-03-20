@@ -1378,10 +1378,20 @@ def main():
         i, url = i_url
         cached = prog_cache.get(url)
         if cached and cached.get("complete"):
-            with _prog_print_lock:
-                print(f"  [{i:3}/{total}] {len(cached['missions']):3} missions  "
-                      f"{(cached.get('h1') or '')[:40]}  [cached]")
-            return (i, url, cached)
+            # If this is a non-team program and the cache entry predates the
+            # xp_milestones feature (key absent entirely), re-fetch once so
+            # the milestone data gets stored for the fill bar.
+            _h1c = cached.get("h1", "")
+            _needs_xp_refresh = (
+                normalize_team(_h1c) is None          # not a team program
+                and "xp_milestones" not in cached     # cache predates feature
+            )
+            if not _needs_xp_refresh:
+                with _prog_print_lock:
+                    print(f"  [{i:3}/{total}] {len(cached['missions']):3} missions  "
+                          f"{_h1c[:40]}  [cached]")
+                return (i, url, cached)
+            # Fall through to re-fetch
 
         p_body, p_status = get(url, headers)
         if p_status != 200 or not p_body:
