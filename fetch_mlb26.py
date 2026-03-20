@@ -920,23 +920,25 @@ def extract_program_xp(html_body: str) -> tuple:
         except Exception:
             pass
 
-    # Strategy 1b: Timeline <li> structure (WBC / team-affinity style program pages).
-    # A <li class="partial active"> marks the current earned position — its label div
-    # contains  "95 <img...> Earned".  Every <li class="counting"> is a milestone with
-    # a label like "100 <img...> XP".  The img tag sits between the number and the
-    # keyword, so plain-text regexes fail — parse by element class instead.
-    # Also captures the full milestones list (5, 10, 15 … 100) for fill-bar tick marks.
-    m_partial_li = re.search(r'<li[^>]+class="[^"]*partial[^"]*"', html_body, re.IGNORECASE)
+    # Strategy 1b: Timeline <li> structure (WBC / XP-path style program pages).
+    # A <li class="partial [active]"> marks the current earned position; its label div
+    # contains "95 <img...> Earned".  Every <li class="counting"> is a milestone.
+    # The server may use single OR double quotes for class attributes, so all
+    # sub-patterns use ["'] to handle both styles.
+    _QP = r"""["'][^"']*%s[^"']*["']"""   # quote-agnostic class pattern helper
+    m_partial_li = re.search(r'<li[^>]+class=' + _QP % 'partial',
+                              html_body, re.IGNORECASE)
     if m_partial_li:
         snip = html_body[m_partial_li.start(): m_partial_li.start() + 400]
-        m_en = re.search(r'class="[^"]*label[^"]*"[^>]*>\s*(\d[\d,]*)', snip, re.IGNORECASE)
+        m_en = re.search(r'class=' + _QP % 'label' + r'[^>]*>\s*(\d[\d,]*)',
+                         snip, re.IGNORECASE)
         if m_en:
             earned_tl = int(m_en.group(1).replace(',', ''))
             milestone_vals = sorted(set(
                 int(x.replace(',', ''))
                 for x in re.findall(
-                    r'<li[^>]+class="[^"]*counting[^"]*"[^>]*>\s*'
-                    r'<div[^>]+class="[^"]*label[^"]*"[^>]*>\s*(\d[\d,]*)',
+                    r'<li[^>]+class=' + _QP % 'counting' + r'[^>]*>\s*'
+                    r'<div[^>]+class=' + _QP % 'label'   + r'[^>]*>\s*(\d[\d,]*)',
                     html_body, re.IGNORECASE)
             ))
             return (earned_tl, max(milestone_vals) if milestone_vals else None, milestone_vals)
