@@ -140,7 +140,7 @@ body { font-family: "Segoe UI", Arial, sans-serif; background: var(--bg); color:
 
 /* TEAM BANNER */
 .team-banner {
-  border-radius: 10px; padding: 16px 20px; margin-bottom: 16px;
+  border-radius: 10px; padding: 16px 20px 24px; margin-bottom: 16px;
   display: flex; align-items: center; gap: 16px;
   background: linear-gradient(135deg, var(--c1) 0%, var(--c2) 100%);
   position: relative; overflow: hidden;
@@ -149,6 +149,16 @@ body { font-family: "Segoe UI", Arial, sans-serif; background: var(--bg); color:
   content: ""; position: absolute; right: -20px; top: -20px;
   width: 140px; height: 140px; border-radius: 50%;
   background: rgba(255,255,255,0.05);
+}
+.xp-fill-wrap {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 7px;
+  background: rgba(0,0,0,0.30);
+}
+.xp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.95) 100%);
+  min-width: 3px; border-radius: 0 4px 4px 0;
+  transition: width 0.5s ease;
 }
 .banner-info { flex: 1; }
 .banner-info h1 { font-size: 24px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,0.4); }
@@ -960,6 +970,12 @@ function clearActive() {
   document.querySelectorAll('.team-btn, .other-prog-btn').forEach(b => b.classList.remove('active'));
 }
 
+// Returns the bottom fill-bar HTML for a team-banner at the given percentage.
+function xpBar(pct) {
+  const w = Math.min(Math.max(pct, 0), 100);
+  return '<div class="xp-fill-wrap"><div class="xp-fill" style="width:' + w + '%"></div></div>';
+}
+
 function selectOtherProg(progName) {
   clearActive();
   const btn = document.querySelector('.other-prog-btn[data-prog="' + progName + '"]');
@@ -975,6 +991,7 @@ function selectOtherProg(progName) {
       '<div class="team-banner" style="--c1:' + (meta.color || '#1e3a5f') + ';--c2:#0d1b2e">' +
         '<div class="banner-info"><h1>' + progName + '</h1>' +
         '<p>' + (meta.desc || '') + '</p></div>' +
+        xpBar(0) +
       '</div>' +
       '<div class="live-data-needed">' +
         '<div class="ldn-icon">&#9432;</div>' +
@@ -1014,8 +1031,10 @@ function selectOtherProg(progName) {
       ' stroke-dasharray="' + circ + '" stroke-dashoffset="' + offset + '" stroke-linecap="round"/>' +
       '</svg>' +
       '<div class="ring-label">' + ringLabel + '</div>' +
-      '</div></div>' +
-      '<div id="mission-area"></div>';
+      '</div>' +
+      xpBar(pct) +
+    '</div>' +
+    '<div id="mission-area"></div>';
 
   renderOtherMissions(progName);
 }
@@ -1124,7 +1143,9 @@ function renderContent() {
     + ' stroke-dasharray="' + circ + '" stroke-dashoffset="' + offset + '" stroke-linecap="round"/>'
     + '</svg>'
     + '<div class="ring-label"><span class="rn">' + teamPct + '%</span><span class="rl">done</span></div>'
-    + '</div></div>'
+    + '</div>'
+    + xpBar(teamPct)
+    + '</div>'
     + '<div class="prog-tabs">' + tabsHtml + '</div>'
     + '<div id="mission-area"></div>';
 
