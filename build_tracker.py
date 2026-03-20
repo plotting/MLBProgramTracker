@@ -151,14 +151,26 @@ body { font-family: "Segoe UI", Arial, sans-serif; background: var(--bg); color:
   background: rgba(255,255,255,0.05);
 }
 .xp-fill-wrap {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 20px;
+}
+.xp-fill-track {
   position: absolute; bottom: 0; left: 0; right: 0; height: 7px;
   background: rgba(0,0,0,0.30);
 }
 .xp-fill {
-  height: 100%;
+  position: absolute; bottom: 0; left: 0; height: 7px;
   background: linear-gradient(90deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.95) 100%);
   min-width: 3px; border-radius: 0 4px 4px 0;
   transition: width 0.5s ease;
+}
+.xp-tick {
+  position: absolute; bottom: 0; height: 10px; width: 1px;
+  background: rgba(0,0,0,0.45); transform: translateX(-50%);
+}
+.xp-tick-lbl {
+  position: absolute; bottom: 11px; left: 50%; transform: translateX(-50%);
+  font-size: 8px; color: rgba(255,255,255,0.6); white-space: nowrap; line-height: 1;
+  pointer-events: none;
 }
 .banner-info { flex: 1; }
 .banner-info h1 { font-size: 24px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,0.4); }
@@ -917,7 +929,10 @@ for (const grp of OP_GROUP_ORDER) {
   for (const [progName, meta] of progs) {
     const mlist = meta.missions || [];
     const pdone = mlist.filter(function(m) { return m.pct >= 100; }).length;
-    const ppct  = mlist.length ? Math.round(pdone / mlist.length * 100) : 0;
+    // Prefer real XP progress over mission-count ratio when available
+    const ppct  = (meta.xp_earned != null && meta.xp_total)
+      ? Math.round(meta.xp_earned / meta.xp_total * 100)
+      : (mlist.length ? Math.round(pdone / mlist.length * 100) : 0);
     const btn   = document.createElement('button');
     btn.className = 'team-btn other-prog-btn';
     btn.dataset.prog = progName;
@@ -970,10 +985,24 @@ function clearActive() {
   document.querySelectorAll('.team-btn, .other-prog-btn').forEach(b => b.classList.remove('active'));
 }
 
-// Returns the bottom fill-bar HTML for a team-banner at the given percentage.
-function xpBar(pct) {
+// Returns the bottom fill-bar HTML for a team-banner.
+// milestones: array of numeric XP values [5,10,15,...100]; total: max milestone value.
+function xpBar(pct, milestones, total) {
   const w = Math.min(Math.max(pct, 0), 100);
-  return '<div class="xp-fill-wrap"><div class="xp-fill" style="width:' + w + '%"></div></div>';
+  let ticks = '';
+  if (Array.isArray(milestones) && milestones.length && total > 0) {
+    for (const ms of milestones) {
+      const pos = Math.min(ms / total * 100, 100).toFixed(2);
+      ticks += '<div class="xp-tick" style="left:' + pos + '%">'
+             + '<div class="xp-tick-lbl">' + ms + '</div>'
+             + '</div>';
+    }
+  }
+  return '<div class="xp-fill-wrap">'
+       + '<div class="xp-fill-track"></div>'
+       + '<div class="xp-fill" style="width:' + w + '%"></div>'
+       + ticks
+       + '</div>';
 }
 
 function selectOtherProg(progName) {
@@ -991,7 +1020,7 @@ function selectOtherProg(progName) {
       '<div class="team-banner" style="--c1:' + (meta.color || '#1e3a5f') + ';--c2:#0d1b2e">' +
         '<div class="banner-info"><h1>' + progName + '</h1>' +
         '<p>' + (meta.desc || '') + '</p></div>' +
-        xpBar(0) +
+        xpBar(0, [], 0) +
       '</div>' +
       '<div class="live-data-needed">' +
         '<div class="ldn-icon">&#9432;</div>' +
@@ -1032,7 +1061,7 @@ function selectOtherProg(progName) {
       '</svg>' +
       '<div class="ring-label">' + ringLabel + '</div>' +
       '</div>' +
-      xpBar(pct) +
+      xpBar(pct, meta.xp_milestones || [], xpTotal || 0) +
     '</div>' +
     '<div id="mission-area"></div>';
 
@@ -1144,7 +1173,7 @@ function renderContent() {
     + '</svg>'
     + '<div class="ring-label"><span class="rn">' + teamPct + '%</span><span class="rl">done</span></div>'
     + '</div>'
-    + xpBar(teamPct)
+    + xpBar(teamPct, [], 0)
     + '</div>'
     + '<div class="prog-tabs">' + tabsHtml + '</div>'
     + '<div id="mission-area"></div>';

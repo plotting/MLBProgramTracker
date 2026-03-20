@@ -916,7 +916,7 @@ def extract_program_xp(html_body: str) -> tuple:
 
             _scan(props)
             if earned is not None:
-                return (earned, total)
+                return (earned, total, [])
         except Exception:
             pass
 
@@ -925,35 +925,35 @@ def extract_program_xp(html_body: str) -> tuple:
     # contains  "95 <img...> Earned".  Every <li class="counting"> is a milestone with
     # a label like "100 <img...> XP".  The img tag sits between the number and the
     # keyword, so plain-text regexes fail — parse by element class instead.
+    # Also captures the full milestones list (5, 10, 15 … 100) for fill-bar tick marks.
     m_partial_li = re.search(r'<li[^>]+class="[^"]*partial[^"]*"', html_body, re.IGNORECASE)
     if m_partial_li:
         snip = html_body[m_partial_li.start(): m_partial_li.start() + 400]
         m_en = re.search(r'class="[^"]*label[^"]*"[^>]*>\s*(\d[\d,]*)', snip, re.IGNORECASE)
         if m_en:
             earned_tl = int(m_en.group(1).replace(',', ''))
-            # Max label value across all counting lis = total
-            milestone_vals = [
+            milestone_vals = sorted(set(
                 int(x.replace(',', ''))
                 for x in re.findall(
                     r'<li[^>]+class="[^"]*counting[^"]*"[^>]*>\s*'
                     r'<div[^>]+class="[^"]*label[^"]*"[^>]*>\s*(\d[\d,]*)',
                     html_body, re.IGNORECASE)
-            ]
-            return (earned_tl, max(milestone_vals) if milestone_vals else None)
+            ))
+            return (earned_tl, max(milestone_vals) if milestone_vals else None, milestone_vals)
 
     # Strategy 2: "75 / 100 XP" or "75 of 100 XP" — the format visible on the XP path page
     m_slash = re.search(
         r'\b(\d{1,6})\s*(?:/|of)\s*(\d{1,6})\s*XP\b',
         html_body, re.IGNORECASE)
     if m_slash:
-        return (int(m_slash.group(1)), int(m_slash.group(2)))
+        return (int(m_slash.group(1)), int(m_slash.group(2)), [])
 
     # Strategy 3: "XP: 75 / 100" variant
     m_xp_colon = re.search(
         r'\bXP[:\s]+(\d{1,6})\s*(?:/|of)\s*(\d{1,6})\b',
         html_body, re.IGNORECASE)
     if m_xp_colon:
-        return (int(m_xp_colon.group(1)), int(m_xp_colon.group(2)))
+        return (int(m_xp_colon.group(1)), int(m_xp_colon.group(2)), [])
 
     # Strategy 4: meter tag near an "XP" label — <meter value="75" max="100">
     for m_meter in re.finditer(
@@ -963,32 +963,27 @@ def extract_program_xp(html_body: str) -> tuple:
         mm = re.search(r'\bmax=["\']?(\d+)', tag)
         if mv and mm:
             val, mx = int(mv.group(1)), int(mm.group(1))
-            # Sanity: XP path values are typically 0-500+ range
             if 0 <= val <= mx <= 100000 and mx > 10:
-                # Check nearby HTML for an "XP" label (within 300 chars)
                 start = max(0, m_meter.start() - 150)
                 end   = min(len(html_body), m_meter.end() + 150)
                 nearby = html_body[start:end]
                 if re.search(r'\bXP\b', nearby, re.IGNORECASE):
-                    return (val, mx)
+                    return (val, mx, [])
 
     # Strategy 5: "50,000 Earned" / "54 Earned" XP reward-path pattern.
-    # The reward path section reads: "N[,NNN] Earned  M1 XP  M2 XP  ...  MAX XP"
-    # Use \d[\d,]* so comma-formatted numbers like 50,000 are captured whole.
     m_earned = re.search(r'\b(\d[\d,]*)\s+(?:XP\s+)?Earned\b', html_body, re.IGNORECASE)
     if m_earned:
         earned = int(m_earned.group(1).replace(',', ''))
-        # Find XP milestones that appear AFTER the "Earned" marker (next 4 000 chars)
         after_section = html_body[m_earned.end(): m_earned.end() + 4000]
         milestones = [int(x.replace(',', ''))
                       for x in re.findall(r'\b(\d[\d,]*)\s*XP\b', after_section)]
         if milestones:
             total = max(milestones)
             if total > 0 and total >= earned:
-                return (earned, total)
-        return (earned, None)
+                return (earned, total, sorted(set(milestones)))
+        return (earned, None, [])
 
-    return (None, None)
+    return (None, None, [])
 
 
 def _parse_positions(item: dict) -> tuple[str, list[str]]:
@@ -1318,8 +1313,9 @@ def main():
             e: dict = {"color": PROG_GROUP_COLORS.get(g, "#8b5cf6"),
                        "icon": make_prog_icon(pn), "group": g,
                        "missions": pd["missions"]}
-            if "xp_earned" in pd: e["xp_earned"] = pd["xp_earned"]
-            if "xp_total"  in pd: e["xp_total"]  = pd["xp_total"]
+            if "xp_earned"     in pd: e["xp_earned"]     = pd["xp_earned"]
+            if "xp_total"      in pd: e["xp_total"]      = pd["xp_total"]
+            if "xp_milestones" in pd: e["xp_milestones"] = pd["xp_milestones"]
             op_html[pn] = e
 
         data = {
@@ -1391,8 +1387,8 @@ def main():
                 print(f"  [{i:3}/{total}] SKIP ({p_status}) {url[-50:]}")
             return (i, url, None)
 
-        missions             = extract_missions_from_html(p_body)
-        xp_earned, xp_total  = extract_program_xp(p_body)
+        missions                        = extract_missions_from_html(p_body)
+        xp_earned, xp_total, xp_milestones = extract_program_xp(p_body)
         h1 = ""
         m_h1 = re.search(r'<h1[^>]*>(.*?)</h1>', p_body, re.DOTALL | re.IGNORECASE)
         if m_h1:
@@ -1428,6 +1424,7 @@ def main():
 
         return (i, url, {"h1": h1, "missions": missions,
                          "xp_earned": xp_earned, "xp_total": xp_total,
+                         "xp_milestones": xp_milestones or [],
                          "complete": complete})
 
     def _absorb(result: dict) -> None:
@@ -1452,10 +1449,13 @@ def main():
             if prog_key not in other_prog_raw:
                 other_prog_raw[prog_key] = {"group": group, "missions": []}
             other_prog_raw[prog_key]["missions"].extend(missions)
+            xp_milestones = result.get("xp_milestones", [])
             if xp_earned is not None and "xp_earned" not in other_prog_raw[prog_key]:
                 other_prog_raw[prog_key]["xp_earned"] = xp_earned
             if xp_total  is not None and "xp_total"  not in other_prog_raw[prog_key]:
                 other_prog_raw[prog_key]["xp_total"]  = xp_total
+            if xp_milestones and "xp_milestones" not in other_prog_raw[prog_key]:
+                other_prog_raw[prog_key]["xp_milestones"] = xp_milestones
 
     # Submit all programs, process + flush incrementally as results arrive
     FLUSH_SECS     = 8     # rebuild tracker at most this often during the run
