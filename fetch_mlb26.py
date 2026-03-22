@@ -943,6 +943,26 @@ def extract_program_xp(html_body: str) -> tuple:
             ))
             return (earned_tl, max(milestone_vals) if milestone_vals else None, milestone_vals)
 
+    # Strategy 1c: Fully-complete programs have no <li class="partial"> because earned
+    # equals the final milestone exactly.  The earned value appears only in the page
+    # header as  "N <img alt='xp'...> Earned"  (distinct from stubs: alt="stubs").
+    # All milestone <li class="counting active"> are present for the milestone list.
+    m_xp_img = re.search(
+        r'\b(\d[\d,]*)\s*<img[^>]+alt=["\']xp["\'][^>]*/?\s*>\s*Earned\b',
+        html_body, re.IGNORECASE)
+    if m_xp_img:
+        earned_1c = int(m_xp_img.group(1).replace(',', ''))
+        ms_1c = sorted(set(
+            int(x.replace(',', ''))
+            for x in re.findall(
+                r"""<li[^>]+class=["'][^"']*counting[^"']*["'][^>]*>\s*"""
+                r"""<div[^>]+class=["'][^"']*label[^"']*["'][^>]*>\s*(\d[\d,]*)""",
+                html_body, re.IGNORECASE)
+        ))
+        if ms_1c:
+            return (earned_1c, max(ms_1c), ms_1c)
+        return (earned_1c, None, [])
+
     # Strategy 2: "75 / 100 XP" or "75 of 100 XP" — the format visible on the XP path page
     m_slash = re.search(
         r'\b(\d{1,6})\s*(?:/|of)\s*(\d{1,6})\s*XP\b',
