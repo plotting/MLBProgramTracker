@@ -927,12 +927,13 @@ for (const grp of OP_GROUP_ORDER) {
   h.textContent = OP_GROUP_LABELS[grp] || grp;
   sidebar.appendChild(h);
   for (const [progName, meta] of progs) {
-    const mlist = meta.missions || [];
-    const pdone = mlist.filter(function(m) { return m.pct >= 100; }).length;
+    const mlist   = meta.missions || [];
+    const mNonRep = mlist.filter(function(m) { return !m.t.toUpperCase().startsWith('REPEATABLE'); });
+    const pdone   = mNonRep.filter(function(m) { return m.pct >= 100; }).length;
     // Prefer real XP progress over mission-count ratio when available
-    const ppct  = (meta.xp_earned != null && meta.xp_total)
+    const ppct    = (meta.xp_earned != null && meta.xp_total)
       ? Math.round(meta.xp_earned / meta.xp_total * 100)
-      : (mlist.length ? Math.round(pdone / mlist.length * 100) : 0);
+      : (mNonRep.length ? Math.round(pdone / mNonRep.length * 100) : 0);
     const btn   = document.createElement('button');
     btn.className = 'team-btn other-prog-btn';
     btn.dataset.prog = progName;
@@ -1033,19 +1034,20 @@ function selectOtherProg(progName) {
     return;
   }
 
-  const done    = missions.filter(function(m) { return m.pct >= 100; }).length;
+  const nonRepeat = missions.filter(function(m) { return !m.t.toUpperCase().startsWith('REPEATABLE'); });
+  const done    = nonRepeat.filter(function(m) { return m.pct >= 100; }).length;
   // Prefer scraped XP path data (actual game progress) over mission-count ratio
   const xpEarned = meta.xp_earned != null ? meta.xp_earned : null;
   const xpTotal  = meta.xp_total  != null ? meta.xp_total  : null;
   const pct = xpEarned != null && xpTotal
     ? Math.round(xpEarned / xpTotal * 100)
-    : (missions.length ? Math.round(done / missions.length * 100) : 0);
+    : (nonRepeat.length ? Math.round(done / nonRepeat.length * 100) : 0);
   const ringLabel = xpEarned != null
     ? ('<span class="rn">' + xpEarned + '</span><span class="rl">' + (xpTotal ? 'of ' + xpTotal : 'XP') + '</span>')
     : ('<span class="rn">' + pct + '%</span><span class="rl">done</span>');
   const subLabel = xpEarned != null
-    ? (done + ' / ' + missions.length + ' missions \u2022 ' + xpEarned + (xpTotal ? ' / ' + xpTotal : '') + ' XP')
-    : (done + ' / ' + missions.length + ' missions complete');
+    ? (done + ' / ' + nonRepeat.length + ' missions \u2022 ' + xpEarned + (xpTotal ? ' / ' + xpTotal : '') + ' XP')
+    : (done + ' / ' + nonRepeat.length + ' missions complete');
   const R = 30, circ = Math.round(2 * Math.PI * R);
   const offset  = Math.round(circ * (1 - pct / 100));
 
@@ -1095,8 +1097,9 @@ function renderOtherMissions(progName) {
   const area = document.getElementById('mission-area');
   if (!area) return;
 
-  const allMissions = meta.missions || [];
-  const progDone    = allMissions.filter(function(m) { return m.pct >= 100; }).length;
+  const allMissions    = meta.missions || [];
+  const nonRepMissions = allMissions.filter(function(m) { return !m.t.toUpperCase().startsWith('REPEATABLE'); });
+  const progDone       = nonRepMissions.filter(function(m) { return m.pct >= 100; }).length;
   const ownedCount  = allMissions.filter(function(m) { return missionHasOwnedPlayer(m.t); }).length;
 
   if (!list.length) {
@@ -1106,7 +1109,7 @@ function renderOtherMissions(progName) {
 
   let summHtml = '<div class="summary-row">'
     + '<div class="sum-pill">Showing <strong>' + list.length + '</strong> missions</div>'
-    + '<div class="sum-pill"><strong>' + progDone + '</strong> / ' + allMissions.length + ' complete</div>';
+    + '<div class="sum-pill"><strong>' + progDone + '</strong> / ' + nonRepMissions.length + ' complete</div>';
   if (ownedCount > 0) {
     summHtml += '<div class="sum-pill" style="border-color:rgba(245,197,24,0.3);color:#f5c518"><strong>' + ownedCount + '</strong> use your players</div>';
   }

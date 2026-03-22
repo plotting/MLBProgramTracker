@@ -1405,7 +1405,12 @@ def main():
         m_h1 = re.search(r'<h1[^>]*>(.*?)</h1>', p_body, re.DOTALL | re.IGNORECASE)
         if m_h1:
             h1 = re.sub(r'<[^>]+>', '', m_h1.group(1)).strip()
-        complete = bool(missions) and all(m.get("pct", 0) >= 1.0 for m in missions)
+        _non_rep = [m for m in missions if not m.get("t", "").upper().startswith("REPEATABLE")]
+        complete = (
+            bool(_non_rep) and all(m.get("pct", 0) >= 1.0 for m in _non_rep)
+        ) or (
+            xp_earned is not None and xp_total is not None and xp_earned >= xp_total
+        )
 
         if xp_earned is None and not normalize_team(h1) and not _xp_dbg_written.is_set():
             _xp_dbg_written.set()
