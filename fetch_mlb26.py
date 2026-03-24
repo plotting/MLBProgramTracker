@@ -943,25 +943,31 @@ def extract_program_xp(html_body: str) -> tuple:
             ))
             return (earned_tl, max(milestone_vals) if milestone_vals else None, milestone_vals)
 
-    # Strategy 1c: Fully-complete programs have no <li class="partial"> because earned
-    # equals the final milestone exactly.  The earned value appears only in the page
-    # header as  "N <img alt='xp'...> Earned"  (distinct from stubs: alt="stubs").
-    # All milestone <li class="counting active"> are present for the milestone list.
-    m_xp_img = re.search(
-        r'\b(\d[\d,]*)\s*<img[^>]+alt=["\']xp["\'][^>]*/?\s*>\s*Earned\b',
+    # Strategy 1c: Programs without a partial <li> — either not started, or earned
+    # lands exactly on a milestone boundary (including fully complete).
+    # Collect all counting <li>s with class attrs + label values, then:
+    #   earned = max label among active lis  (0 if none are active yet)
+    #   total  = max of all milestone labels
+    # Approach (a) overrides with an explicit "N <img alt='xp'> Earned" header if present.
+    _counting_data = re.findall(
+        r"""<li([^>]+class=["'][^"']*counting[^"']*["'][^>]*)>\s*"""
+        r"""<div[^>]+class=["'][^"']*label[^"']*["'][^>]*>\s*(\d[\d,]*)""",
         html_body, re.IGNORECASE)
-    if m_xp_img:
-        earned_1c = int(m_xp_img.group(1).replace(',', ''))
-        ms_1c = sorted(set(
-            int(x.replace(',', ''))
-            for x in re.findall(
-                r"""<li[^>]+class=["'][^"']*counting[^"']*["'][^>]*>\s*"""
-                r"""<div[^>]+class=["'][^"']*label[^"']*["'][^>]*>\s*(\d[\d,]*)""",
+    if _counting_data:
+        _ms_1c = sorted(set(int(v.replace(',', '')) for _, v in _counting_data))
+        if _ms_1c:
+            # Approach (a): explicit XP-icon earned header (alt="xp", not stubs)
+            _m_xp = re.search(
+                r'\b(\d[\d,]*)\s*<img[^>]+alt=["\']xp["\'][^>]*/?\s*>\s*Earned\b',
                 html_body, re.IGNORECASE)
-        ))
-        if ms_1c:
-            return (earned_1c, max(ms_1c), ms_1c)
-        return (earned_1c, None, [])
+            if _m_xp:
+                return (int(_m_xp.group(1).replace(',', '')), max(_ms_1c), _ms_1c)
+            # Approach (b): infer earned from the highest active milestone boundary.
+            # Covers: 0% (no active lis), mid-path at a boundary, and fully complete.
+            _active_vals = [int(v.replace(',', '')) for attrs, v in _counting_data
+                            if 'active' in attrs]
+            _earned_1c = max(_active_vals) if _active_vals else 0
+            return (_earned_1c, max(_ms_1c), _ms_1c)
 
     # Strategy 2: "75 / 100 XP" or "75 of 100 XP" — the format visible on the XP path page
     m_slash = re.search(
@@ -1305,6 +1311,7 @@ def main():
 
     # 4. Fetch and parse each program
     team_missions:  dict[str, dict[str, list]] = {}
+    team_xp:        dict[str, dict[str, dict]] = {}   # team -> prog_type -> {xp_earned,xp_total,xp_milestones}
     other_prog_raw: dict[str, dict]            = {}   # name -> {group, missions}
     total = len(links)
 
@@ -1338,12 +1345,14 @@ def main():
             if "xp_earned"     in pd: e["xp_earned"]     = pd["xp_earned"]
             if "xp_total"      in pd: e["xp_total"]      = pd["xp_total"]
             if "xp_milestones" in pd: e["xp_milestones"] = pd["xp_milestones"]
+            if "complete"      in pd: e["complete"]       = pd["complete"]
             op_html[pn] = e
 
         data = {
             "divisions":       DIVISIONS,
             "colors":          TEAM_COLORS,
             "missions":        team_out,
+            "team_xp":         team_xp,
             "other_programs":  op_html,
             "inventory":       inventory_snap or [],
             "data_source":     "live",
@@ -1402,9 +1411,23 @@ def main():
             # xp_milestones feature (key absent entirely), re-fetch once so
             # the milestone data gets stored for the fill bar.
             _h1c = cached.get("h1", "")
+            _xp_e = cached.get("xp_earned")
+            _xp_t = cached.get("xp_total")
+            _xp_incomplete = (
+                _xp_e is not None and _xp_t is not None and _xp_e < _xp_t
+            )
+            # Milestone data is bad if the key is absent or stored as None.
+            # Treat both the same: one-time re-fetch for any program type.
+            _ms_bad = (
+                "xp_milestones" not in cached
+                or cached.get("xp_milestones") is None
+            )
             _needs_xp_refresh = (
-                normalize_team(_h1c) is None          # not a team program
-                and "xp_milestones" not in cached     # cache predates feature
+                _ms_bad                               # milestones missing/None (any program)
+                or (
+                    normalize_team(_h1c) is None      # non-team: also re-fetch if XP incomplete
+                    and _xp_incomplete
+                )
             )
             if not _needs_xp_refresh:
                 with _prog_print_lock:
@@ -1476,6 +1499,11 @@ def main():
         prog_type = "Color Storm" if is_cs else "My Journey"
         if team:
             team_missions.setdefault(team, {}).setdefault(prog_type, []).extend(missions)
+            xp_milestones = result.get("xp_milestones", [])
+            txp = team_xp.setdefault(team, {}).setdefault(prog_type, {})
+            if xp_earned    is not None: txp["xp_earned"]     = xp_earned
+            if xp_total     is not None: txp["xp_total"]      = xp_total
+            if xp_milestones:            txp["xp_milestones"] = xp_milestones
         else:
             if   re.search(r'xp.*(path|reward)|1st inning', h1l, re.I):
                 group, prog_key = "xp_path",    h1 or "1st Inning XP Path"
@@ -1493,6 +1521,9 @@ def main():
                 other_prog_raw[prog_key]["xp_total"]  = xp_total
             if xp_milestones and "xp_milestones" not in other_prog_raw[prog_key]:
                 other_prog_raw[prog_key]["xp_milestones"] = xp_milestones
+            # Track completion so the dashboard can exclude done programs
+            if result.get("complete"):
+                other_prog_raw[prog_key]["complete"] = True
 
     # Submit all programs, process + flush incrementally as results arrive
     FLUSH_SECS     = 8     # rebuild tracker at most this often during the run
