@@ -704,6 +704,14 @@ function selectAffinityGrid() {
   renderAffinityGrid();
   window.scrollTo(0, 0);
 }
+function selectFanGrid() {
+  clearActive();
+  curTeam = null; curProg = null;
+  const fb = document.getElementById('fan-btn');
+  if (fb) fb.classList.add('active');
+  renderFanGrid();
+  window.scrollTo(0, 0);
+}
 
 // Build a name→card lookup from inventory (supports both old string[] and new {name,pos}[])
 // Indexed by: exact name, "Series Name" compound key, and last name (for 2-word names only).
@@ -953,6 +961,12 @@ gridBtn.className = 'team-btn';
 gridBtn.innerHTML = '<span style="font-size:13px;margin-right:6px">&#9776;</span><span style="flex:1">Affinity Grid</span>';
 gridBtn.addEventListener('click', selectAffinityGrid);
 sidebar.appendChild(gridBtn);
+const fanBtn = document.createElement('button');
+fanBtn.id = 'fan-btn';
+fanBtn.className = 'team-btn';
+fanBtn.innerHTML = '<span style="font-size:13px;margin-right:6px">&#11088;</span><span style="flex:1">#1 Fan Grid</span>';
+fanBtn.addEventListener('click', selectFanGrid);
+sidebar.appendChild(fanBtn);
 const homeDivSep = document.createElement('div');
 homeDivSep.style.cssText = 'height:1px;background:var(--border);margin:6px 14px 4px;';
 sidebar.appendChild(homeDivSep);
@@ -1029,6 +1043,7 @@ for (const [div, teams] of Object.entries(D.divisions)) {
 let curTeam = null;
 let curProg = null;
 let affinitySort = { col: '__overall', dir: 'asc' };
+let fanSort = { col: '__overall', dir: 'asc' };
 
 function clearActive() {
   document.querySelectorAll('.team-btn, .other-prog-btn').forEach(b => b.classList.remove('active'));
@@ -1354,6 +1369,65 @@ function renderAffinityGrid() {
     + '<div class="ag-wrap"><table class="ag-table"><thead>' + thead + '</thead><tbody>' + tbody + '</tbody></table></div>';
 }
 
+const FAN_KEYS = ['XP','SS Hits','SS HR','SS Ks','CL HR'];
+function fanStatKey(m) {
+  const pl = m.p.toUpperCase();
+  if (m.t.includes(': Part V')) return 'XP';
+  if (m.t === 'Season Standouts' && pl.includes('HITS')) return 'SS Hits';
+  if (m.t === 'Season Standouts' && pl.includes(' HR'))  return 'SS HR';
+  if (m.t === 'Season Standouts' && pl.includes(' K'))   return 'SS Ks';
+  if (m.t === 'Clubhouse Leaders')                       return 'CL HR';
+  return null;
+}
+function buildFanData() {
+  const result = {};
+  for (const [team, progs] of Object.entries(D.missions)) {
+    result[team] = {};
+    for (const key of FAN_KEYS) result[team][key] = null;
+    for (const m of (progs['Color Storm'] || [])) {
+      const key = fanStatKey(m);
+      if (!key) continue;
+      const parts = m.p.split('/');
+      const cur = parseInt(parts[0], 10);
+      const tot = parseInt((parts[1] || '').split(' ')[0], 10);
+      result[team][key] = { cur: isNaN(cur) ? 0 : cur, total: isNaN(tot) ? 0 : tot, pct: m.pct };
+    }
+    const cells = FAN_KEYS.map(function(k) { return result[team][k]; }).filter(Boolean);
+    result[team].__overall = cells.length ? cells.reduce(function(s,c){ return s+c.pct; }, 0) / cells.length : 0;
+  }
+  return result;
+}
+function fanHeaderClick(col) {
+  if (fanSort.col === col) { fanSort.dir = fanSort.dir === 'asc' ? 'desc' : 'asc'; }
+  else { fanSort.col = col; fanSort.dir = 'asc'; }
+  renderFanGrid();
+}
+function renderFanGrid() {
+  const content = document.getElementById('content');
+  const data = buildFanData();
+  let teams = Object.keys(data);
+  const col = fanSort.col, dir = fanSort.dir;
+  teams.sort(function(a, b) {
+    const va = col === '__overall' ? data[a].__overall : (data[a][col] ? data[a][col].pct : -1);
+    const vb = col === '__overall' ? data[b].__overall : (data[b][col] ? data[b][col].pct : -1);
+    return va !== vb ? (dir === 'asc' ? va - vb : vb - va) : a.localeCompare(b);
+  });
+  function sortInd(c) { return fanSort.col === c ? (fanSort.dir === 'asc' ? ' &#9650;' : ' &#9660;') : ''; }
+  let thead = '<tr><th class="ag-th ag-team-col" onclick="fanHeaderClick(&apos;__overall&apos;)">Team' + sortInd('__overall') + '</th>';
+  for (const key of FAN_KEYS) thead += '<th class="ag-th" onclick="fanHeaderClick(&apos;' + key + '&apos;)">' + key + sortInd(key) + '</th>';
+  thead += '</tr>';
+  let tbody = '';
+  for (const team of teams) {
+    const c1 = D.colors[team] ? D.colors[team][0] : '#3b9edd';
+    tbody += '<tr class="ag-row"><td class="ag-td ag-team-col"><span class="team-dot" style="background:' + c1 + ';display:inline-block;vertical-align:middle;margin-right:6px"></span>' + team + '</td>';
+    for (const key of FAN_KEYS) tbody += affinityCell(data[team][key]);
+    tbody += '</tr>';
+  }
+  content.innerHTML = '<div class="home-banner" style="margin-bottom:14px">'
+    + '<div><h1>#1 Fan Grid</h1><p>Color Storm stats across all 30 teams &bull; click a column header to sort</p></div></div>'
+    + '<div class="ag-wrap"><table class="ag-table"><thead>' + thead + '</thead><tbody>' + tbody + '</tbody></table></div>';
+}
+
 function renderMissions() {
   if (!curTeam || !curProg) return;
   let list = (D.missions[curTeam][curProg] || []).slice();
@@ -1574,6 +1648,7 @@ function rerender() {
   if (curTeam) renderMissions();
   else if (curProg) renderOtherMissions(curProg);
   else if (document.getElementById('grid-btn') && document.getElementById('grid-btn').classList.contains('active')) renderAffinityGrid();
+  else if (document.getElementById('fan-btn') && document.getElementById('fan-btn').classList.contains('active')) renderFanGrid();
   else renderHome();
 }
 document.getElementById('search').addEventListener('input', rerender);
