@@ -32,3 +32,9 @@ Thumbs.db
 
 # Secrets
 .env
+
+# Debug artifacts & generated data
+debug_*.html
+debug_*.json
+mlb_data.json
+release_payload.json

@@ -288,7 +288,10 @@ class App:
 
     def _open_html(self):
         if os.path.exists(HTML_OUT):
-            webbrowser.open("file:///" + HTML_OUT.replace("\\", "/"))
+            try:
+                os.startfile(HTML_OUT)          # always loads fresh from disk on Windows
+            except Exception:
+                webbrowser.open("file:///" + HTML_OUT.replace("\\", "/"))
         else:
             self._log("Tracker HTML not found — run a fetch first.\n", "warn")
 

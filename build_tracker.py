@@ -1293,9 +1293,24 @@ function buildCard(m) {
 // ── Render mission cards ───────────────────────────────────────────────────
 function progColor(pct) {
   if (pct >= 100) return '#22c55e';
-  if (pct >= 75)  return '#3b9edd';
-  if (pct >= 50)  return '#f59e0b';
-  return '#ef4444';
+  // Muted anchors (Tailwind -600) interpolated per zone — no neon lime bleed
+  // 0%=#dc2626  25%=#ea580c  50%=#ca8a04  75%=#16a34a  99%=#22c55e
+  const stops = [
+    [0,   220, 38,  38],
+    [25,  234, 88,  12],
+    [50,  202, 138, 4],
+    [75,  22,  163, 74],
+    [100, 34,  197, 94],
+  ];
+  let lo = stops[0], hi = stops[stops.length - 1];
+  for (let i = 0; i < stops.length - 1; i++) {
+    if (pct < stops[i + 1][0]) { lo = stops[i]; hi = stops[i + 1]; break; }
+  }
+  const t = (pct - lo[0]) / (hi[0] - lo[0]);
+  const r = Math.round(lo[1] + t * (hi[1] - lo[1]));
+  const g = Math.round(lo[2] + t * (hi[2] - lo[2]));
+  const b = Math.round(lo[3] + t * (hi[3] - lo[3]));
+  return 'rgb(' + r + ',' + g + ',' + b + ')';
 }
 
 // ── Affinity Grid ───────────────────────────────────────────────────────────
@@ -1335,7 +1350,7 @@ function affinityCell(cell) {
   const isZero = cell.pct === 0;
   return '<td class="ag-td' + (isZero ? ' ag-zero' : '') + '">'
     + '<div class="ag-prog-txt" style="color:' + (isZero ? 'var(--muted)' : color) + '">' + cell.cur + '/' + cell.total + '</div>'
-    + '<div class="ag-bar-track"><div class="ag-bar-fill" style="width:' + Math.min(cell.pct,100) + '%;background:' + (isZero ? 'rgba(255,255,255,0.06)' : color) + '"></div></div>'
+    + '<div class="ag-bar-track"><div class="ag-bar-fill" style="width:' + Math.min(cell.pct,100) + '%;background:' + (isZero ? 'rgba(255,255,255,0.06)' : 'linear-gradient(90deg,rgba(255,255,255,0.05) 0%,' + color + ' 100%)') + '"></div></div>'
     + '</td>';
 }
 function affinityHeaderClick(col) {
