@@ -712,6 +712,14 @@ function selectFanGrid() {
   renderFanGrid();
   window.scrollTo(0, 0);
 }
+function selectJoltGrid() {
+  clearActive();
+  curTeam = null; curProg = null;
+  const jb = document.getElementById('jolt-btn');
+  if (jb) jb.classList.add('active');
+  renderJoltGrid();
+  window.scrollTo(0, 0);
+}
 
 // Build a name→card lookup from inventory (supports both old string[] and new {name,pos}[])
 // Indexed by: exact name, "Series Name" compound key, and last name (for 2-word names only).
@@ -967,6 +975,12 @@ fanBtn.className = 'team-btn';
 fanBtn.innerHTML = '<span style="font-size:13px;margin-right:6px">&#11088;</span><span style="flex:1">#1 Fan Grid</span>';
 fanBtn.addEventListener('click', selectFanGrid);
 sidebar.appendChild(fanBtn);
+const joltBtn = document.createElement('button');
+joltBtn.id = 'jolt-btn';
+joltBtn.className = 'team-btn';
+joltBtn.innerHTML = '<span style="font-size:13px;margin-right:6px">&#9889;</span><span style="flex:1">Jolt Grid</span>';
+joltBtn.addEventListener('click', selectJoltGrid);
+sidebar.appendChild(joltBtn);
 const homeDivSep = document.createElement('div');
 homeDivSep.style.cssText = 'height:1px;background:var(--border);margin:6px 14px 4px;';
 sidebar.appendChild(homeDivSep);
@@ -1382,6 +1396,107 @@ function renderAffinityGrid() {
   content.innerHTML = '<div class="home-banner" style="margin-bottom:14px">'
     + '<div><h1>Affinity Grid</h1><p>My Journey stats across all 30 teams &bull; click a column header to sort</p></div></div>'
     + '<div class="ag-wrap"><table class="ag-table"><thead>' + thead + '</thead><tbody>' + tbody + '</tbody></table></div>';
+}
+
+// ── Jolt Grid (500 XP parallel cards) ──────────────────────────────────────
+function buildJoltData() {
+  const result = {};
+  for (const [team, progs] of Object.entries(D.missions)) {
+    const cs = [], mj = [];
+    for (const m of (progs['Color Storm'] || [])) {
+      const parts = m.p.split('/');
+      const total = parseInt((parts[1] || '').trim(), 10);
+      if (total === 500 && \!m.t.includes(': Part')) {
+        const name = m.t.replace(/^w\/\s*/, '');
+        cs.push({ name, cur: parseInt(parts[0], 10) || 0, total: 500, pct: m.pct });
+      }
+    }
+    for (const m of (progs['My Journey'] || [])) {
+      const parts = m.p.split('/');
+      const total = parseInt((parts[1] || '').trim(), 10);
+      if (total === 500) {
+        const name = m.t.replace(/^w\/\s*/, '');
+        mj.push({ name, cur: parseInt(parts[0], 10) || 0, total: 500, pct: m.pct });
+      }
+    }
+    result[team] = { cs, mj };
+    const all = [...cs, ...mj];
+    result[team].__overall = all.length
+      ? all.reduce(function(s, c) { return s + c.pct; }, 0) / all.length : 0;
+    result[team].__xp = all.reduce(function(s, c) { return s + c.cur; }, 0);
+    result[team].__xpTotal = all.length * 500;
+  }
+  return result;
+}
+function joltCell(card, tag) {
+  if (\!card) return '<td class="ag-td ag-empty"><span class="ag-na">—</span></td>';
+  const isDone = card.pct >= 100;
+  const color = isDone ? '#22c55e' : progColor(card.pct);
+  const tagBadge = tag ? '<span style="font-size:8px;color:var(--muted);margin-left:4px;text-transform:uppercase;letter-spacing:.5px">' + tag + '</span>' : '';
+  if (isDone) {
+    return '<td class="ag-td ag-done">'
+      + '<div style="font-size:10px;font-weight:600;color:#22c55e">' + card.name + tagBadge + '</div>'
+      + '<div class="ag-check" style="font-size:11px">&#10003; 500 XP</div>'
+      + '</td>';
+  }
+  const isZero = card.pct === 0;
+  const barBg = isZero ? 'rgba(255,255,255,0.06)' : 'linear-gradient(90deg,rgba(255,255,255,0.05) 0%,' + color + ' 100%)';
+  return '<td class="ag-td' + (isZero ? ' ag-zero' : '') + '">'
+    + '<div style="font-size:10px;font-weight:600;color:' + (isZero ? 'var(--muted)' : color) + '">' + card.name + tagBadge + '</div>'
+    + '<div class="ag-prog-txt" style="color:' + (isZero ? 'var(--muted)' : color) + ';font-size:10px">' + card.cur + '/500</div>'
+    + '<div class="ag-bar-track"><div class="ag-bar-fill" style="width:' + Math.min(card.pct, 100) + '%;background:' + barBg + '"></div></div>'
+    + '</td>';
+}
+let joltSort = { col: '__overall', dir: 'desc' };
+function joltHeaderClick(col) {
+  if (joltSort.col === col) { joltSort.dir = joltSort.dir === 'asc' ? 'desc' : 'asc'; }
+  else { joltSort.col = col; joltSort.dir = 'desc'; }
+  renderJoltGrid();
+}
+function renderJoltGrid() {
+  const content = document.getElementById('content');
+  const data = buildJoltData();
+  let teams = Object.keys(data);
+  teams.sort(function(a, b) {
+    const va = data[a][joltSort.col] \!== undefined ? data[a][joltSort.col] : data[a].__overall;
+    const vb = data[b][joltSort.col] \!== undefined ? data[b][joltSort.col] : data[b].__overall;
+    return va \!== vb ? (joltSort.dir === 'asc' ? va - vb : vb - va) : a.localeCompare(b);
+  });
+  function sortInd(c) { return joltSort.col === c ? (joltSort.dir === 'asc' ? ' &#9650;' : ' &#9660;') : ''; }
+  // Count totals
+  let totalXp = 0, totalMax = 0, totalDone = 0, totalCards = 0;
+  for (const t of teams) {
+    totalXp  += data[t].__xp;
+    totalMax += data[t].__xpTotal;
+    const all = [...data[t].cs, ...data[t].mj];
+    totalDone  += all.filter(function(c) { return c.pct >= 100; }).length;
+    totalCards += all.length;
+  }
+  let tbody = '';
+  for (const team of teams) {
+    const c1 = D.colors[team] ? D.colors[team][0] : '#3b9edd';
+    const all = [...data[team].cs, ...data[team].mj];
+    const done = all.filter(function(c) { return c.pct >= 100; }).length;
+    const teamXp = data[team].__xp;
+    const teamMax = data[team].__xpTotal;
+    const xpPct  = teamMax ? Math.round(teamXp / teamMax * 100) : 0;
+    const xpColor = progColor(xpPct);
+    tbody += '<tr class="ag-row">'
+      + '<td class="ag-td ag-team-col"><span class="team-dot" style="background:' + c1 + ';display:inline-block;vertical-align:middle;margin-right:6px"></span>' + team
+      + '<div style="font-size:9px;color:var(--muted);margin-top:1px">' + teamXp + '/' + teamMax + ' XP &nbsp;&#183;&nbsp; ' + done + '/' + all.length + ' cards</div></td>';
+    for (const card of data[team].cs) tbody += joltCell(card, 'CS');
+    for (const card of data[team].mj) tbody += joltCell(card, 'MJ');
+    tbody += '</tr>';
+  }
+  const pct = totalMax ? Math.round(totalXp / totalMax * 100) : 0;
+  content.innerHTML = '<div class="home-banner" style="margin-bottom:14px">'
+    + '<div><h1>&#9889; Jolt Grid</h1>'
+    + '<p>500 XP parallel cards across all 30 teams &bull; ' + totalXp.toLocaleString() + ' / ' + totalMax.toLocaleString() + ' XP &bull; ' + totalDone + '/' + totalCards + ' cards completed (' + pct + '%)</p></div></div>'
+    + '<div class="ag-wrap"><table class="ag-table"><thead><tr>'
+    + '<th class="ag-th ag-team-col" onclick="joltHeaderClick(&apos;__overall&apos;)">Team' + sortInd('__overall') + '</th>'
+    + '<th class="ag-th" colspan="2" style="text-align:center;border-right:1px solid rgba(30,53,84,0.6)">Color Storm Cards</th>'
+    + '<th class="ag-th">My Journey Card</th>'
+    + '</tr></thead><tbody>' + tbody + '</tbody></table></div>';
 }
 
 const FAN_KEYS = ['XP','SS Hits','SS HR','SS Ks','CL HR'];
