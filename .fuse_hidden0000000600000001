@@ -1398,70 +1398,7 @@ function renderAffinityGrid() {
     + '<div class="ag-wrap"><table class="ag-table"><thead>' + thead + '</thead><tbody>' + tbody + '</tbody></table></div>';
 }
 
-// ── Jolt Grid (500 XP parallel cards) ───────────────────────────────────────
-const JOLT_POS = {
-  // Orioles
-  'Adam Jones': 'CF', 'Zack Britton': 'RP', "Darren O'Day": 'RP',
-  // Red Sox
-  'Dennis Eckersley': 'RP', 'David Ortiz': 'DH', 'Fred Lynn': 'CF',
-  // Yankees
-  'Derek Jeter': 'SS', 'Graig Nettles': '3B', 'Andy Pettitte': 'SP',
-  // Rays
-  'Drew Rasmussen': 'SP', 'Zach Eflin': 'SP', 'Fred McGriff': '1B',
-  // Blue Jays
-  'Roger Clemens': 'SP', 'Tony Fernandez': 'SS', 'José Bautista': 'RF',
-  // White Sox
-  'Rich "Goose" Gossage': 'RP', 'Larry Doby': 'CF', 'Harold Baines': 'DH',
-  // Guardians
-  'Jim Thome': '1B', 'Corey Kluber': 'SP', 'Lou Boudreau': 'SS',
-  // Tigers
-  'Hal Newhouser': 'SP', 'Hank Greenberg': '1B', 'George Kell': '3B',
-  // Royals
-  'Jeff Suppan': 'SP', 'Mike Moustakas': '3B', 'George Brett': '3B',
-  // Twins
-  'Johan Santana': 'SP', 'Justin Morneau': '1B', 'Joe Mauer': 'C',
-  // Astros
-  'Billy Wagner': 'RP', 'Lance Berkman': 'LF', 'Jeff Bagwell': '1B',
-  // Mariners
-  'Cliff Lee': 'SP', 'Mike Cameron': 'CF', 'Adrian Beltré': '3B',
-  // Angels
-  'Jered Weaver': 'SP', 'Wally Joyner': '1B', 'Vladimir Guerrero': 'RF',
-  // Athletics
-  'Vida Blue': 'SP', 'Keith Foulke': 'RP', 'Jason Giambi': '1B',
-  // Rangers
-  'Gaylord Perry': 'SP', 'Rafael Palmeiro': '1B', 'Ivan Rodriguez': 'C',
-  // Braves
-  'Greg Maddux': 'SP', 'Terry Pendleton': '3B', 'Andruw Jones': 'CF',
-  // Marlins
-  'Gary Sheffield': 'RF', 'Al Leiter': 'SP', 'Jeff Conine': 'LF',
-  // Mets
-  'Tom Seaver': 'SP', 'Mike Piazza': 'C', 'David Wright': '3B',
-  // Phillies
-  'Chase Utley': '2B', 'Dick Allen': '1B', 'Steve Carlton': 'SP',
-  // Nationals
-  'Andre Dawson': 'RF', 'Pedro Martinez': 'SP', 'Jeimer Candelario': '3B',
-  // Cubs
-  'Jake Arrieta': 'SP', 'Ryne Sandberg': '2B', 'Ron Santo': '3B',
-  // Reds
-  "Paul O'Neill": 'RF', 'Rob Dibble': 'RP', 'Joe Morgan': '2B',
-  // Brewers
-  'CC Sabathia': 'SP', 'Ted Simmons': 'C', 'Ryan Braun': 'LF',
-  // Pirates
-  'Roberto Clemente': 'RF', 'Andrew McCutchen': 'CF', 'Bert Blyleven': 'SP',
-  // Cardinals
-  'Lee Smith': 'RP', 'Red Schoendienst': '2B', 'Matt Carpenter': '3B',
-  // Diamondbacks
-  'Luis Gonzalez': 'LF', 'Corbin Burnes': 'SP', 'Paul Goldschmidt': '1B',
-  // Rockies
-  'Ubaldo Jiménez': 'SP', 'Kyle Freeland': 'SP', 'Larry Walker': 'RF',
-  // Dodgers
-  'Gil Hodges': '1B', 'Eric Gagne': 'RP', 'Manny Ramirez': 'LF',
-  // Padres
-  'Yu Darvish': 'SP', 'Chase Headley': '3B', 'Mark Davis': 'RP',
-  // Giants
-  'Chili Davis': 'OF', 'Willie McGee': 'CF', 'Juan Marichal': 'SP',
-};
-const _JOLT_NAME_PAT = /with (?:Jolt|All-Star|Standout|Breakout|Flashback|Contributor|2nd Half Heroes|Postseason|Rookie|Veteran)\s+(.+?)\s*\./;
+// ── Jolt Grid (500 XP parallel cards) ──────────────────────────────────────
 function buildJoltData() {
   const result = {};
   for (const [team, progs] of Object.entries(D.missions)) {
@@ -1471,9 +1408,7 @@ function buildJoltData() {
       const total = parseInt((parts[1] || '').trim(), 10);
       if (total === 500 && !m.t.includes(': Part')) {
         const name = m.t.replace(/^w\/\s*/, '');
-        const dm = (m.d || '').match(_JOLT_NAME_PAT);
-        const fullname = dm ? dm[1].trim() : name;
-        cs.push({ name, fullname, cur: parseInt(parts[0], 10) || 0, total: 500, pct: m.pct });
+        cs.push({ name, cur: parseInt(parts[0], 10) || 0, total: 500, pct: m.pct });
       }
     }
     for (const m of (progs['My Journey'] || [])) {
@@ -1481,9 +1416,7 @@ function buildJoltData() {
       const total = parseInt((parts[1] || '').trim(), 10);
       if (total === 500) {
         const name = m.t.replace(/^w\/\s*/, '');
-        const dm = (m.d || '').match(_JOLT_NAME_PAT);
-        const fullname = dm ? dm[1].trim() : name;
-        mj.push({ name, fullname, cur: parseInt(parts[0], 10) || 0, total: 500, pct: m.pct });
+        mj.push({ name, cur: parseInt(parts[0], 10) || 0, total: 500, pct: m.pct });
       }
     }
     result[team] = { cs, mj };
@@ -1499,19 +1432,17 @@ function joltCell(card, tag) {
   if (!card) return '<td class="ag-td ag-empty"><span class="ag-na">—</span></td>';
   const isDone = card.pct >= 100;
   const color = isDone ? '#22c55e' : progColor(card.pct);
-  const pos = card.fullname ? (JOLT_POS[card.fullname] || '') : '';
-  const posBadge = pos ? '<span style="font-size:8px;background:rgba(255,255,255,0.1);color:var(--muted);border-radius:3px;padding:0 3px;margin-left:4px;vertical-align:middle">' + pos + '</span>' : '';
   const tagBadge = tag ? '<span style="font-size:8px;color:var(--muted);margin-left:4px;text-transform:uppercase;letter-spacing:.5px">' + tag + '</span>' : '';
   if (isDone) {
     return '<td class="ag-td ag-done">'
-      + '<div style="font-size:10px;font-weight:600;color:#22c55e">' + card.name + posBadge + tagBadge + '</div>'
+      + '<div style="font-size:10px;font-weight:600;color:#22c55e">' + card.name + tagBadge + '</div>'
       + '<div class="ag-check" style="font-size:11px">&#10003; 500 XP</div>'
       + '</td>';
   }
   const isZero = card.pct === 0;
   const barBg = isZero ? 'rgba(255,255,255,0.06)' : 'linear-gradient(90deg,rgba(255,255,255,0.05) 0%,' + color + ' 100%)';
   return '<td class="ag-td' + (isZero ? ' ag-zero' : '') + '">'
-    + '<div style="font-size:10px;font-weight:600;color:' + (isZero ? 'var(--muted)' : color) + '">' + card.name + posBadge + tagBadge + '</div>'
+    + '<div style="font-size:10px;font-weight:600;color:' + (isZero ? 'var(--muted)' : color) + '">' + card.name + tagBadge + '</div>'
     + '<div class="ag-prog-txt" style="color:' + (isZero ? 'var(--muted)' : color) + ';font-size:10px">' + card.cur + '/500</div>'
     + '<div class="ag-bar-track"><div class="ag-bar-fill" style="width:' + Math.min(card.pct, 100) + '%;background:' + barBg + '"></div></div>'
     + '</td>';

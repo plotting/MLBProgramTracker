@@ -1561,6 +1561,14 @@ def main():
     print(f"Other missions: {other_total:4d} across {len(other_prog_raw)} programs")
     print(f"Inventory:      {len(inventory):4d} player cards")
 
+    # Treat zero team data as a session/auth failure — stale cookies often authenticate
+    # but return an empty programs page.  Exit non-zero so the launcher can detect it.
+    if not team_missions:
+        print()
+        print("ERROR: 0 teams fetched — session token is likely expired.")
+        print("  Please refresh your MLB The Show session and re-run.")
+        sys.exit(2)
+
     print("\nFinal rebuild...")
     _flush_tracker(inventory)
     print(f"Saved: {OUT_JSON}")

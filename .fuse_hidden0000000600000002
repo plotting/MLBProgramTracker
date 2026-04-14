@@ -1469,7 +1469,7 @@ function buildJoltData() {
     for (const m of (progs['Color Storm'] || [])) {
       const parts = m.p.split('/');
       const total = parseInt((parts[1] || '').trim(), 10);
-      if (total === 500 && !m.t.includes(': Part')) {
+      if (total === 500 && \!m.t.includes(': Part')) {
         const name = m.t.replace(/^w\/\s*/, '');
         const dm = (m.d || '').match(_JOLT_NAME_PAT);
         const fullname = dm ? dm[1].trim() : name;
@@ -1496,7 +1496,7 @@ function buildJoltData() {
   return result;
 }
 function joltCell(card, tag) {
-  if (!card) return '<td class="ag-td ag-empty"><span class="ag-na">—</span></td>';
+  if (\!card) return '<td class="ag-td ag-empty"><span class="ag-na">—</span></td>';
   const isDone = card.pct >= 100;
   const color = isDone ? '#22c55e' : progColor(card.pct);
   const pos = card.fullname ? (JOLT_POS[card.fullname] || '') : '';

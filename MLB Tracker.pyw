@@ -158,7 +158,16 @@ class App:
         t.start()
 
     def _fetch_thread(self, extra_args=None):
-        chrome_locked = False
+        auth_hints = (
+            "cannot read cookies", "chrome is running and no cache",
+            "no cookies found", "no credentials", "stale cached cookies",
+            "authentication", "unauthorized", "403", "401",
+            "error: cannot", "error: no cookies",
+            # Zero-data signals — stale session authenticated but returned empty page
+            "found 0 program links", "0 teams fetched", "session token is likely expired",
+            "0 across 0 teams",
+        )
+        auth_issue = False
         try:
             cmd = [sys.executable, FETCH_SCRIPT, "--no-browser"] + (extra_args or [])
             proc = subprocess.Popen(
@@ -173,63 +182,84 @@ class App:
             for line in proc.stdout:
                 line = line.rstrip("\n\r")
                 self.root.after(0, self._log_line, line)
-                if "cannot read cookies" in line.lower() or "chrome is running and no cache" in line.lower():
-                    chrome_locked = True
+                lo = line.lower()
+                if any(h in lo for h in auth_hints):
+                    auth_issue = True
             proc.wait()
             success = proc.returncode == 0
         except Exception as e:
             self.root.after(0, self._log, f"Launch error: {e}\n", "err")
             success = False
+            auth_issue = False
 
-        if chrome_locked and not success:
-            self.root.after(0, self._prompt_close_chrome)
+        if not success:
+            self.root.after(0, self._prompt_reauth, auth_issue)
         else:
-            self.root.after(0, self._fetch_done, success)
+            self.root.after(0, self._fetch_done, True)
 
-    def _prompt_close_chrome(self):
+    def _prompt_reauth(self, auth_issue: bool = True):
         self.running = False
         self.btn.configure(state="normal", text="  Refresh Live Data  ", bg=BLUE)
         self._set_status("Waiting — action required", AMBER)
 
         win = tk.Toplevel(self.root)
-        win.title("Authentication Required")
+        win.title("Re-authenticate")
         win.configure(bg=BG)
-        win.geometry("480x320")
+        win.geometry("500x360")
         win.resizable(False, False)
         win.grab_set()
 
-        tk.Label(win, text="Authentication Required", bg=BG, fg=TEXT,
+        tk.Label(win, text="Session Expired — Re-authenticate", bg=BG, fg=TEXT,
                  font=("Segoe UI", 12, "bold")).pack(pady=(18, 4))
-        tk.Label(win,
-                 text="Chrome is running and its cookie database is locked.\n"
-                      "Choose an option below:",
-                 bg=BG, fg=MUTED, font=("Segoe UI", 9), justify="center").pack(pady=(0, 14))
+
+        if auth_issue:
+            subtitle = ("The session token has expired (~24 hrs). The site authenticated\n"
+                        "but returned no data. Refresh your session to continue:")
+        else:
+            subtitle = ("The fetch failed. Try refreshing your session\n"
+                        "or paste a fresh cookie from Chrome DevTools:")
+        tk.Label(win, text=subtitle, bg=BG, fg=MUTED,
+                 font=("Segoe UI", 9), justify="center").pack(pady=(0, 12))
 
         sep = tk.Frame(win, bg=BORDER, height=1)
         sep.pack(fill="x", padx=20)
 
-        # Option 1 — close Chrome
+        # Option 1 — open browser so Chrome gets a fresh cookie, then retry
         opt1 = tk.Frame(win, bg=BG)
-        opt1.pack(fill="x", padx=20, pady=10)
+        opt1.pack(fill="x", padx=20, pady=(10, 4))
         tk.Label(opt1, text="Option 1", bg=BG, fg=BLUE,
-                 font=("Segoe UI", 9, "bold")).pack(side="left")
-        tk.Label(opt1, text=" — Close Chrome/Edge, then click Retry",
-                 bg=BG, fg=TEXT, font=("Segoe UI", 9)).pack(side="left")
-        tk.Button(opt1, text="Retry", bg=BLUE, fg="white", relief="flat",
+                 font=("Segoe UI", 9, "bold")).pack(anchor="w")
+        tk.Label(opt1,
+                 text="Open mlb26.theshow.com, log in (or just visit the page if already logged in),\n"
+                      "then click Retry. Chrome must be open so fresh cookies can be read.",
+                 bg=BG, fg=MUTED, font=("Segoe UI", 8)).pack(anchor="w", pady=(2, 6))
+
+        btn_row1 = tk.Frame(opt1, bg=BG)
+        btn_row1.pack(fill="x")
+
+        def _open_site():
+            import webbrowser as _wb
+            _wb.open("https://mlb26.theshow.com")
+
+        tk.Button(btn_row1, text="Open Site", bg=SURFACE2, fg=TEXT, relief="flat",
+                  padx=10, pady=3, font=("Segoe UI", 9), cursor="hand2",
+                  command=_open_site).pack(side="left")
+
+        tk.Button(btn_row1, text="Retry Fetch →", bg=BLUE, fg="white", relief="flat",
                   padx=10, pady=3, font=("Segoe UI", 9, "bold"), cursor="hand2",
                   command=lambda: [win.destroy(), self._start_fetch()]).pack(side="right")
 
         sep2 = tk.Frame(win, bg=BORDER, height=1)
         sep2.pack(fill="x", padx=20)
 
-        # Option 2 — paste cookie
+        # Option 2 — paste cookie manually
         opt2 = tk.Frame(win, bg=BG)
         opt2.pack(fill="x", padx=20, pady=(10, 4))
         tk.Label(opt2, text="Option 2", bg=BG, fg=BLUE,
                  font=("Segoe UI", 9, "bold")).pack(anchor="w")
         tk.Label(opt2,
-                 text="Paste your _tsn_session cookie from Chrome DevTools\n"
-                      "(F12 → Application → Cookies → mlb26.theshow.com)",
+                 text="Paste your _tsn_session cookie directly:\n"
+                      "(Chrome: F12 → Application → Cookies → mlb26.theshow.com → _tsn_session)",
                  bg=BG, fg=MUTED, font=("Segoe UI", 8)).pack(anchor="w", pady=(2, 6))
 
         cookie_frame = tk.Frame(opt2, bg=BG)
@@ -241,6 +271,7 @@ class App:
                                  bg=SURFACE2, fg=TEXT, insertbackground=TEXT,
                                  relief="flat", font=("Consolas", 8))
         session_entry.pack(side="left", fill="x", expand=True, ipady=4)
+        session_entry.focus_set()
 
         def _use_cookie():
             val = session_var.get().strip()
@@ -251,15 +282,18 @@ class App:
             win.destroy()
             self._start_fetch_with_cookie(val)
 
-        tk.Button(opt2, text="Use Cookie", bg=GREEN, fg="#000",
+        tk.Button(opt2, text="Use Cookie & Fetch", bg=GREEN, fg="#000",
                   relief="flat", padx=10, pady=3,
                   font=("Segoe UI", 9, "bold"), cursor="hand2",
                   command=_use_cookie).pack(anchor="e", pady=(6, 0))
 
+        sep3 = tk.Frame(win, bg=BORDER, height=1)
+        sep3.pack(fill="x", padx=20, pady=(8, 0))
+
         tk.Button(win, text="Cancel", bg=SURFACE2, fg=MUTED, relief="flat",
                   padx=10, pady=3, font=("Segoe UI", 8), cursor="hand2",
                   command=lambda: [win.destroy(),
-                                   self._set_status("Cancelled", MUTED)]).pack(pady=(4, 0))
+                                   self._set_status("Cancelled", MUTED)]).pack(pady=(6, 0))
 
     def _start_fetch_with_cookie(self, session_value: str):
         if self.running:
@@ -277,14 +311,10 @@ class App:
     def _fetch_done(self, success: bool):
         self.running = False
         self.btn.configure(state="normal", text="  Refresh Live Data  ", bg=BLUE)
-        if success:
-            self._set_status("Done — tracker updated", GREEN)
-            self._log("\n── Fetch complete ──────────────────────\n", "ok")
-            self.open_btn.configure(state="normal")
-            self._open_html()
-        else:
-            self._set_status("Fetch failed — see log above", RED)
-            self._log("\n── Fetch failed ────────────────────────\n", "err")
+        self._set_status("Done — tracker updated", GREEN)
+        self._log("\n── Fetch complete ──────────────────────\n", "ok")
+        self.open_btn.configure(state="normal")
+        self._open_html()
 
     def _open_html(self):
         if os.path.exists(HTML_OUT):

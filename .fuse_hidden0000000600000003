@@ -1469,7 +1469,7 @@ function buildJoltData() {
     for (const m of (progs['Color Storm'] || [])) {
       const parts = m.p.split('/');
       const total = parseInt((parts[1] || '').trim(), 10);
-      if (total === 500 && !m.t.includes(': Part')) {
+      if (total === 500 && \!m.t.includes(': Part')) {
         const name = m.t.replace(/^w\/\s*/, '');
         const dm = (m.d || '').match(_JOLT_NAME_PAT);
         const fullname = dm ? dm[1].trim() : name;
