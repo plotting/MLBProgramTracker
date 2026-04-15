@@ -231,7 +231,7 @@ class App:
                  font=("Segoe UI", 9, "bold")).pack(anchor="w")
         tk.Label(opt1,
                  text="Open mlb26.theshow.com, log in (or just visit the page if already logged in),\n"
-                      "then click Retry. Chrome must be open so fresh cookies can be read.",
+                      "then click Retry. Your browser must be open so fresh cookies can be read.",
                  bg=BG, fg=MUTED, font=("Segoe UI", 8)).pack(anchor="w", pady=(2, 6))
 
         btn_row1 = tk.Frame(opt1, bg=BG)
@@ -259,7 +259,7 @@ class App:
                  font=("Segoe UI", 9, "bold")).pack(anchor="w")
         tk.Label(opt2,
                  text="Paste your _tsn_session cookie directly:\n"
-                      "(Chrome: F12 → Application → Cookies → mlb26.theshow.com → _tsn_session)",
+                      "(F12 → Application/Storage → Cookies → mlb26.theshow.com → _tsn_session)",
                  bg=BG, fg=MUTED, font=("Segoe UI", 8)).pack(anchor="w", pady=(2, 6))
 
         cookie_frame = tk.Frame(opt2, bg=BG)

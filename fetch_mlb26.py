@@ -270,20 +270,59 @@ def read_chrome_cookies(domain: str) -> dict[str, str]:
                     results[name] = val
     return results
 
+def read_firefox_cookies(domain: str) -> dict[str, str]:
+    """Read cookies from Firefox (unencrypted). Works on Windows/macOS/Linux."""
+    import glob, platform
+    system = platform.system()
+    if system == "Windows":
+        base = os.path.join(os.environ.get("APPDATA",""), "Mozilla","Firefox","Profiles")
+    elif system == "Darwin":
+        base = os.path.expanduser("~/Library/Application Support/Firefox/Profiles")
+    else:
+        base = os.path.expanduser("~/.mozilla/firefox")
+    cookie_paths = (
+        glob.glob(os.path.join(base, "*.default*", "cookies.sqlite")) +
+        glob.glob(os.path.join(base, "*.default-release", "cookies.sqlite"))
+    )
+    results: dict[str, str] = {}
+    for cookie_db in cookie_paths:
+        if not os.path.exists(cookie_db): continue
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
+        tmp.close()
+        try:
+            shutil.copy2(cookie_db, tmp.name)
+            con = sqlite3.connect(tmp.name)
+            con.row_factory = sqlite3.Row
+            rows = con.execute(
+                "SELECT name, value FROM moz_cookies WHERE host LIKE ? OR host LIKE ?",
+                (f"%{domain}%", f"%.{domain}%")
+            ).fetchall()
+            con.close()
+            for row in rows:
+                if row["value"]: results[row["name"]] = row["value"]
+        except Exception: pass
+        finally:
+            try: os.unlink(tmp.name)
+            except Exception: pass
+    return results
+
+
+def read_browser_cookies(domain: str) -> dict[str, str]:
+    """Try Chrome/Edge/Brave first, then Firefox. Returns merged results."""
+    cookies = read_chrome_cookies(domain)
+    if not cookies.get("_tsn_session") and not cookies.get("tsn_token"):
+        ff = read_firefox_cookies(domain)
+        if ff: cookies.update(ff)
+    return cookies
+
+
 def _is_browser_running() -> bool:
-    """Check if Chrome or Edge is running."""
+    """Check if Chrome, Edge, Brave, or Firefox is running."""
+    browsers = ["chrome.exe", "msedge.exe", "brave.exe", "firefox.exe"]
     try:
-        out = subprocess.run(
-            ["tasklist", "/FI", "IMAGENAME eq chrome.exe", "/NH"],
-            capture_output=True, text=True, timeout=5
-        ).stdout
-        if "chrome.exe" in out.lower():
-            return True
-        out2 = subprocess.run(
-            ["tasklist", "/FI", "IMAGENAME eq msedge.exe", "/NH"],
-            capture_output=True, text=True, timeout=5
-        ).stdout
-        return "msedge.exe" in out2.lower()
+        out = subprocess.run(["tasklist","/NH"],
+            capture_output=True, text=True, timeout=5).stdout.lower()
+        return any(b in out for b in browsers)
     except Exception:
         return False
 
@@ -293,9 +332,9 @@ def _manual_paste_flow(cookies: dict) -> dict:
     print()
     print("  ─────────────────────────────────────────────────────────")
     print("  Manual cookie entry:")
-    print("  1. Open Chrome/Edge and go to https://mlb26.theshow.com")
+    print("  1. Open your browser and go to https://mlb26.theshow.com")
     print("  2. Log in if needed")
-    print("  3. Press F12 -> Application tab -> Cookies -> mlb26.theshow.com")
+    print("  3. Press F12 -> Application/Storage tab -> Cookies -> mlb26.theshow.com")
     print("  4. Click the '_tsn_session' row and copy its VALUE")
     print("  ─────────────────────────────────────────────────────────")
     val = input("  Paste _tsn_session value here: ").strip()
@@ -386,8 +425,8 @@ def get_auth() -> dict[str, str]:
         return cached
 
     # 3. Read from Chrome/Edge
-    print("Checking Chrome/Edge for mlb26.theshow.com cookies...")
-    cookies = read_chrome_cookies("mlb26.theshow.com")
+    print("Checking browsers for mlb26.theshow.com cookies...")
+    cookies = read_browser_cookies("mlb26.theshow.com")
     session = cookies.get("_tsn_session", "")
     token   = cookies.get("tsn_token", "")
 
@@ -399,23 +438,23 @@ def get_auth() -> dict[str, str]:
     # 4/5. Cookie read failed
     if _is_browser_running():
         print()
-        print("  Chrome/Edge is running and has locked the cookie database.")
+        print("  Your browser may have locked the cookie database.")
         if NON_INTERACTIVE:
             # Non-interactive: try stale cache before giving up
             stale = _load_cookie_cache_any()
             if stale:
-                print("  Using stale cached cookies (Chrome locked, non-interactive).")
+                print("  Using stale cached cookies (browser locked, non-interactive).")
                 return stale
-            sys.exit("ERROR: Cannot read cookies — Chrome is running and no cache available. "
-                     "Close Chrome and re-run, or launch the tracker manually once to cache cookies.")
+            sys.exit("ERROR: Cannot read cookies — browser locked and no cache available. "
+                     "Close your browser and re-run, or launch the tracker manually once to cache cookies.")
         print()
         print("  Choose an option:")
-        print("  [1] Close Chrome/Edge now, then press Enter to retry (recommended)")
+        print("  [1] Close your browser now, then press Enter to retry (recommended)")
         print("  [2] Paste the cookie value manually")
         choice = input("  Your choice [1/2]: ").strip()
         if choice != "2":
-            input("  Close Chrome/Edge, then press Enter here... ")
-            cookies = read_chrome_cookies("mlb26.theshow.com")
+            input("  Close your browser, then press Enter here... ")
+            cookies = read_browser_cookies("mlb26.theshow.com")
             session = cookies.get("_tsn_session", "")
             token   = cookies.get("tsn_token", "")
             if session or token:
@@ -424,7 +463,7 @@ def get_auth() -> dict[str, str]:
                 return cookies
             print("  Still not found. Falling back to manual entry.")
     else:
-        print("  Not found in Chrome/Edge.")
+        print("  Not found in any browser.")
         if NON_INTERACTIVE:
             stale = _load_cookie_cache_any()
             if stale:
@@ -450,8 +489,9 @@ def _show_usage():
     print("  --cookie 'name=value; name2=value2'  Use specific cookies (skip auto-read)")
     print("  --debug                              Save raw HTML for parser diagnostics")
     print()
-    print("The script auto-reads Chrome/Edge cookies. If Chrome is running and locking")
-    print("the cookie DB, you'll be prompted to close it briefly or paste manually.")
+    print("The script auto-reads cookies from Chrome, Edge, Brave, or Firefox.")
+    print("If your browser is running and locking the cookie DB, you'll be prompted")
+    print("to close it briefly or paste the cookie value manually.")
 
 
 def make_headers(cookies: dict, inertia: bool = False) -> dict:
