@@ -1037,19 +1037,30 @@ for (const [div, teams] of Object.entries(D.divisions)) {
   h.textContent = div;
   sidebar.appendChild(h);
   for (const team of teams) {
-    if (!D.missions[team]) continue;
+    if (\!D.missions[team]) continue;
     const csMiss = (D.missions[team]['Color Storm'] || []);
     const mjMiss = (D.missions[team]['My Journey']  || []);
-    const fK = function(n){ return n >= 1000 ? Math.round(n/1000)+'k' : String(n); };
-    const mjXpDone  = mjMiss.reduce(function(s,m){ return s + (m.pct >= 100 ? (parseInt(m.r)||0) : 0); }, 0);
-    const mjXpTotal = mjMiss.reduce(function(s,m){ return s + (parseInt(m.r)||0); }, 0);
-    const taPct  = mjXpTotal > 0 ? Math.round(mjXpDone / mjXpTotal * 100) : 0;
-    const fanMiss = csMiss.filter(function(m){ var k = fanStatKey(m); return k && k !== 'XP'; });
+    // Team Affinity %: non-fan-stat missions across both programs
+    const taAll  = csMiss.filter(function(m){ return \!fanStatKey(m); }).concat(mjMiss);
+    const taDone = taAll.filter(function(m){ return m.pct >= 100; }).length;
+    const taPct  = taAll.length ? Math.round(taDone / taAll.length * 100) : 0;
+    // #1 Fan %: average pct of fan-stat missions
+    const fanMiss = csMiss.filter(function(m){ return fanStatKey(m); });
     const fanPct  = fanMiss.length
       ? Math.round(fanMiss.reduce(function(s,m){ return s + m.pct; }, 0) / fanMiss.length)
       : 0;
+    // XP sub-line: Part V mission cur/total
+    const xpMiss = fanMiss.filter(function(m){ return fanStatKey(m) === 'XP'; });
     let xpLine = '';
-    if (taPct < 100 && mjXpTotal > 0) { xpLine = fK(mjXpDone) + '/' + fK(mjXpTotal); }
+    if (xpMiss.length) {
+      const xpPts = xpMiss[0].p.split('/');
+      const xpCur = parseInt(xpPts[0], 10);
+      const xpTot = parseInt((xpPts[1] || '').split(' ')[0], 10);
+      if (\!isNaN(xpCur) && \!isNaN(xpTot) && xpTot > 0) {
+        const fK = function(n){ return n >= 1000 ? Math.round(n/1000)+'k' : String(n); };
+        xpLine = fK(xpCur) + '/' + fK(xpTot);
+      }
+    }
     const c1       = D.colors[team] ? D.colors[team][0] : '#3b9edd';
     const taColor  = progColor(taPct);
     const fanColor = progColor(fanPct);
@@ -1521,19 +1532,16 @@ function joltCell(card, tag) {
   const pos = card.fullname ? (JOLT_POS[card.fullname] || '') : '';
   const posBadge = pos ? '<span style="font-size:8px;background:rgba(255,255,255,0.1);color:var(--muted);border-radius:3px;padding:0 3px;margin-left:4px;vertical-align:middle">' + pos + '</span>' : '';
   const tagBadge = tag ? '<span style="font-size:8px;color:var(--muted);margin-left:4px;text-transform:uppercase;letter-spacing:.5px">' + tag + '</span>' : '';
-  const owned = card.fullname ? invMap.get(card.fullname) : null;
-  const ownBadge = owned ? '<span title="Card owned" style="font-size:8px;color:#f5c518;margin-left:4px;vertical-align:middle">&#9733;</span>' : '';
-  const ownBg = owned ? ';background:linear-gradient(135deg,var(--surface) 0%,rgba(245,197,24,0.07) 100%)' : '';
   if (isDone) {
-    return '<td class="ag-td ag-done" style="position:relative' + ownBg + '">'
-      + '<div style="font-size:10px;font-weight:600;color:#22c55e">' + card.name + posBadge + tagBadge + ownBadge + '</div>'
+    return '<td class="ag-td ag-done">'
+      + '<div style="font-size:10px;font-weight:600;color:#22c55e">' + card.name + posBadge + tagBadge + '</div>'
       + '<div class="ag-check" style="font-size:11px">&#10003; 500 XP</div>'
       + '</td>';
   }
   const isZero = card.pct === 0;
   const barBg = isZero ? 'rgba(255,255,255,0.06)' : 'linear-gradient(90deg,rgba(255,255,255,0.05) 0%,' + color + ' 100%)';
-  return '<td class="ag-td' + (isZero ? ' ag-zero' : '') + '" style="position:relative' + ownBg + '">'
-    + '<div style="font-size:10px;font-weight:600;color:' + (isZero ? 'var(--muted)' : color) + '">' + card.name + posBadge + tagBadge + ownBadge + '</div>'
+  return '<td class="ag-td' + (isZero ? ' ag-zero' : '') + '">'
+    + '<div style="font-size:10px;font-weight:600;color:' + (isZero ? 'var(--muted)' : color) + '">' + card.name + posBadge + tagBadge + '</div>'
     + '<div class="ag-prog-txt" style="color:' + (isZero ? 'var(--muted)' : color) + ';font-size:10px">' + card.cur + '/500</div>'
     + '<div class="ag-bar-track"><div class="ag-bar-fill" style="width:' + Math.min(card.pct, 100) + '%;background:' + barBg + '"></div></div>'
     + '</td>';
