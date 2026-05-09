@@ -423,12 +423,24 @@ html_parts.append(data_json)
 html_parts.append(''';
 
 // ── Inventory (localStorage + API pre-seed) ────────────────────────────────
-let inventory = JSON.parse(localStorage.getItem('mlb26_inv') || '[]');
+// `inventory` is a flat string[] of player names (used by missionHasOwnedPlayer,
+// getMatchedPlayer, addPlayer, removePlayer). D.inventory may now contain
+// {name,pos,positions,series} objects from the new fetcher, and a previous
+// run on this machine may have cached those objects into localStorage by mistake.
+// Normalise both sources to strings so .toLowerCase() / .includes() can't blow up.
+function _normInv(arr) {
+  return (arr || [])
+    .map(function(p) { return typeof p === 'string' ? p : (p && p.name) || ''; })
+    .filter(Boolean);
+}
+let inventory = _normInv(JSON.parse(localStorage.getItem('mlb26_inv') || '[]'));
 // If the fetch script pulled the player inventory and localStorage is empty, seed it
 if (!inventory.length && D.inventory && D.inventory.length) {
-  inventory = D.inventory.slice();
+  inventory = _normInv(D.inventory);
   localStorage.setItem('mlb26_inv', JSON.stringify(inventory));
 }
+// Re-save if we just normalised away bad cached objects
+if (inventory.length) localStorage.setItem('mlb26_inv', JSON.stringify(inventory));
 function saveInv() { localStorage.setItem('mlb26_inv', JSON.stringify(inventory)); }
 function missionHasOwnedPlayer(title) {
   const t = title.toLowerCase();
